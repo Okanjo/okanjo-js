@@ -37,9 +37,13 @@
  */
 
 var gulp = require('gulp'),
+    awspublish = require('gulp-awspublish'),
     bower = require('gulp-bower'),
+    bump = require('gulp-bump'),
     concat = require('gulp-concat'),
     fileinclude = require('gulp-file-include'),
+    filter = require('gulp-filter'),
+    git = require('gulp-git'),
     insert = require('gulp-insert'),
     jshint = require('gulp-jshint'),
     less = require('gulp-less'),
@@ -47,8 +51,10 @@ var gulp = require('gulp'),
     minifyHTML = require('gulp-minify-html'),
     notify = require('gulp-notify'),
     rename = require('gulp-rename'),
+    replace = require('gulp-replace'),
     size = require('gulp-size'),
     sourcemaps = require('gulp-sourcemaps'),
+    tagVersion = require('gulp-tag-version'),
     uglify = require('gulp-uglify'),
     umd = require('gulp-umd'),
     wrap = require('gulp-wrap'),
@@ -97,6 +103,26 @@ var gulp = require('gulp'),
     bundleSources = [
         'dist/okanjo.js',
         'dist/okanjo-templates.js'
+    ],
+
+    versionFiles = [
+        'package.json',
+        'bower.json'
+    ],
+
+    deployFiles = [
+        'dist/okanjo.js',
+        'dist/okanjo.min.js',
+        'dist/okanjo.min.js.map',
+
+        'dist/okanjo-bundle.js',
+        'dist/okanjo-bundle.min.js',
+        'dist/okanjo-bundle.min.js.map',
+
+        'dist/okanjo-templates.js',
+        'dist/okanjo-templates.min.js',
+        'dist/okanjo-templates.min.js.map'
+
     ];
 
 //
@@ -181,6 +207,12 @@ gulp.task('bundle', ['min', 'templatesjs'], function() {
         }));
 });
 
+gulp.task('fix-maps', ['bundle'], function() {
+    return gulp.src('dist/*.min.js')
+        .pipe(replace(/sourceMappingURL=\.\.\/dist\//, 'sourceMappingURL='))
+        .pipe(gulp.dest('dist'));
+});
+
 //
 // TEMPLATES ===========================================================================================================
 //
@@ -236,16 +268,114 @@ gulp.task('templatesjs', ['join-templates'], function() {
         .pipe(gulp.dest('dist'))
 });
 
+// TODO - add separate builds for each individual widget instead of the complete okanjo.js package
 
-// TODO - add separate builds for each individual widget instead of the bundle okanjo.js
+//
+// DEPLOY
+//
+
+gulp.task('pre-deploy-bump', function() {
+    return gulp.src(versionFiles)
+
+        // Bump build version
+        .pipe(bump({ type: 'patch', key: 'version' }))
+        .pipe(gulp.dest('./'))
+
+        // Tag git repo "release"
+        .pipe(git.commit('Bumped release version'))
+        .pipe(filter('package.json'))
+        .pipe(tagVersion());
+});
+
+gulp.task('deploy-s3-latest', function() {
+
+    var publisher = awspublish.create(require('./aws-credentials.json'));
+
+    return gulp.src(deployFiles)
+
+        // Deploy to Amazon S3 LATEST
+        .pipe(rename(function(path) {
+            path.dirname += '/js/latest';
+        }))
+        .pipe(publisher.publish({
+            'Cache-Control': 'max-age=315360000, no-transform, public'
+        }))
+        .pipe(awspublish.reporter());
+
+});
+
+gulp.task('deploy-s3-latest-gz', function() {
+
+    var publisher = awspublish.create(require('./aws-credentials.json'));
+
+    return gulp.src(deployFiles)
+
+        // Deploy to Amazon S3 LATEST
+        .pipe(rename(function(path) {
+            path.dirname += '/js/latest';
+        }))
+        .pipe(awspublish.gzip({ ext: '.gz' }))
+        .pipe(publisher.publish({
+            'Cache-Control': 'max-age=315360000, no-transform, public'
+        }))
+        .pipe(awspublish.reporter())
+
+});
+
+gulp.task('deploy-s3-version', function() {
+
+    var publisher = awspublish.create(require('./aws-credentials.json'));
+
+    return gulp.src(deployFiles)
+
+        // Deploy to Amazon S3 versioned directory
+        .pipe(rename(function(path) {
+            path.dirname += '/js/v' + require('./package.json').version;
+        }))
+        .pipe(publisher.publish({
+            'Cache-Control': 'max-age=315360000, no-transform, public'
+        }))
+        .pipe(awspublish.reporter());
+
+});
+
+gulp.task('deploy-s3-version-gz', function() {
+
+    var publisher = awspublish.create(require('./aws-credentials.json'));
+
+    return gulp.src(deployFiles)
+
+        // Deploy to Amazon S3 versioned directory
+        .pipe(rename(function(path) {
+            path.dirname += '/js/v' + require('./package.json').version;
+        }))
+        .pipe(awspublish.gzip({ ext: '.gz' }))
+        .pipe(publisher.publish({
+            'Cache-Control': 'max-age=315360000, no-transform, public'
+        }))
+        .pipe(awspublish.reporter());
+
+});
+
+//gulp.task('deploy-packages', function() {
+//    // NPM Publish
+//    // Bower Publish
+//    return null;
+//});
+
 
 
 gulp.task('watch', function() {
-    gulp.watch(['src/*.js', 'lib/*.js', 'lib/polyfill/*.js', 'lib/vendor.js.tpl'], ['lint', 'min', 'bundle']);
+    gulp.watch(['src/*.js', 'lib/*.js', 'lib/polyfill/*.js', 'lib/vendor.js.tpl'], ['lint', 'min', 'bundle', 'fix-maps']);
 });
 
 gulp.task('watch-templates', function() {
-    gulp.watch(['templates/*.js', 'templates/*.mustache', 'templates/*.less'], ['templatesjs']);
+    gulp.watch(['templates/*.js', 'templates/*.mustache', 'templates/*.less'], ['templatesjs', 'fix-maps']);
 });
 
-gulp.task('default', ['lint', 'min', 'templatesjs', 'bundle', 'watch', 'watch-templates']);
+
+
+gulp.task('default', ['lint', 'min', 'templatesjs', 'bundle', 'fix-maps', 'watch', 'watch-templates']);
+
+gulp.task('deploy-s3', ['deploy-s3-latest', 'deploy-s3-version', 'deploy-s3-latest-gz', 'deploy-s3-version-gz']);
+gulp.task('deploy', ['pre-deploy-bump', 'deploy-s3']);
