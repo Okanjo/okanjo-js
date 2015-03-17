@@ -27,6 +27,7 @@
             if ( !ro && (!this.readyState || this.readyState == 'complete') ) { ro = true; callback && callback(); }
         };
 
+//        o.src = 'https://cdn.okanjo.com/js/latest/okanjo-bundle.min.js';
         o.src = '../dist/okanjo-bundle.min.js';
 
         es.appendChild(o); es.appendChild(t);

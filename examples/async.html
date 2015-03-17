@@ -30,8 +30,12 @@
             if ( !rt && (!this.readyState || this.readyState == 'complete') ) { rt = true; callback && callback(); }
         };
 
-        o.src = 'https://cdn.okanjo.com/js/okanjo.min.js';
-        t.src = 'https://cdn.okanjo.com/js/okanjo-templates.min.js';
+        o.src = '../dist/okanjo.min.js';
+        t.src = '../dist/okanjo-templates.min.js';
+
+//        // Live versions
+//        o.src = 'https://cdn.okanjo.com/js/latest/okanjo.min.js';
+//        t.src = 'https://cdn.okanjo.com/js/latest/okanjo-templates.min.js';
 
         es.appendChild(o); es.appendChild(t);
 

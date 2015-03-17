@@ -298,8 +298,8 @@ gulp.task('deploy-s3-latest', function() {
             path.dirname += '/js/latest';
         }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=315360000, no-transform, public'
-        }))
+            'Cache-Control': 'max-age=3600, no-transform, public'
+        }, { force: true }))
         .pipe(awspublish.reporter());
 
 });
@@ -316,8 +316,8 @@ gulp.task('deploy-s3-latest-gz', function() {
         }))
         .pipe(awspublish.gzip({ ext: '.gz' }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=315360000, no-transform, public'
-        }))
+            'Cache-Control': 'max-age=3600, no-transform, public'
+        }, { force: true }))
         .pipe(awspublish.reporter())
 
 });
@@ -333,8 +333,8 @@ gulp.task('deploy-s3-version', function() {
             path.dirname += '/js/v' + require('./package.json').version;
         }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=315360000, no-transform, public'
-        }))
+            'Cache-Control': 'max-age=3600, no-transform, public'
+        }, { force: true }))
         .pipe(awspublish.reporter());
 
 });
@@ -351,8 +351,8 @@ gulp.task('deploy-s3-version-gz', function() {
         }))
         .pipe(awspublish.gzip({ ext: '.gz' }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=315360000, no-transform, public'
-        }))
+            'Cache-Control': 'max-age=3600, no-transform, public'
+        }, { force: true }))
         .pipe(awspublish.reporter());
 
 });

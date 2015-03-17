@@ -83,12 +83,8 @@
             // Make sure that we have the templates necessary to render Product
             this.ensureTemplates();
 
-            console.log('key', this.key);
-
             // Parse the final widget instance configuration
             this.parseConfiguration();
-
-            console.log('key after', this.key);
 
             // Check if the product ID is set or is running in single mode
             if (this.config.id || this.config.mode == this.modes.single) {
