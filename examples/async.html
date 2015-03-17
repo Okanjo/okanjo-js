@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<h1>Async Usage</h1>
+<p>Load Okanjo dynamically, during or after page load.</p>
+<div id="product-target"></div>
+<script>
+
+    /**
+     * Okanjo Async Loader
+     */
+    (function(callback) {
+
+        var d = document,
+            es = d.getElementsByTagName('script')[0],
+            o = d.createElement('script'), t = d.createElement('script'),
+            ro = false, rt = false;
+
+        o.type = t.type = 'text/javascript';
+        o.async = t.async = false; // <-- templates need to load after okanjo does, so either bundle both or do this
+        o.onload = o.onreadystatechange = function() {
+            if ( !ro && (!this.readyState || this.readyState == 'complete') ) { ro = true; }
+        };
+
+        t.onload = t.onreadystatechange = function() {
+            if ( !rt && (!this.readyState || this.readyState == 'complete') ) { rt = true; callback && callback(); }
+        };
+
+        o.src = 'https://cdn.okanjo.com/js/okanjo.min.js';
+        t.src = 'https://cdn.okanjo.com/js/okanjo-templates.min.js';
+
+        es.appendChild(o); es.appendChild(t);
+
+    }).call(window, function() {
+
+                // Set global widget key
+                okanjo.key = "PUT_YOUR_WIDGET_KEY_HERE";
+
+                // Create an element to load some products into and identify the page element it reside
+                var test = document.createElement("div"),
+                    container = document.getElementById('product-target');
+
+                // Customize some properties
+                test.setAttribute('data-mode', 'browse');
+                test.setAttribute('data-take', '6');
+                test.id = 'test-browse';
+
+                // Stick our element on the DOM
+                container.appendChild(test);
+
+                // Or use the options of the Product widget constructor to assign options
+                window.ps = new okanjo.Product(test, { mode: 'browse', take: 6 });
+
+            });
+
+</script>
+</body>
+</html>

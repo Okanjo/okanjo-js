@@ -1,0 +1,69 @@
+.okanjo-product-block {
+
+    .okanjo-product-list {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    .okanjo-product {
+//        float: left;
+//        min-width: 130px;
+//        max-width: 200px;
+        width: 150px;
+        overflow: hidden;
+        text-align: center;
+        border: solid 1px #ccc;
+        padding: .5em;
+        display: inline-block;
+        margin: 0 0.1em;
+        box-shadow: 1px 1px 1px 1px rgb(238, 238, 238);
+    }
+
+    .okanjo-product-image-container {
+        height: 150px;
+    }
+
+    .okanjo-product-image {
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .okanjo-product-title-container {
+//        padding: 0 .5em;
+        margin: .5em .5em;
+        height: 4em; // I like 3 better but the web likes 4
+        overflow: hidden;
+        vertical-align: middle;
+    }
+
+    // This gets the product name to center vertically
+    .okanjo-product-title-container:before {
+        content: "";
+        display: inline-block;
+        height: 100%;
+        vertical-align: middle;
+//        margin-right: -0.25em; // IDK about this,
+    }
+
+    .okanjo-product-title {
+//        margin: auto;
+//        margin-right: -0.25em;
+        vertical-align: middle;
+        display: inline-block;
+    }
+
+//    .okanjo-product-price-container {
+//        padding: 0.5em 0 0;
+//    }
+
+    .okanjo-product-meta {
+        height: 0;
+        width: 0;
+        text-indent: -100%;
+    }
+}
+
+
+
+
+

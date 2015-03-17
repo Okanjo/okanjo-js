@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Bundle</title>
+</head>
+<body>
+<h1>Okanjo Bundle</h1>
+<p>Use the <code>okanjo-bundle.js</code> to include both the default set of templates and core library in one include.</p>
+
+<h2>Simple Browse Bundle</h2>
+<div id="i-want-products-here" data-take="10"></div>
+
+<script src="../dist/okanjo-bundle.js" crossorigin="anonymous"></script>
+<script>
+
+    // Simple load
+    var p = new okanjo.Product(document.getElementById('i-want-products-here'), { key: 'AKxio8QiZ2VCk4GVhXiX9mCbyIoTY3faLTiTVPGBGCy' });
+
+
+</script>
+</body>
+</html>

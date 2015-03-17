@@ -1,0 +1,32 @@
+{
+  "name": "okanjo",
+  "main": "build/okanjo.js",
+  "version": "0.1.0",
+  "authors": [
+    "Okanjo Partners Inc"
+  ],
+  "description": "Okanjo JavaScript Widget Framework",
+  "keywords": [
+    "Okanjo",
+    "Ecommerce",
+    "Marketplace",
+    "Ads",
+    "AdCommerce",
+    "ProductSense"
+  ],
+  "license": "MIT",
+  "homepage": "http://okanjo.com",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "qwery": "^3.4.2",
+    "browser-jsonp": "~1.0.8",
+    "mustache.js": "~1.1.0",
+    "raven-js": "~1.1.17"
+  }
+}

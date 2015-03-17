@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<h1>Simple Usage</h1>
+<p>Loads up 10 products. Access the widget contexts by using the global variable: <code>p</code></p>
+<div class="i-want-products-here" data-take="10"></div>
+<script src="../dist/okanjo.js" crossorigin="anonymous"></script>
+<script src="../dist/okanjo-templates.js" crossorigin="anonymous"></script>
+<script>
+
+    okanjo.key = 'PUT_YOUR_WIDGET_KEY_HERE';
+
+    // Attach a product widget on the elements with arbitrary class
+    var targets = document.getElementsByClassName('i-want-products-here'), i = 0, p = [];
+    for ( ; i < targets.length; i++) {
+        p.push(new okanjo.Product(targets[i]));
+    }
+
+    // Could just do a single element by ID if you wanted
+    // var p = new okanjo.Product(document.getElementById('my-product-container'));
+
+
+</script>
+</body>
+</html>

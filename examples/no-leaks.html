@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Leaks Test</title>
+</head>
+<body>
+<h1>Check the console</h1>
+<p>There should be no new reported keys on the DOM except for <code>window.okanjo</code>, e.g. "No Conflict".</p>
+<script>
+    var oldKeys = Object.keys(window);
+</script>
+<script src="../dist/okanjo.js" crossorigin="anonymous"></script>
+<script src="../dist/okanjo-templates.js" crossorigin="anonymous"></script>
+<script>
+    (function compare() {
+        var newKeys = Object.keys(window);
+        for(var i = 0; i < newKeys.length; i++) {
+            var key = newKeys[i];
+            if (oldKeys.indexOf(key) < 0) {
+                console.log(' > Window has new key:', key, window[key]);
+            }
+        }
+    })();
+</script>
+</body>
+</html>

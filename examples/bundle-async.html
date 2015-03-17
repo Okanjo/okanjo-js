@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Bundle</title>
+</head>
+<body>
+<h1>Okanjo Async Bundle</h1>
+<p>Use the <code>okanjo-bundle.js</code> to include both the default set of templates and core library in one include.</p>
+
+<h2>Async Bundle</h2>
+<div id="i-want-async-products-here"></div>
+
+<script>
+
+    // Async load
+    (function(callback) {
+
+        var d = document,
+                es = d.getElementsByTagName('script')[0],
+                o = d.createElement('script'), t = d.createElement('script'),
+                ro = false;
+
+        o.type = t.type = 'text/javascript';
+        o.async = t.async = true; // <-- bundle can be async :D
+        o.onload = o.onreadystatechange = function() {
+            if ( !ro && (!this.readyState || this.readyState == 'complete') ) { ro = true; callback && callback(); }
+        };
+
+        o.src = '../dist/okanjo-bundle.min.js';
+
+        es.appendChild(o); es.appendChild(t);
+
+    }).call(window, function() {
+
+                // Set global widget key
+                okanjo.key = "PUT_YOUR_WIDGET_KEY_HERE";
+
+                // Create an element to load some products into and identify the page element it reside
+                var test = document.createElement("div"),
+                        container = document.getElementById('i-want-async-products-here');
+
+                // Customize some properties
+                test.setAttribute('data-mode', 'browse');
+                test.setAttribute('data-take', '6');
+                test.id = 'test-browse';
+
+                // Stick our element on the DOM
+                container.appendChild(test);
+
+                // Or use the options of the Product widget constructor to assign options
+                window.ps = new okanjo.Product(test, { mode: 'browse', take: 6 });
+
+            });
+
+
+</script>
+</body>
+</html>
