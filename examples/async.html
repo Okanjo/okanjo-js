@@ -16,28 +16,30 @@
     (function(callback) {
 
         var d = document,
-            es = d.getElementsByTagName('script')[0],
+            h = d.getElementsByTagName('head')[0],
             o = d.createElement('script'), t = d.createElement('script'),
             ro = false, rt = false;
 
         o.type = t.type = 'text/javascript';
-        o.async = t.async = false; // <-- templates need to load after okanjo does, so either bundle both or do this
+        o.setAttribute('crossorigin', "anonymous");
+        t.setAttribute('crossorigin', "anonymous");
+        o.async = t.async = true; // <-- templates need to load after okanjo does, so either bundle both or do this
         o.onload = o.onreadystatechange = function() {
-            if ( !ro && (!this.readyState || this.readyState == 'complete') ) { ro = true; }
+            if ( !ro && (!this.readyState || this.readyState == 'complete' || this.readyState == 'loaded') ) {
+                ro = true;
+                t.onload = t.onreadystatechange = function() {
+                    //noinspection JSPotentiallyInvalidUsageOfThis
+                    if ( !rt && (!this.readyState || this.readyState == 'complete' || this.readyState == 'loaded') ) {
+                        callback && callback();
+                    }
+                };
+                t.src = '../dist/okanjo-templates.js';
+                h.appendChild(t);
+            }
         };
 
-        t.onload = t.onreadystatechange = function() {
-            if ( !rt && (!this.readyState || this.readyState == 'complete') ) { rt = true; callback && callback(); }
-        };
-
-        o.src = '../dist/okanjo.min.js';
-        t.src = '../dist/okanjo-templates.min.js';
-
-//        // Live versions
-//        o.src = 'https://cdn.okanjo.com/js/latest/okanjo.min.js';
-//        t.src = 'https://cdn.okanjo.com/js/latest/okanjo-templates.min.js';
-
-        es.appendChild(o); es.appendChild(t);
+        o.src = '../dist/okanjo.js';
+        h.appendChild(o);
 
     }).call(window, function() {
 

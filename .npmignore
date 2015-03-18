@@ -1,5 +1,8 @@
 .idea
 node_modules
-test/
 build/
+test/
+lib/mustache.js
+lib/qwery
+lib/raven-js
 aws-credentials.json

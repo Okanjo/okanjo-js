@@ -3,7 +3,7 @@
  * index.js
  * @type {okanjo|*}
 */
-    var okanjo = okanjo || (function() {
+    var okanjo = okanjo || window.okanjo || (function() {
 
         var okanjo = {
 
@@ -50,6 +50,7 @@
              * @param {function(err:*, res:*)} callback – Closure to fire when completed
              */
             exec: function(url, data, callback) {
+                data = data || {};
                 okanjo.JSONP({
                     url: url,
                     data: data,

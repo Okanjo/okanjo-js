@@ -78,6 +78,7 @@ var gulp = require('gulp'),
         'src/core.js',
         'src/config.js',
         'src/template.js',
+        'src/jsonp.js',
 
         // Internal dependencies & polyfills
         'lib/polyfill/ie.js',
@@ -99,7 +100,6 @@ var gulp = require('gulp'),
     vendorSources = [
         'lib/qwery/qwery.js',
         'lib/polyfill/domready.js',
-        'lib/browser-jsonp/lib/jsonp.js',
         'lib/mustache.js/mustache.js'
     ],
 
@@ -168,11 +168,11 @@ gulp.task('min', ['vendor'], function() {
             }
         }))
         .pipe(s1)
+        .pipe(insert.prepend(header))
         .pipe(gulp.dest('dist'))
         .pipe(uglify({
             preserveComments: 'some'
         }))
-        .pipe(insert.prepend(header))
         .pipe(rename('okanjo.min.js'))
         .pipe(s2)
         .pipe(sourcemaps.write('../dist', { sourceRoot: './' }))
@@ -262,6 +262,7 @@ gulp.task('templatesjs', ['join-templates'], function() {
         .pipe(sourcemaps.init())
         .pipe(concat('okanjo-templates.js'))
         .pipe(wrap('(function(okanjo) {<%= contents %>})(okanjo);'))
+        .pipe(insert.prepend(header))
         .pipe(gulp.dest('dist'))
         .pipe(uglify({
             preserveComments: 'some'
@@ -377,9 +378,10 @@ gulp.task('watch-templates', function() {
     gulp.watch(['templates/*.js', 'templates/*.mustache', 'templates/*.less'], ['templatesjs', 'fix-maps']);
 });
 
-
-
-gulp.task('default', ['lint', 'min', 'templatesjs', 'bundle', 'fix-maps', 'watch', 'watch-templates']);
+gulp.task('full-build', ['lint', 'min', 'templatesjs', 'bundle', 'fix-maps']);
 
 gulp.task('deploy-s3', ['deploy-s3-latest', 'deploy-s3-version', 'deploy-s3-latest-gz', 'deploy-s3-version-gz']);
 gulp.task('deploy', ['pre-deploy-bump', 'deploy-s3']);
+
+
+gulp.task('default', ['full-build', 'watch', 'watch-templates']);

@@ -2,7 +2,6 @@
 node_modules
 build/
 test/
-lib/browser-jsonp
 lib/mustache.js
 lib/qwery
 lib/raven-js

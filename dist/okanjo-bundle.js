@@ -1,3 +1,4 @@
+/*! okanjo-js v0.2.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -12,7 +13,7 @@
  * index.js
  * @type {okanjo|*}
 */
-    var okanjo = okanjo || (function() {
+    var okanjo = okanjo || window.okanjo || (function() {
 
         var okanjo = {
 
@@ -59,6 +60,7 @@
              * @param {function(err:*, res:*)} callback – Closure to fire when completed
              */
             exec: function(url, data, callback) {
+                data = data || {};
                 okanjo.JSONP({
                     url: url,
                     data: data,
@@ -560,6 +562,165 @@
 
 
 })(okanjo, this);
+
+/*
+
+ Adaptation based on https://github.com/larryosborn/JSONP
+
+ The MIT License (MIT)
+
+ Copyright (c) 2014 Larry Osborn <larry.osborn@gmail.com>
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+
+ */
+(function() {
+    if(this.JSONP) { return; }
+    var JSONP, computedUrl, encode, noop, objectToURI, makeUniqueCallback, head;
+
+    encode = window.encodeURIComponent;
+
+    noop = function() {
+        return void 0;
+    };
+
+    computedUrl = function(params) {
+        var url;
+        url = params.url;
+        url += params.url.indexOf('?') < 0 ? '?' : '&';
+        url += objectToURI(params.data);
+        return url;
+    };
+
+    makeUniqueCallback = function() {
+        JSONP.requestCounter += 1;
+        return (new Date()).getTime() + "_" + JSONP.requestCounter;
+    };
+
+    objectToURI = function(obj) {
+        var data, key, value;
+        data = [];
+        for (key in obj) {
+            //noinspection JSUnfilteredForInLoop
+            value = obj[key];
+            //noinspection JSUnfilteredForInLoop
+            data.push(encode(key) + '=' + encode(value));
+        }
+        return data.join('&');
+    };
+
+    JSONP = function(options) {
+        options = options ? options : {};
+        var callback, done, params, script, timeoutHandle, removeCallback;
+        params = {
+            data: options.data || {},
+            error: options.error || noop,
+            success: options.success || noop,
+            beforeSend: options.beforeSend || noop,
+            complete: options.complete || noop,
+            url: options.url || '',
+            timeout: options.timeout || 30000
+        };
+        params.computedUrl = computedUrl(params);
+        if (params.url.length === 0) {
+            throw new Error('MissingUrl');
+        }
+        done = false;
+        if (params.beforeSend({}, params) !== false) {
+            //noinspection JSUnresolvedVariable
+            callback = params.data[options.callbackName || 'callback'] = '_okanjo_jsonp_' + makeUniqueCallback();
+            window[callback] = function(data) {
+
+                if (timeoutHandle) { clearTimeout(timeoutHandle); }
+                timeoutHandle = null;
+
+                params.success(data, params);
+                params.complete(data, params);
+                removeCallback();
+            };
+
+            removeCallback = function() {
+                try {
+                    return delete window[callback];
+                } catch (_error) {
+                    window[callback] = void 0;
+                    return void 0;
+                }
+            };
+
+            script = window.document.createElement('script');
+            script.src = computedUrl(params);
+            script.async = true;
+
+            timeoutHandle = setTimeout(function() {
+                timeoutHandle = null;
+                var err = new Error("JSONP request did not respond in time!");
+                err.url = (script && script.src) || null;
+                params.error(err);
+                removeCallback();
+                return params.complete(err, params);
+            }, params.timeout);
+
+            script.onerror = function(evt) {
+                if (timeoutHandle) { clearTimeout(timeoutHandle); }
+                params.error({
+                    url: script.src,
+                    event: evt
+                });
+                return params.complete({
+                    url: script.src,
+                    event: evt
+                }, params);
+            };
+
+            script.onload = script.onreadystatechange = function() {
+                console.log(this.readyState);
+                if (!done && (!this.readyState || this.readyState === 'loaded' || this.readyState === 'complete')) {
+                    done = true;
+                    script.onload = script.onreadystatechange = null;
+                    if (script && script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    //jshint -W093
+                    return script = null;
+                    //jshint +W093
+                }
+            };
+
+            head = head || window.document.getElementsByTagName('head')[0] || window.document.documentElement;
+            return head.insertBefore(script, head.firstChild);
+        }
+    };
+
+    JSONP.requestCounter = 0;
+
+    if ((typeof define !== "undefined" && define !== null) && define.amd) {
+        define(function() {
+            return JSONP;
+        });
+    } else if ((typeof module !== "undefined" && module !== null) && module.exports) {
+        module.exports = JSONP;
+    } else {
+        this.JSONP = JSONP;
+    }
+
+}).call(okanjo);
 
 // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys
 if (!Object.keys) {
@@ -1734,116 +1895,6 @@ if (typeof JSON !== 'object') {
 }));
 
 
-(function() {
-  var JSONP, computedUrl, createElement, encode, noop, objectToURI, random, randomString;
-
-  createElement = function(tag) {
-    return window.document.createElement(tag);
-  };
-
-  encode = window.encodeURIComponent;
-
-  random = Math.random;
-
-  JSONP = function(options) {
-    var callback, done, head, params, script;
-    options = options ? options : {};
-    params = {
-      data: options.data || {},
-      error: options.error || noop,
-      success: options.success || noop,
-      beforeSend: options.beforeSend || noop,
-      complete: options.complete || noop,
-      url: options.url || ''
-    };
-    params.computedUrl = computedUrl(params);
-    if (params.url.length === 0) {
-      throw new Error('MissingUrl');
-    }
-    done = false;
-    if (params.beforeSend({}, params) !== false) {
-      callback = params.data[options.callbackName || 'callback'] = 'jsonp_' + randomString(15);
-      window[callback] = function(data) {
-        params.success(data, params);
-        params.complete(data, params);
-        try {
-          return delete window[callback];
-        } catch (_error) {
-          window[callback] = void 0;
-          return void 0;
-        }
-      };
-      script = createElement('script');
-      script.src = computedUrl(params);
-      script.async = true;
-      script.onerror = function(evt) {
-        params.error({
-          url: script.src,
-          event: evt
-        });
-        return params.complete({
-          url: script.src,
-          event: evt
-        }, params);
-      };
-      script.onload = script.onreadystatechange = function() {
-        if (!done && (!this.readyState || this.readyState === 'loaded' || this.readyState === 'complete')) {
-          done = true;
-          script.onload = script.onreadystatechange = null;
-          if (script && script.parentNode) {
-            script.parentNode.removeChild(script);
-          }
-          return script = null;
-        }
-      };
-      head = head || window.document.getElementsByTagName('head')[0] || window.document.documentElement;
-      return head.insertBefore(script, head.firstChild);
-    }
-  };
-
-  noop = function() {
-    return void 0;
-  };
-
-  computedUrl = function(params) {
-    var url;
-    url = params.url;
-    url += params.url.indexOf('?') < 0 ? '?' : '&';
-    url += objectToURI(params.data);
-    return url;
-  };
-
-  randomString = function(length) {
-    var str;
-    str = '';
-    while (str.length < length) {
-      str += random().toString(36)[2];
-    }
-    return str;
-  };
-
-  objectToURI = function(obj) {
-    var data, key, value;
-    data = [];
-    for (key in obj) {
-      value = obj[key];
-      data.push(encode(key) + '=' + encode(value));
-    }
-    return data.join('&');
-  };
-
-  if ((typeof define !== "undefined" && define !== null) && define.amd) {
-    define(function() {
-      return JSONP;
-    });
-  } else if ((typeof module !== "undefined" && module !== null) && module.exports) {
-    module.exports = JSONP;
-  } else {
-    this.JSONP = JSONP;
-  }
-
-}).call(this);
-
 /*!
  * mustache.js - Logic-less {{mustache}} templates with JavaScript
  * http://github.com/janl/mustache.js
@@ -2936,12 +2987,13 @@ if (typeof JSON !== 'object') {
 return okanjo;
 }));
 
+/*! okanjo-js v0.2.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {
     okanjo.mvc.registerCss("okanjo.core", "", { id: 'okanjo-core' });
 
     okanjo.mvc.registerTemplate("okanjo.error", "<span class=okanjo-error>{{ message }}</span> {{#code}} <span class=okanjo-error-code>Reference: {{ code }}</span> {{/code}}", { css: ['okanjo.core'] });
 
-    okanjo.mvc.registerCss("product.block", ".okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0}.okanjo-product-block .okanjo-product{width:150px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:.5em;display:inline-block;margin:0 .1em;box-shadow:1px 1px 1px 1px #eee}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:150px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%}.okanjo-product-block .okanjo-product-title-container{margin:.5em;height:4em;overflow:hidden;vertical-align:middle}.okanjo-product-block .okanjo-product-title-container:before{content:\"\";display:inline-block;height:100%;vertical-align:middle}.lt-ie8.okanjo-product-block .okanjo-product-title-container:before{display:inline;zoom:1}.okanjo-product-block .okanjo-product-title{vertical-align:middle;display:inline-block}.lt-ie8.okanjo-product-block .okanjo-product-title{display:inline;zoom:1}.okanjo-product-block .okanjo-product-meta{height:0;width:0;text-indent:-100%}", { id: 'okanjo-product-block' });
+    okanjo.mvc.registerCss("product.block", ".lt-ie8.okanjo-product-block .okanjo-product-title,.lt-ie8.okanjo-product-block .okanjo-product-title-container:before{zoom:1}.okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0}.okanjo-product-block .okanjo-product{width:150px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:.5em;display:inline-block;margin:0 .1em;box-shadow:1px 1px 1px 1px #eee;background-color:#fff}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:150px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-block .okanjo-product-title-container{margin:.5em;height:4em;overflow:auto;vertical-align:middle}.okanjo-product-block .okanjo-product-title-container:before{content:\"\";display:inline-block;height:100%;vertical-align:middle}.okanjo-product-block .okanjo-product-title{vertical-align:middle;display:inline-block}.okanjo-product-block .okanjo-product-meta{height:0;width:0;text-indent:-100%;overflow:hidden}.lt-ie7.okanjo-product-block .okanjo-product,.lt-ie8.okanjo-product-block .okanjo-product,.lt-ie9.okanjo-product-block .okanjo-product{margin-bottom:.2em}.lt-ie7.okanjo-product-block .okanjo-product-title-container:before,.lt-ie8.okanjo-product-block .okanjo-product-title-container:before,.lt-ie9.okanjo-product-block .okanjo-product-title-container:before{display:block;height:0}.lt-ie7.okanjo-product-block .okanjo-product-title,.lt-ie8.okanjo-product-block .okanjo-product-title,.lt-ie9.okanjo-product-block .okanjo-product-title{display:block}", { id: 'okanjo-product-block' });
 
     okanjo.mvc.registerTemplate("product.block", "<div class=\"okanjo-product-block {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c=ps&n={{now}}&u={{ escaped_buy_url }}\" target=_blank itemprop=url><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div class=okanjo-product-price-container itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price }}</span></div><div class=okanjo-product-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c=ps&n={{now}}\" alt=\"\"> {{! Okanjo impression tracking URL }} {{#impression_url}}<img src=\"{{ impression_url }}\" alt=\"\">{{/impression_url}} {{! Vendor impression tracking URL }} {{#sold_by}}<span itemprop=brand>{{brand}}</span>{{/sold_by}} {{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul></div>", function(data, options) {
         // Ensure params

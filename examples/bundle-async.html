@@ -18,21 +18,22 @@
 
         var d = document,
                 es = d.getElementsByTagName('script')[0],
-                o = d.createElement('script'), t = d.createElement('script'),
+                o = d.createElement('script'),
                 ro = false;
 
-        o.type = t.type = 'text/javascript';
-        o.async = t.async = true; // <-- bundle can be async :D
+        o.type = 'text/javascript';
+        o.async = true; // <-- bundle can be async :D
+        o.setAttribute('crossorigin', "anonymous");
         o.onload = o.onreadystatechange = function() {
-            if ( !ro && (!this.readyState || this.readyState == 'complete') ) { ro = true; callback && callback(); }
+            if ( !ro && (!this.readyState || this.readyState == 'complete' || this.readyState == 'loaded') ) { ro = true; callback && callback(); }
         };
 
-//        o.src = 'https://cdn.okanjo.com/js/latest/okanjo-bundle.min.js';
         o.src = '../dist/okanjo-bundle.min.js';
 
-        es.appendChild(o); es.appendChild(t);
+        es.parentNode.insertBefore(o, es);
 
-    }).call(window, function() {
+    }).call(window,
+            function() {
 
                 // Set global widget key
                 okanjo.key = "PUT_YOUR_WIDGET_KEY_HERE";
