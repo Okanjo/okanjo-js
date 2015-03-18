@@ -109,11 +109,15 @@ You can load the Okanjo widget framework dynamically during or after the page ha
 ```
 
 
-## Building Okanjo-JS
+## Making Your Own Customized Build
+You're more than welcome to build your own customized version of a widget or build your own templates. We want to make it real easy to use and extend our widget framework.
+
+To get started:
  
-1. `git clone https://github.com/Okanjo/okanjo-js.git`
+1. `git clone https://github.com/Okanjo/okanjo-js.git` # (You should make a fork and clone your own repository)
 2. `npm install` # (install build dependencies)
 3. `gulp` # (builds and starts a file watcher; control+c to exit)
+
 
 ### Gulp Build Tasks
 
