@@ -38,6 +38,7 @@
 
 var gulp = require('gulp'),
     path = require('path'),
+    fs = require('fs'),
     awspublish = require('gulp-awspublish'),
     bower = require('gulp-bower'),
     bump = require('gulp-bump'),
@@ -65,11 +66,17 @@ var gulp = require('gulp'),
     // Auto add vendor prefixes in CSS
     autoprefix= new LessPluginAutoPrefix({ browsers: ["> 5%"] }),
 
+    // Header
+    getHeader = function() {
+        var metadata = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+        return '/*! ' + metadata.name + ' v' + metadata.version + ' | (c) 2013 Okanjo Partners Inc | ' + metadata.homepage + ' */\n';
+    },
 
-    // Output script header
-    metadata = require('./package'),
-    header = '/*! ' + metadata.name + ' v' + metadata.version + ' | (c) 2013 Okanjo Partners Inc | ' + metadata.homepage + ' */\n',
-
+    // Version bump + dist update message
+    getVersionCommitMessage = function() {
+        var metadata = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+        return 'Tagged as v' + metadata.version;
+    },
 
     // Global Okanjo sources, dependencies and polyfills
     sources = [
@@ -168,7 +175,7 @@ gulp.task('min', ['vendor'], function() {
             }
         }))
         .pipe(s1)
-        .pipe(insert.prepend(header))
+        .pipe(insert.prepend(getHeader()))
         .pipe(gulp.dest('dist'))
         .pipe(uglify({
             preserveComments: 'some'
@@ -196,7 +203,7 @@ gulp.task('bundle', ['min', 'templatesjs'], function() {
         .pipe(uglify({
             preserveComments: 'some'
         }))
-        .pipe(insert.prepend(header))
+        .pipe(insert.prepend(getHeader()))
         .pipe(rename('okanjo-bundle.min.js'))
         .pipe(s2)
         .pipe(sourcemaps.write('../dist', { sourceRoot: './' }))
@@ -262,12 +269,12 @@ gulp.task('templatesjs', ['join-templates'], function() {
         .pipe(sourcemaps.init())
         .pipe(concat('okanjo-templates.js'))
         .pipe(wrap('(function(okanjo) {<%= contents %>})(okanjo);'))
-        .pipe(insert.prepend(header))
+        .pipe(insert.prepend(getHeader()))
         .pipe(gulp.dest('dist'))
         .pipe(uglify({
             preserveComments: 'some'
         }))
-        .pipe(insert.prepend(header))
+        .pipe(insert.prepend(getHeader()))
         .pipe(rename('okanjo-templates.min.js'))
         .pipe(sourcemaps.write('../dist', { sourceRoot: './' }))
         .pipe(gulp.dest('dist'))
@@ -286,10 +293,42 @@ gulp.task('pre-deploy-bump', function() {
         .pipe(bump({ type: 'patch', key: 'version' }))
         .pipe(gulp.dest('./'))
 
+});
+
+gulp.task('pre-deploy-release', ['pre-deploy-bump', 'full-build'], function() {
+
+    var Stream = require('stream');
+    //function cb(obj) {
+    //    var stream = new Stream.Transform({objectMode: true});
+    //    stream._transform = function(file, unused, callback) {
+    //        obj();
+    //        callback(null, file);
+    //    };
+    //    return stream;
+    //}
+
+    function wait(obj) {
+        var stream = new Stream.Transform({objectMode: true});
+        stream._transform = function(file, unused, callback) {
+            obj(function() {
+                callback(null, file);
+            });
+        };
+        return stream;
+    }
+
+    return gulp.src(versionFiles.slice().concat(deployFiles))
+
         // Tag git repo "release"
-        .pipe(git.commit('Bumped release version'))
+        .pipe(git.commit(getVersionCommitMessage()))
         .pipe(filter('package.json'))
-        .pipe(tagVersion());
+        .pipe(tagVersion({ push: true }))
+        .pipe(wait(function(cb) {
+            git.push('origin','master', {args: " --tags"}, function (err) {
+                if (err) throw err;
+                cb();
+            });
+        }));
 });
 
 gulp.task('deploy-s3-latest', function() {

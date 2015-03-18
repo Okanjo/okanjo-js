@@ -3,6 +3,36 @@
 
 Extensible framework for embedding Okanjo on the web.
 
+## CDN
+Please use the following URLS hosted on our CDN:
+
+### Bundle
+Includes both the widget framework and standard templates. Unless you're using customized templates, you should use these.
+
+```
+https://cdn.okanjo.com/js/latest/okanjo-bundle.js      -- for development
+https://cdn.okanjo.com/js/latest/okanjo-bundle.min.js  -- for production
+```
+
+### Components
+You can also choose to include the framework and templates separately, such as when you use your own set of templates.
+
+```
+https://cdn.okanjo.com/js/latest/okanjo.js      -- for development
+https://cdn.okanjo.com/js/latest/okanjo.min.js  -- for production
+
+https://cdn.okanjo.com/js/latest/okanjo-templates.js      -- for development
+https://cdn.okanjo.com/js/latest/okanjo-templates.min.js  -- for production
+```
+
+### Lock Versions
+You may also choose to lock your version at a specific [release](https://github.com/Okanjo/okanjo-js/releases), for example:
+```
+https://cdn.okanjo.com/js/v0.2.11/okanjo-bundle.js      -- for development
+https://cdn.okanjo.com/js/v0.2.11/okanjo-bundle.min.js  -- for production
+```
+
+
 ## Basic Usage
 TODO
 
