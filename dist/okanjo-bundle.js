@@ -1,4 +1,4 @@
-/*! okanjo-js v0.2.7 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.2.10 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -2987,7 +2987,7 @@ if (typeof JSON !== 'object') {
 return okanjo;
 }));
 
-/*! okanjo-js v0.2.7 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.2.10 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {
     okanjo.mvc.registerCss("okanjo.core", "", { id: 'okanjo-core' });
 
