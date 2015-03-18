@@ -32,12 +32,82 @@ https://cdn.okanjo.com/js/v0.2.11/okanjo-bundle.js      -- for development
 https://cdn.okanjo.com/js/v0.2.11/okanjo-bundle.min.js  -- for production
 ```
 
-
 ## Basic Usage
-TODO
+The simplest way of using the Okanjo widget framework, is to include the bundle and create widget instances on the page load. For example:
+
+```html
+<div id="i-want-a-product-widget-here" data-take="6"></div>
+<script src="https://cdn.okanjo.com/js/latest/okanjo-bundle.min.js" crossorigin="anonymous"></script>
+<script>
+
+    // You can set the global key on the okanjo namespace, or you can set it as an option on the widget constructor
+    okanjo.key = 'PUT_YOUR_WIDGET_KEY_HERE';
+
+    // Load a product widget an element of your choice
+    var p = new okanjo.Product(document.getElementById('i-want-a-product-widget-here'), { /* options, if any */ });
+    
+</script>
+```
+
+And that's it. Pretty simple!
+
 
 ## Asynchronous Usage
-TODO
+You can load the Okanjo widget framework dynamically during or after the page has already loaded. There are many different ways to achieve this, but the simplest can look like this:
+
+```html
+<div id="some-random-container"></div>
+<script>
+
+    // Async load
+    (function(callback) {
+
+        var d = document,
+                es = d.getElementsByTagName('script')[0],
+                o = d.createElement('script'),
+                ro = false;
+
+        o.type = 'text/javascript';
+        o.async = true;
+        o.setAttribute('crossorigin', "anonymous");
+        o.onload = o.onreadystatechange = function() {
+            if ( !ro && (!this.readyState || this.readyState == 'complete' || this.readyState == 'loaded') ) { 
+                ro = true; callback && callback(); 
+            }
+        };
+
+        o.src = 'https://cdn.okanjo.com/js/latest/okanjo-bundle.min.js';
+
+        es.parentNode.insertBefore(o, es);
+
+    }).call(window,
+            function() {
+
+                // Set global widget key
+                okanjo.key = "PUT_YOUR_WIDGET_KEY_HERE";
+
+                // Create a new element to stick the widget in, and find the desired container
+                var test = document.createElement("div"),
+                    container = document.getElementById('some-random-container');
+
+                // These properties will override any options passed into the Product constructor
+                test.setAttribute('data-mode', 'browse');
+                test.setAttribute('data-take', '6');
+                test.id = 'test-browse';
+
+                // Stick our element on the DOM
+                container.appendChild(test);
+
+                // Use the options of the Product widget constructor to options
+                window.myWidget = new okanjo.Product(test, { mode: 'browse', take: 6 });
+                
+                // ^ You can access the widget instance on the window if you need to or just throw it away
+
+            });
+
+</script>
+```
+
 
 ## Building Okanjo-JS
  
