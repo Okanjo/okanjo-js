@@ -174,12 +174,10 @@
                 data: function (element) {
                     var data = {};
                     if (element) {
-                        if (element.hasAttributes()) {
-                            var attrs = element.attributes;
-                            for(var i = attrs.length - 1; i >= 0; i--) {
-                                if (attrs[i].name.indexOf('data-') === 0) {
-                                    data[attrs[i].name.substr(5)] = attrs[i].value;
-                                }
+                        var attrs = element.attributes;
+                        for(var i = attrs.length - 1; i >= 0; i--) {
+                            if (attrs[i].name.indexOf('data-') === 0) {
+                                data[attrs[i].name.substr(5)] = attrs[i].value;
                             }
                         }
                     }
@@ -318,6 +316,19 @@
         options = options || { templates: {}, css: {} };
         this._templates = options.templates || {};
         this._css = options.css || {};
+
+        // Add special styles for ie 7, 8, 9
+        this.classDetects = [];
+        if (navigator.appVersion.indexOf("MSIE 9.") != -1) {
+            this.classDetects.push('lt-ie10');
+        } else if (navigator.appVersion.indexOf("MSIE 8.") != -1) {
+            this.classDetects.push('lt-ie9');
+        } else if (navigator.appVersion.indexOf("MSIE 7.") != -1) {
+            this.classDetects.push('lt-ie8');
+        } else if (navigator.appVersion.indexOf("MSIE 6.") != -1) {
+            this.classDetects.push('lt-ie7');
+        }
+        this.classDetects = this.classDetects.join(' ');
     };
 
     TemplateEngine.prototype = {
@@ -427,8 +438,16 @@
                     if (elements.length === 0) {
                         var head = okanjo.qwery('head'),
                             style = document.createElement('style');
+
                         style.id = id;
-                        style.innerHTML = css.markup;
+                        style.setAttribute('type', 'text/css');
+
+                        if (style.hasOwnProperty) { // old ie
+                            style.innerHTML = css.markup;
+                        } else {
+                            style.styleSheet.cssText = css.markup;
+                        }
+
                         if (head.length > 0) {
                             head[0].appendChild(style);
                         } else {
@@ -466,7 +485,10 @@
 
             // Attach globals
             view.okanjoConfig = okanjo.config;
+            view.okanjoMetricUrl = okanjo.config.ads.apiUri.replace(/^https?:\/\//,''); // Url w/o scheme to prevent mixed-content warnings
             view.now = function() { return (new Date()).getTime(); };
+            view.classDetects = this.classDetects;
+
 
             // Add CSS unless we are told not to
             if (options.css !== false) {
@@ -539,6 +561,123 @@
 
 })(okanjo, this);
 
+// From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys
+if (!Object.keys) {
+    Object.keys = (function() {
+        'use strict';
+        var hasOwnProperty = Object.prototype.hasOwnProperty,
+            hasDontEnumBug = !({ toString: null }).propertyIsEnumerable('toString'),
+            dontEnums = [
+                'toString',
+                'toLocaleString',
+                'valueOf',
+                'hasOwnProperty',
+                'isPrototypeOf',
+                'propertyIsEnumerable',
+                'constructor'
+            ],
+            dontEnumsLength = dontEnums.length;
+
+        return function(obj) {
+            if (typeof obj !== 'object' && (typeof obj !== 'function' || obj === null)) {
+                throw new TypeError('Object.keys called on non-object');
+            }
+
+            var result = [], prop, i;
+
+            for (prop in obj) {
+                if (hasOwnProperty.call(obj, prop)) {
+                    result.push(prop);
+                }
+            }
+
+            if (hasDontEnumBug) {
+                for (i = 0; i < dontEnumsLength; i++) {
+                    if (hasOwnProperty.call(obj, dontEnums[i])) {
+                        result.push(dontEnums[i]);
+                    }
+                }
+            }
+            return result;
+        };
+    }());
+}
+
+// From: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray
+if (!Array.isArray) {
+    Array.isArray = function(arg) {
+        return Object.prototype.toString.call(arg) === '[object Array]';
+    };
+}
+
+// Production steps of ECMA-262, Edition 5, 15.4.4.14
+// From: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/indexOf
+// Reference: http://es5.github.io/#x15.4.4.14
+if (!Array.prototype.indexOf) {
+    Array.prototype.indexOf = function(searchElement, fromIndex) {
+
+        var k;
+
+        /* jshint ignore:start */
+        // 1. Let O be the result of calling ToObject passing
+        //    the this value as the argument.
+        if (this == null) { //
+            throw new TypeError('"this" is null or not defined');
+        }
+        /* jshint ignore:end */
+
+        var O = Object(this);
+
+        // 2. Let lenValue be the result of calling the Get
+        //    internal method of O with the argument "length".
+        // 3. Let len be ToUint32(lenValue).
+        var len = O.length >>> 0;
+
+        // 4. If len is 0, return -1.
+        if (len === 0) {
+            return -1;
+        }
+
+        // 5. If argument fromIndex was passed let n be
+        //    ToInteger(fromIndex); else let n be 0.
+        var n = +fromIndex || 0;
+
+        if (Math.abs(n) === Infinity) {
+            n = 0;
+        }
+
+        // 6. If n >= len, return -1.
+        if (n >= len) {
+            return -1;
+        }
+
+        // 7. If n >= 0, then Let k be n.
+        // 8. Else, n<0, Let k be len - abs(n).
+        //    If k is less than 0, then let k be 0.
+        k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
+
+        // 9. Repeat, while k < len
+        while (k < len) {
+            // a. Let Pk be ToString(k).
+            //   This is implicit for LHS operands of the in operator
+            // b. Let kPresent be the result of calling the
+            //    HasProperty internal method of O with argument Pk.
+            //   This step can be combined with c
+            // c. If kPresent is true, then
+            //    i.  Let elementK be the result of calling the Get
+            //        internal method of O with the argument ToString(k).
+            //   ii.  Let same be the result of applying the
+            //        Strict Equality Comparison Algorithm to
+            //        searchElement and elementK.
+            //  iii.  If same is true, return k.
+            if (k in O && O[k] === searchElement) {
+                return k;
+            }
+            k++;
+        }
+        return -1;
+    };
+}
 
     // Make it safe to do console.log() always.
     /*! Console-polyfill. | MIT license. | https://github.com/paulmillr/console-polyfill */
@@ -2660,7 +2799,7 @@ if (typeof JSON !== 'object') {
                 }
 
             } catch (e) {
-                ok.report('Product', e);
+                okanjo.report('Product', e);
             }
         },
 
@@ -2802,9 +2941,9 @@ return okanjo;
 
     okanjo.mvc.registerTemplate("okanjo.error", "<span class=okanjo-error>{{ message }}</span> {{#code}} <span class=okanjo-error-code>Reference: {{ code }}</span> {{/code}}", { css: ['okanjo.core'] });
 
-    okanjo.mvc.registerCss("product.block", ".okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0}.okanjo-product-block .okanjo-product{width:150px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:.5em;display:inline-block;margin:0 .1em;box-shadow:1px 1px 1px 1px #eee}.okanjo-product-block .okanjo-product-image-container{height:150px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%}.okanjo-product-block .okanjo-product-title-container{margin:.5em;height:4em;overflow:hidden;vertical-align:middle}.okanjo-product-block .okanjo-product-title-container:before{content:\"\";display:inline-block;height:100%;vertical-align:middle}.okanjo-product-block .okanjo-product-title{vertical-align:middle;display:inline-block}.okanjo-product-block .okanjo-product-meta{height:0;width:0;text-indent:-100%}", { id: 'okanjo-product-block' });
+    okanjo.mvc.registerCss("product.block", ".okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0}.okanjo-product-block .okanjo-product{width:150px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:.5em;display:inline-block;margin:0 .1em;box-shadow:1px 1px 1px 1px #eee}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:150px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%}.okanjo-product-block .okanjo-product-title-container{margin:.5em;height:4em;overflow:hidden;vertical-align:middle}.okanjo-product-block .okanjo-product-title-container:before{content:\"\";display:inline-block;height:100%;vertical-align:middle}.lt-ie8.okanjo-product-block .okanjo-product-title-container:before{display:inline;zoom:1}.okanjo-product-block .okanjo-product-title{vertical-align:middle;display:inline-block}.lt-ie8.okanjo-product-block .okanjo-product-title{display:inline;zoom:1}.okanjo-product-block .okanjo-product-meta{height:0;width:0;text-indent:-100%}", { id: 'okanjo-product-block' });
 
-    okanjo.mvc.registerTemplate("product.block", "<div class=okanjo-product-block><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c=ps&n={{now}}&u={{ escaped_buy_url }}\" itemprop=url><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div class=okanjo-product-price-container itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price }}</span></div><div class=okanjo-product-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c=ps&n={{now}}\" alt=\"\"> {{! Okanjo impression tracking URL }} {{#impression_url}}<img src=\"{{ impression_url }}\" alt=\"\">{{/impression_url}} {{! Vendor impression tracking URL }} {{#sold_by}}<span itemprop=brand>{{brand}}</span>{{/sold_by}} {{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul></div>", function(data, options) {
+    okanjo.mvc.registerTemplate("product.block", "<div class=\"okanjo-product-block {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c=ps&n={{now}}&u={{ escaped_buy_url }}\" target=_blank itemprop=url><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div class=okanjo-product-price-container itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price }}</span></div><div class=okanjo-product-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c=ps&n={{now}}\" alt=\"\"> {{! Okanjo impression tracking URL }} {{#impression_url}}<img src=\"{{ impression_url }}\" alt=\"\">{{/impression_url}} {{! Vendor impression tracking URL }} {{#sold_by}}<span itemprop=brand>{{brand}}</span>{{/sold_by}} {{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul></div>", function(data, options) {
         // Ensure params
         data = data || { products: [], config: {} };
         options = okanjo.util.clone(options);

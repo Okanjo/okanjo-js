@@ -1,3 +1,6 @@
+@import "common.less";
+
+
 .okanjo-product-block {
 
     .okanjo-product-list {
@@ -14,7 +17,7 @@
         text-align: center;
         border: solid 1px #ccc;
         padding: .5em;
-        display: inline-block;
+        .inline-block();
         margin: 0 0.1em;
         box-shadow: 1px 1px 1px 1px rgb(238, 238, 238);
     }
@@ -39,7 +42,7 @@
     // This gets the product name to center vertically
     .okanjo-product-title-container:before {
         content: "";
-        display: inline-block;
+        .inline-block();
         height: 100%;
         vertical-align: middle;
 //        margin-right: -0.25em; // IDK about this,
@@ -49,7 +52,7 @@
 //        margin: auto;
 //        margin-right: -0.25em;
         vertical-align: middle;
-        display: inline-block;
+        .inline-block();
     }
 
 //    .okanjo-product-price-container {

@@ -37,6 +37,7 @@
  */
 
 var gulp = require('gulp'),
+    path = require('path'),
     awspublish = require('gulp-awspublish'),
     bower = require('gulp-bower'),
     bump = require('gulp-bump'),
@@ -72,12 +73,14 @@ var gulp = require('gulp'),
 
     // Global Okanjo sources, dependencies and polyfills
     sources = [
+
         // Core
         'src/core.js',
         'src/config.js',
         'src/template.js',
 
         // Internal dependencies & polyfills
+        'lib/polyfill/ie.js',
         'lib/polyfill/console.js',
         'src/cache.js',
         'src/cookie.js',
@@ -234,7 +237,8 @@ gulp.task('min-mustache-templates', function() {
 gulp.task('min-css-templates', function() {
     return gulp.src('templates/*.less')
         .pipe(less({
-            plugins: [autoprefix]
+            plugins: [autoprefix],
+            paths: [ path.join(__dirname, 'templates' ) ]
         }))
         .pipe(minifyCSS())
         .pipe(gulp.dest('./build/templates/'))
@@ -298,7 +302,7 @@ gulp.task('deploy-s3-latest', function() {
             path.dirname += '/js/latest';
         }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=3600, no-transform, public'
+            'Cache-Control': 'max-age=60, no-transform, public'
         }, { force: true }))
         .pipe(awspublish.reporter());
 
@@ -316,7 +320,7 @@ gulp.task('deploy-s3-latest-gz', function() {
         }))
         .pipe(awspublish.gzip({ ext: '.gz' }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=3600, no-transform, public'
+            'Cache-Control': 'max-age=60, no-transform, public'
         }, { force: true }))
         .pipe(awspublish.reporter())
 
@@ -333,7 +337,7 @@ gulp.task('deploy-s3-version', function() {
             path.dirname += '/js/v' + require('./package.json').version;
         }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=3600, no-transform, public'
+            'Cache-Control': 'max-age=60, no-transform, public'
         }, { force: true }))
         .pipe(awspublish.reporter());
 
@@ -351,7 +355,7 @@ gulp.task('deploy-s3-version-gz', function() {
         }))
         .pipe(awspublish.gzip({ ext: '.gz' }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=3600, no-transform, public'
+            'Cache-Control': 'max-age=60, no-transform, public'
         }, { force: true }))
         .pipe(awspublish.reporter());
 

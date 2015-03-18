@@ -165,12 +165,10 @@
                 data: function (element) {
                     var data = {};
                     if (element) {
-                        if (element.hasAttributes()) {
-                            var attrs = element.attributes;
-                            for(var i = attrs.length - 1; i >= 0; i--) {
-                                if (attrs[i].name.indexOf('data-') === 0) {
-                                    data[attrs[i].name.substr(5)] = attrs[i].value;
-                                }
+                        var attrs = element.attributes;
+                        for(var i = attrs.length - 1; i >= 0; i--) {
+                            if (attrs[i].name.indexOf('data-') === 0) {
+                                data[attrs[i].name.substr(5)] = attrs[i].value;
                             }
                         }
                     }

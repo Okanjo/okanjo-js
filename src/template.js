@@ -6,6 +6,19 @@
         options = options || { templates: {}, css: {} };
         this._templates = options.templates || {};
         this._css = options.css || {};
+
+        // Add special styles for ie 7, 8, 9
+        this.classDetects = [];
+        if (navigator.appVersion.indexOf("MSIE 9.") != -1) {
+            this.classDetects.push('lt-ie10');
+        } else if (navigator.appVersion.indexOf("MSIE 8.") != -1) {
+            this.classDetects.push('lt-ie9');
+        } else if (navigator.appVersion.indexOf("MSIE 7.") != -1) {
+            this.classDetects.push('lt-ie8');
+        } else if (navigator.appVersion.indexOf("MSIE 6.") != -1) {
+            this.classDetects.push('lt-ie7');
+        }
+        this.classDetects = this.classDetects.join(' ');
     };
 
     TemplateEngine.prototype = {
@@ -115,8 +128,16 @@
                     if (elements.length === 0) {
                         var head = okanjo.qwery('head'),
                             style = document.createElement('style');
+
                         style.id = id;
-                        style.innerHTML = css.markup;
+                        style.setAttribute('type', 'text/css');
+
+                        if (style.hasOwnProperty) { // old ie
+                            style.innerHTML = css.markup;
+                        } else {
+                            style.styleSheet.cssText = css.markup;
+                        }
+
                         if (head.length > 0) {
                             head[0].appendChild(style);
                         } else {
@@ -154,7 +175,10 @@
 
             // Attach globals
             view.okanjoConfig = okanjo.config;
+            view.okanjoMetricUrl = okanjo.config.ads.apiUri.replace(/^https?:\/\//,''); // Url w/o scheme to prevent mixed-content warnings
             view.now = function() { return (new Date()).getTime(); };
+            view.classDetects = this.classDetects;
+
 
             // Add CSS unless we are told not to
             if (options.css !== false) {
