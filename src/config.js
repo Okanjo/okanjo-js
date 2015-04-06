@@ -5,15 +5,19 @@
         // okanjo-ads api key
         key: undefined,
 
+        // Okanjo default UA code
+        analyticsId: 'UA-36849843-6',
+
+        // Marketplace config
         marketplace: {
             uri: 'https://shop.okanjo.com',
             apiUri: 'https://api.okanjo.com',
             routerUri: 'https://shop.okanjo.com/widgets/router/',
             balancedMarketplacePath: '/v1/marketplaces/MP6vnNdXY7izEEVPs1gl7jSy',
-            socketIOUri: 'https://mke-rt.okanjo.com:13443',
-            analyticsId: 'UA-36849843-1'
+            socketIOUri: 'https://mke-rt.okanjo.com:13443'
         },
 
+        // Ads config
         ads: {
             apiUri: 'https://ads-api.okanjo.com'
         }

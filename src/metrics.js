@@ -4,22 +4,23 @@
 
         _trackers: {},
 
-        _gaq: [],
-
         events: {},
 
         addGoogleTracker: function(id, prefix) {
-            var _gaq = window._gaq || metrics._gaq;
+
+            window._gaq = window._gaq || [];
+
+            var _gaq = window._gaq;
 
             if (!prefix) {
-                prefix = 'tracker_' + metrics._trackers.length;
+                prefix = 'tracker_' + Object.keys(metrics._trackers).length;
             }
 
             _gaq.push(function() {
                 window._gat._createTracker(id, prefix);
             });
 
-            _gaq.push([prefix+'._setDomainName', window.location.host]);
+            _gaq.push([prefix + '._setDomainName', window.location.host]);
             _gaq.push([prefix+'._setAllowLinker', true]);
         },
 
@@ -33,7 +34,7 @@
                 }
 
                 // Push the tracker
-                (window._gaq || metrics._gaq).push([prefix+'.'+(event_data.type == 'pageview' ? '_trackPageview' : '_trackEvent')].concat(event_data.args));
+                window._gaq.push([prefix+'.'+(event_data.type == 'pageview' ? '_trackPageview' : '_trackEvent')].concat(event_data.args));
             });
         },
 

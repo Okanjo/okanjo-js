@@ -275,15 +275,19 @@
         // okanjo-ads api key
         key: undefined,
 
+        // Okanjo default UA code
+        analyticsId: 'UA-36849843-6',
+
+        // Marketplace config
         marketplace: {
             uri: 'https://shop.okanjo.com',
             apiUri: 'https://api.okanjo.com',
             routerUri: 'https://shop.okanjo.com/widgets/router/',
             balancedMarketplacePath: '/v1/marketplaces/MP6vnNdXY7izEEVPs1gl7jSy',
-            socketIOUri: 'https://mke-rt.okanjo.com:13443',
-            analyticsId: 'UA-36849843-1'
+            socketIOUri: 'https://mke-rt.okanjo.com:13443'
         },
 
+        // Ads config
         ads: {
             apiUri: 'https://ads-api.okanjo.com'
         }
@@ -2491,22 +2495,23 @@ if (typeof JSON !== 'object') {
 
         _trackers: {},
 
-        _gaq: [],
-
         events: {},
 
         addGoogleTracker: function(id, prefix) {
-            var _gaq = window._gaq || metrics._gaq;
+
+            window._gaq = window._gaq || [];
+
+            var _gaq = window._gaq;
 
             if (!prefix) {
-                prefix = 'tracker_' + metrics._trackers.length;
+                prefix = 'tracker_' + Object.keys(metrics._trackers).length;
             }
 
             _gaq.push(function() {
                 window._gat._createTracker(id, prefix);
             });
 
-            _gaq.push([prefix+'._setDomainName', window.location.host]);
+            _gaq.push([prefix + '._setDomainName', window.location.host]);
             _gaq.push([prefix+'._setAllowLinker', true]);
         },
 
@@ -2520,7 +2525,7 @@ if (typeof JSON !== 'object') {
                 }
 
                 // Push the tracker
-                (window._gaq || metrics._gaq).push([prefix+'.'+(event_data.type == 'pageview' ? '_trackPageview' : '_trackEvent')].concat(event_data.args));
+                window._gaq.push([prefix+'.'+(event_data.type == 'pageview' ? '_trackPageview' : '_trackEvent')].concat(event_data.args));
             });
         },
 
