@@ -1,4 +1,4 @@
-/*! okanjo-js v0.2.12 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.2.13 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -694,7 +694,6 @@
             };
 
             script.onload = script.onreadystatechange = function() {
-                console.log(this.readyState);
                 if (!done && (!this.readyState || this.readyState === 'loaded' || this.readyState === 'complete')) {
                     done = true;
                     script.onload = script.onreadystatechange = null;
@@ -2681,6 +2680,9 @@ if (typeof JSON !== 'object') {
                     this.config.url = this.getCurrentPageUrl();
                 }
                 this.config.mode = this.modes.sense;
+            } else {
+                // Make sure a mode is always set, and cannot be empty
+                this.config.mode = okanjo.util.empty(this.config.mode) ? this.modes.browse : this.config.mode;
             }
 
             // Immediately show products from the local browser cache, if present, for immediate visual feedback

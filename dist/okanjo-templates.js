@@ -1,4 +1,4 @@
-/*! okanjo-js v0.2.12 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.2.13 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {
     okanjo.mvc.registerCss("okanjo.core", "", { id: 'okanjo-core' });
 

@@ -1,7 +1,7 @@
 {
   "name": "okanjo",
   "main": "build/okanjo.js",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "authors": [
     "Okanjo Partners Inc"
   ],
