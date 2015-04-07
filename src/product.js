@@ -102,6 +102,9 @@
                     this.config.url = this.getCurrentPageUrl();
                 }
                 this.config.mode = this.modes.sense;
+            } else {
+                // Make sure a mode is always set, and cannot be empty
+                this.config.mode = okanjo.util.empty(this.config.mode) ? this.modes.browse : this.config.mode;
             }
 
             // Immediately show products from the local browser cache, if present, for immediate visual feedback

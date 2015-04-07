@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2015-04-07
+ * Removed errant console.log in JSONP
+ * Ensure config.mode is always set on product widget
+
 ## 2015-04-02
  * Fixed ga analytics id in config
  * Use window._gaq instead of internal 

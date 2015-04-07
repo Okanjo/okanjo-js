@@ -125,7 +125,6 @@
             };
 
             script.onload = script.onreadystatechange = function() {
-                console.log(this.readyState);
                 if (!done && (!this.readyState || this.readyState === 'loaded' || this.readyState === 'complete')) {
                     done = true;
                     script.onload = script.onreadystatechange = null;
