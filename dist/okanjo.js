@@ -26,6 +26,11 @@
             },
 
             /**
+             * Placeholder, just in case okanjo-js is built without moat
+             */
+            moat: { init: function() {} },
+
+            /**
              * API route definitions
              */
             routes: {
@@ -117,7 +122,7 @@
                  * @param val
                  */
                 trim: function(val) {
-                    (val || "").replace(/^\s+|\s+$/g, '');
+                    return (val || "").replace(/^\s+|\s+$/g, '');
                 },
 
 
@@ -229,37 +234,39 @@
                     for(var k = 0; k < keys.length; k++) {
                         okanjo.util.copyIfSet(target, source, keys[k], map[keys[k]], options);
                     }
+                },
+
+                /*! https://github.com/isaacs/inherits/blob/master/inherits_browser.js */
+                /**
+                 * Extends an object from another
+                 * @param ctor – Child class
+                 * @param superCtor – Parent class
+                 */
+                inherits: function inherits(ctor, superCtor) {
+                    if (typeof Object.create === 'function') {
+                        // implementation from standard node.js 'util' module
+                        ctor.super_ = superCtor;
+                        ctor.prototype = Object.create(superCtor.prototype, {
+                            constructor: {
+                                value: ctor,
+                                enumerable: false,
+                                writable: true,
+                                configurable: true
+                            }
+                        });
+                    } else {
+                        // old school shim for old browsers
+                        ctor.super_ = superCtor;
+                        var TempCtor = function () {};
+                        TempCtor.prototype = superCtor.prototype;
+                        ctor.prototype = new TempCtor();
+                        ctor.prototype.constructor = ctor;
+                    }
                 }
 
             }
 
-
         };
-
-        /*! https://github.com/isaacs/inherits/blob/master/inherits_browser.js */
-        if (typeof Object.create === 'function') {
-            // implementation from standard node.js 'util' module
-            okanjo.util.inherits = function inherits(ctor, superCtor) {
-                ctor.super_ = superCtor;
-                ctor.prototype = Object.create(superCtor.prototype, {
-                    constructor: {
-                        value: ctor,
-                        enumerable: false,
-                        writable: true,
-                        configurable: true
-                    }
-                });
-            };
-        } else {
-            // old school shim for old browsers
-            okanjo.util.inherits = function inherits(ctor, superCtor) {
-                ctor.super_ = superCtor;
-                var TempCtor = function () {};
-                TempCtor.prototype = superCtor.prototype;
-                ctor.prototype = new TempCtor();
-                ctor.prototype.constructor = ctor;
-            };
-        }
 
         return okanjo;
 
@@ -290,6 +297,13 @@
         // Ads config
         ads: {
             apiUri: 'https://ads-api.okanjo.com'
+        },
+
+        // Moat Analytics config
+        moat: {
+            tag: 'okanjo969422799577',
+            clientLevels: [ 'MoatTest', 'MoatTest', 'MoatTest', 'MoatTest' ],
+            clientSlicers: [ 'MoatTest', 'MoatTest' ]
         }
     };
 
@@ -495,6 +509,10 @@
             view.now = function() { return (new Date()).getTime(); };
             view.classDetects = this.classDetects;
 
+            //noinspection JSUnresolvedVariable
+            if (options.blockClasses && Array.isArray(options.blockClasses)) {
+                view.classDetects = view.classDetects += " " + options.blockClasses.join(' ');
+            }
 
             // Add CSS unless we are told not to
             if (options.css !== false) {
@@ -551,6 +569,7 @@
                     //noinspection JSUnresolvedVariable
                     mixed.image_url = mixed.image_urls ? mixed.image_urls[0] : '' ;
                     mixed.escaped_buy_url = encodeURIComponent(mixed.buy_url);
+                    mixed.escaped_inline_buy_url = okanjo.util.empty(mixed.inline_buy_url) ? '' : encodeURIComponent(mixed.inline_buy_url);
                     mixed.price = this.currency(mixed.price);
                     return mixed;
                 } else { // Unknown value
@@ -767,6 +786,25 @@ if (!Object.keys) {
     }());
 }
 
+//// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/create
+//if (typeof Object.create != 'function') {
+//    Object.create = (function() {
+//        var Temp = function() {};
+//        return function (prototype) {
+//            if (arguments.length > 1) {
+//                throw new Error('Second argument not supported');
+//            }
+//            if (typeof prototype != 'object') {
+//                throw new TypeError('Argument must be an object');
+//            }
+//            Temp.prototype = prototype;
+//            var result = new Temp();
+//            Temp.prototype = null;
+//            return result;
+//        };
+//    })();
+//}
+
 // From: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray
 if (!Array.isArray) {
     Array.isArray = function(arg) {
@@ -842,6 +880,148 @@ if (!Array.prototype.indexOf) {
         return -1;
     };
 }
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/every
+if (!Array.prototype.every) {
+    Array.prototype.every = function(callbackfn, thisArg) {
+        'use strict';
+        var T, k;
+
+        // jshint -W041
+        if (this == null) {
+            throw new TypeError('this is null or not defined');
+        }
+        // jshint +W041
+
+        // 1. Let O be the result of calling ToObject passing the this
+        //    value as the argument.
+        var O = Object(this);
+
+        // 2. Let lenValue be the result of calling the Get internal method
+        //    of O with the argument "length".
+        // 3. Let len be ToUint32(lenValue).
+        var len = O.length >>> 0;
+
+        // 4. If IsCallable(callbackfn) is false, throw a TypeError exception.
+        if (typeof callbackfn !== 'function') {
+            throw new TypeError();
+        }
+
+        // 5. If thisArg was supplied, let T be thisArg; else let T be undefined.
+        if (arguments.length > 1) {
+            T = thisArg;
+        }
+
+        // 6. Let k be 0.
+        k = 0;
+
+        // 7. Repeat, while k < len
+        while (k < len) {
+
+            var kValue;
+
+            // a. Let Pk be ToString(k).
+            //   This is implicit for LHS operands of the in operator
+            // b. Let kPresent be the result of calling the HasProperty internal
+            //    method of O with argument Pk.
+            //   This step can be combined with c
+            // c. If kPresent is true, then
+            if (k in O) {
+
+                // i. Let kValue be the result of calling the Get internal method
+                //    of O with argument Pk.
+                kValue = O[k];
+
+                // ii. Let testResult be the result of calling the Call internal method
+                //     of callbackfn with T as the this value and argument list
+                //     containing kValue, k, and O.
+                var testResult = callbackfn.call(T, kValue, k, O);
+
+                // iii. If ToBoolean(testResult) is false, return false.
+                if (!testResult) {
+                    return false;
+                }
+            }
+            k++;
+        }
+        return true;
+    };
+}
+
+// Doesn't work in IE7 so it's only here for reference
+//https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
+//(function() {
+//    if (!Event.prototype.preventDefault) {
+//        Event.prototype.preventDefault=function() {
+//            this.returnValue=false;
+//        };
+//    }
+//    if (!Event.prototype.stopPropagation) {
+//        Event.prototype.stopPropagation=function() {
+//            this.cancelBubble=true;
+//        };
+//    }
+//    if (!Element.prototype.addEventListener) {
+//        var eventListeners=[];
+//
+//        var addEventListener=function(type,listener /*, useCapture (will be ignored) */) {
+//            var self=this;
+//            var wrapper=function(e) {
+//                e.target=e.srcElement;
+//                e.currentTarget=self;
+//                if (listener.handleEvent) {
+//                    listener.handleEvent(e);
+//                } else {
+//                    listener.call(self,e);
+//                }
+//            };
+//            if (type=="DOMContentLoaded") {
+//                var wrapper2=function(e) {
+//                    if (document.readyState=="complete") {
+//                        wrapper(e);
+//                    }
+//                };
+//                document.attachEvent("onreadystatechange",wrapper2);
+//                eventListeners.push({object:this,type:type,listener:listener,wrapper:wrapper2});
+//
+//                if (document.readyState=="complete") {
+//                    var e=new Event();
+//                    e.srcElement=window;
+//                    wrapper2(e);
+//                }
+//            } else {
+//                this.attachEvent("on"+type,wrapper);
+//                eventListeners.push({object:this,type:type,listener:listener,wrapper:wrapper});
+//            }
+//        };
+//        var removeEventListener=function(type,listener /*, useCapture (will be ignored) */) {
+//            var counter=0;
+//            while (counter<eventListeners.length) {
+//                var eventListener=eventListeners[counter];
+//                if (eventListener.object==this && eventListener.type==type && eventListener.listener==listener) {
+//                    if (type=="DOMContentLoaded") {
+//                        this.detachEvent("onreadystatechange",eventListener.wrapper);
+//                    } else {
+//                        this.detachEvent("on"+type,eventListener.wrapper);
+//                    }
+//                    eventListeners.splice(counter, 1);
+//                    break;
+//                }
+//                ++counter;
+//            }
+//        };
+//        Element.prototype.addEventListener=addEventListener;
+//        Element.prototype.removeEventListener=removeEventListener;
+//        if (HTMLDocument) {
+//            HTMLDocument.prototype.addEventListener=addEventListener;
+//            HTMLDocument.prototype.removeEventListener=removeEventListener;
+//        }
+//        if (Window) {
+//            Window.prototype.addEventListener=addEventListener;
+//            Window.prototype.removeEventListener=removeEventListener;
+//        }
+//    }
+//})();
 
     // Make it safe to do console.log() always.
     /*! Console-polyfill. | MIT license. | https://github.com/paulmillr/console-polyfill */
@@ -2484,6 +2664,457 @@ if (typeof JSON !== 'object') {
 
 }));
 
+(function(okanjo) {
+function El(tag, classNames) {
+    var doc = document;
+    var el = (tag.nodeType || tag === window) ? tag : doc.createElement(tag);
+    var eventHandlers = [];
+    if (classNames) {
+        el.className = classNames;
+    }
+
+    var onShowEvent = ModalEvent();
+    var onHideEvent = ModalEvent();
+
+    var addListener = function(event, handler) {
+        if (el.addEventListener) {
+            el.addEventListener(event, handler, false);
+        } else {
+            el.attachEvent("on" + event, handler);
+        }
+        eventHandlers.push({
+            event: event,
+            handler: handler
+        });
+    };
+
+    var removeListener = function(event, handler) {
+        if (el.removeEventListener) {
+            el.removeEventListener(event, handler);
+        } else {
+            el.detachEvent("on" + event, handler);
+        }
+        var t = eventHandlers.length;
+        var handlerObj;
+        while (t-- > 0) {
+            handlerObj = eventHandlers[t];
+            if (handlerObj.event === event && handlerObj.handler === handler) {
+                eventHandlers.splice(t, 1);
+                break;
+            }
+        }
+    };
+
+    var addClickListener = function(handler) {
+        if ("ontouchend" in document.documentElement) {
+            addListener("touchstart", handler);
+        } else {
+            addListener("click", handler);
+        }
+    };
+
+    var show = function(arg) {
+        if (el) {
+            el.style.display = "block";
+            onShowEvent.fire(arg);
+        }
+    };
+
+    var hide = function(arg) {
+        if (el) {
+            el.style.display = "none";
+            onHideEvent.fire(arg);
+        }
+    };
+
+    var isShowing = function() {
+        return el.style && el.style.display === "block";
+    };
+
+    var html = function(html) {
+        if (el) {
+            el.innerHTML = html;
+        }
+    };
+
+    var text = function(text) {
+        if (el) {
+            html("");
+            el.appendChild(doc.createTextNode(text));
+        }
+    };
+
+    var remove = function() {
+        if (el.parentNode) {
+            var x = eventHandlers.length;
+            var eventHandler;
+            while (x-- > 0) {
+                eventHandler = eventHandlers[x];
+                removeListener(eventHandler.event, eventHandler.handler);
+            }
+            el.parentNode.removeChild(el);
+            onShowEvent.removeAllListeners();
+            onHideEvent.removeAllListeners();
+        }
+    };
+
+    var add = function(elObject) {
+        var elementToAppend = elObject.el || elObject;
+        el.appendChild(elementToAppend);
+    };
+
+    return {
+        el: el,
+        addListener: addListener,
+        addClickListener: addClickListener,
+        onShowEvent: onShowEvent,
+        onHideEvent: onHideEvent,
+        show: show,
+        hide: hide,
+        isShowing: isShowing,
+        html: html,
+        text: text,
+        remove: remove,
+        add: add
+    };
+}
+
+var Modal = (function() {
+
+    function Modal(content, options, overlay, overlayButton, customShow, customHide) {
+        if (content === undefined) {
+            return;
+        }
+        options = options || {};
+        var modal = El("div", "okanjoModal okanjoModalOverride " + (options.classes || ""));
+        var contentContainer = El("div", "okanjoModalContent");
+        var buttonArea = El("div", "okanjoModalButtons");
+        var onRequestHideListenerId;
+
+        modal.add(contentContainer);
+        modal.add(buttonArea);
+        modal.el.style.display = "none";
+
+        var buttons = [];
+        var pub;
+
+        options.buttons = options.buttons || [{
+            text: "Close",
+            handler: "hide",
+            primary: true
+        }];
+
+        var removeButtons = function() {
+            var t = buttons.length;
+            while (t-- > 0) {
+                var button = buttons[t];
+                button.remove();
+            }
+            buttons = [];
+        };
+
+        var center = function() {
+            modal.el.style.marginLeft = -modal.el.clientWidth / 2 + "px";
+            overlayButton.el.style.marginLeft = modal.el.style.marginLeft;
+        };
+
+        var anyModalsOpen = function() {
+            var modals = okanjo.qwery(".okanjoModal");
+            var t = modals.length;
+            while (t-- > 0) {
+                if (modals[t].style.display !== "none") {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        var defaultShow = function() {
+            if (!modal.isShowing()) {
+                // Call the static method from the Modal module.
+                Modal.resizeOverlay();
+                overlay.show(overlay);
+                overlayButton.show(overlayButton);
+                modal.show(pub);
+                center();
+            }
+        };
+
+        var defaultHide = function() {
+            if (modal.isShowing()) {
+                modal.hide(pub);
+                if (!anyModalsOpen()) {
+                    overlay.hide(overlay);
+                    overlayButton.hide(overlayButton);
+                }
+                if (options.autoRemove) {
+                    pub.remove();
+                }
+            }
+        };
+
+        var quickClone = function(obj) {
+            var newObj = {};
+            for (var key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    newObj[key] = obj[key];
+                }
+            }
+            return newObj;
+        };
+
+        pub = {
+            modal: modal,
+            overlay: overlay,
+            overlayButton: overlayButton,
+            show: function() {
+                if (customShow) {
+                    customShow(defaultShow, pub);
+                } else {
+                    defaultShow();
+                }
+                return pub;
+            },
+            hide: function() {
+                if (customHide) {
+                    customHide(defaultHide, pub);
+                } else {
+                    defaultHide();
+                }
+                return pub;
+            },
+            onShow: function(callback) {
+                modal.onShowEvent.addListener(function() {
+                    callback(pub);
+                });
+                return pub;
+            },
+            onHide: function(callback) {
+                modal.onHideEvent.addListener(function() {
+                    callback(pub);
+                });
+                return pub;
+            },
+            remove: function() {
+                overlay.onRequestHide.removeListener(onRequestHideListenerId);
+                onRequestHideListenerId = null;
+                removeButtons();
+                modal.remove();
+            },
+            setButtons: function(buttonList) {
+                var btnIdx = buttonList.length;
+                var btnObj;
+                var btnEl;
+                var classes;
+                var giveButtonCustomClickListener = function(btnEl, btnObj) {
+                    var pubCopy = quickClone(pub);
+                    btnEl.addClickListener(function(e) {
+                        pubCopy.event = e || window.event;
+                        btnObj.handler(pubCopy);
+                    });
+                };
+
+                removeButtons();
+
+                if (btnIdx === 0) {
+                    buttonArea.hide();
+                } else {
+                    buttonArea.show();
+                    while (btnIdx-- > 0) {
+                        btnObj = buttonList[btnIdx];
+                        classes = "okanjoModalBtn";
+                        if (btnObj.primary) {
+                            classes += " okanjoModalBtnPrimary";
+                        }
+                        classes += btnObj.classes ? " " + btnObj.classes : "";
+                        btnEl = El("button", classes);
+                        if (btnObj.handler === "hide") {
+                            btnEl.addClickListener(pub.hide);
+                        } else if (btnObj.handler) {
+                            giveButtonCustomClickListener(btnEl, btnObj);
+                        }
+                        btnEl.text(btnObj.text);
+                        buttonArea.add(btnEl);
+                        buttons.push(btnEl);
+                    }
+                }
+                center();
+                return pub;
+            },
+            setContent: function(newContent) {
+                // Only good way of checking if a node in IE8...
+                if (newContent.nodeType) {
+                    contentContainer.html("");
+                    contentContainer.add(newContent);
+                } else {
+                    contentContainer.html(newContent);
+                }
+                center();
+                content = newContent;
+                return pub;
+            },
+            getContent: function() {
+                return content;
+            }
+        };
+
+        onRequestHideListenerId = overlay.onRequestHide.addListener(function() {
+            if (options.overlayClose !== false && modal.isShowing()) {
+                pub.hide();
+            }
+        });
+
+        pub.setContent(content).setButtons(options.buttons);
+
+        document.body.appendChild(modal.el);
+
+        return pub;
+    }
+
+    var doc = document;
+
+    var getDocumentDim = function(name) {
+        var docE = doc.documentElement;
+        var scroll = "scroll" + name;
+        var offset = "offset" + name;
+        return Math.max(doc.body[scroll], docE[scroll],
+            doc.body[offset], docE[offset], docE["client" + name]);
+    };
+
+    // Make this a static function so that main.js has access to it so it can
+    // add a window keydown event listener. Modal.js also needs this function.
+    Modal.resizeOverlay = function() {
+        var overlay = doc.getElementById("okanjoModalOverlay");
+        overlay.style.width = getDocumentDim("Width") + "px";
+        overlay.style.height = getDocumentDim("Height") + "px";
+    };
+
+    return Modal;
+})();
+
+function ModalEvent() {
+    var listeners = {};
+    var nextListenerId = 0;
+
+    var addListener = function(callback) {
+        listeners[nextListenerId] = callback;
+        return nextListenerId++;
+    };
+
+    var removeListener = function(id) {
+        if (id) {
+            delete listeners[id];
+        }
+    };
+
+    var removeAllListeners = function() {
+        listeners = {};
+    };
+
+    var fire = function() {
+        for (var x = 0, num = nextListenerId; x < num; ++x) {
+            if (listeners[x]) {
+                listeners[x].apply(null, arguments);
+            }
+        }
+    };
+
+    return {
+        addListener: addListener,
+        removeListener: removeListener,
+        removeAllListeners: removeAllListeners,
+        fire: fire
+    };
+}
+
+
+
+
+var okanjoModal = (function() {
+
+    var overlay, overlayButton;
+    var doc = document;
+
+    function init() {
+        //noinspection JSUnresolvedFunction
+        if (okanjo.qwery("#okanjoModalOverlay").length === 0) {
+            //// Put the main styles on the page.
+            //var styleObj = El("style");
+            //var style = styleObj.el;
+            //var firstElInHead = okanjo.qwery("head")[0].childNodes[0];
+            //firstElInHead.parentNode.insertBefore(style, firstElInHead);
+            //
+            //var styleText = fs.readFileSync("src/style.min.css", "utf8");
+            //if (style.styleSheet) {
+            //    style.styleSheet.cssText = styleText;
+            //} else {
+            //    styleObj.text(styleText);
+            //}"
+
+            // Make the overlay and put it on the page.
+            overlay = El("div", "okanjoModalOverlay okanjoModalOverride");
+            overlay.el.id = "okanjoModalOverlay";
+
+            // Make a pretty overlay button
+            overlayButton = El("button", "okanjoOverlayCloseButton");
+            overlayButton.el.setAttribute("title", "Close (Esc)");
+            overlayButton.el.setAttribute("type", "button");
+            overlayButton.el.innerHTML = '×';
+            //overlay.el.appendChild(overlayButton.el);
+            doc.body.appendChild(overlayButton.el);
+
+            doc.body.appendChild(overlay.el);
+
+            // Add an event so that the modals can hook into it to close.
+            overlay.onRequestHide = ModalEvent();
+
+            var overlayCloseFunc = function() {
+                overlay.onRequestHide.fire();
+            };
+
+            overlay.addClickListener(overlayCloseFunc);
+            overlayButton.addClickListener(overlayCloseFunc);
+            El(doc).addListener("keydown", function(e) {
+                var keyCode = e.which || e.keyCode;
+                if (keyCode === 27) { // 27 is Escape
+                    overlayCloseFunc();
+                }
+            });
+
+            var windowEl = El(window);
+            var resizeOverlayTimeout;
+            windowEl.addListener("resize", function() {
+                if (resizeOverlayTimeout) {
+                    clearTimeout(resizeOverlayTimeout);
+                }
+                resizeOverlayTimeout = setTimeout(Modal.resizeOverlay, 100);
+            });
+
+            // Make SURE we have the correct dimensions so we make the overlay the right size.
+            // Some devices fire the event before the document is ready to return the new dimensions.
+            windowEl.addListener("orientationchange", function() {
+                for (var t = 0; t < 3; ++t) {
+                    setTimeout(Modal.resizeOverlay, 1000 * t + 200);
+                }
+            });
+        }
+    }
+
+    if (document.body) {
+        init();
+    }
+
+    var api = function(content, options) {
+        init();
+        //noinspection JSPotentiallyInvalidConstructorUsage
+        return Modal(content, options, overlay, overlayButton, api.customShow, api.customHide);
+    };
+    api.resizeOverlay = Modal.resizeOverlay;
+
+    return api;
+})();
+
+ okanjo.modal = okanjoModal; })(this);
 
 }).apply(okanjo);
 
@@ -2561,37 +3192,78 @@ if (typeof JSON !== 'object') {
     };
 
     (function configure() {
-        if (!document.getElementById('#okanjo-metrics')) {
-            var ga = document.createElement('script');
-            ga.type = 'text/javascript';
-            ga.async = true;
-            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-            ga.id = 'okanjo-metrics';
+        okanjo.onDomReady(function() {
+            if (!document.getElementById('#okanjo-metrics')) {
+                var ga = document.createElement('script');
+                ga.type = 'text/javascript';
+                ga.async = true;
+                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+                ga.id = 'okanjo-metrics';
 
-            okanjo.qwery('body')[0].appendChild(ga);
-            metrics.addGoogleTracker(okanjo.config.analyticsId, 'okanjo');
-        }
+                okanjo.qwery('body')[0].appendChild(ga);
+                metrics.addGoogleTracker(okanjo.config.analyticsId, 'okanjo');
+            }
 
-        metrics.addDefaultTracker('okanjo');
+            metrics.addDefaultTracker('okanjo');
+        });
     })();
 
 })(okanjo, this);
+//noinspection JSUnusedLocalSymbols
 (function(okanjo, window) {
 
-
-    /**
-     * LocalStorage library to use
-     * @type {Storage}
-     */
-    var cache = okanjo.Cache,
+    okanjo.moat = {
 
         /**
-         * Okanjo Product
-         * @param element - DOM element to attach the output to
-         * @param {*} config - Optional base widget configuration object, element data attributes will override these
-         * @constructor
+         * Flag to prevent accidental loading twice
          */
-        OkanjoProduct = okanjo.Product = function (element, config) {
+        loaded: (okanjo.moat && okanjo.moat.loaded) || false,
+
+        /**
+         * Load Moat Analytics
+         */
+        init: function() {
+            if (!okanjo.moat.loaded) {
+                okanjo.moat.loaded = true;
+                var d = document,
+                    b = d.getElementsByTagName('body')[0],
+                    ns = d.createElement('noscript'),
+                    ma = d.createElement('script'),
+                    moatParams = [],
+                    moat = okanjo.config.moat;
+
+
+                // Build config param string
+                moat.clientLevels.every(function (v, i) {
+                    if (v !== null) moatParams.push('moatClientLevel' + (i + 1) + '=' + v);
+                    return true;
+                });
+                moat.clientSlicers.every(function (v, i) {
+                    if (v !== null) moatParams.push('moatClientSlicer' + (i + 1) + '=' + v);
+                    return true;
+                });
+                moatParams = moatParams.join('&');
+
+                ns.className = 'MOAT-' + moat.tag + '?' + moatParams;
+
+                ma.type = 'text/javascript';
+                ma.async = true;
+                ma.src = '//js.moatads.com/' + moat.tag + '/moatad.js#' + moatParams;
+
+                b.appendChild(ns);
+                b.appendChild(ma);
+            }
+        }
+
+    };
+
+})(okanjo, this);
+//noinspection ThisExpressionReferencesGlobalObjectJS,JSUnusedLocalSymbols
+(function(okanjo, window) {
+
+    var cache = okanjo.Cache,
+
+        WidgetBase = okanjo._Widget = function Widget(element, config) {
 
             //noinspection JSValidateTypes
             if (!element || typeof element !== 'object' || element.nodeType === undefined) {
@@ -2604,104 +3276,84 @@ if (typeof JSON !== 'object') {
                 config = config || {};
             }
 
-            this.items = [];
             this.element = element;
-            this.config = config || {
-                mode: this.modes.browse, // Default to browse
-                use_cache: true,
-                cache_ttl: 60000
+            this.config = config || { };
+
+            this.configMap = { };
+
+            this.templates = {
+                error: "okanjo.error"
             };
 
-            // Param to stop the URL nagging if none is given
-            this.config.nag = config.nag === undefined ? true : config.nag === true;
-            this.config.use_cache = config.use_cache === undefined ? true : config.use_cache === true;
-            this.config.cache_ttl = config.cache_ttl === undefined ? 60000 : config.cache_ttl;
-
-            // Initialize unless told not to
-            //noinspection JSUnresolvedVariable
-            if (!config.no_init) {
-                this.init();
-            }
+            this.css = { };
         };
 
 
-    OkanjoProduct.prototype = {
+    WidgetBase.prototype = {
 
-        cache_key_prefix: 'ok_product_block_',
+        widgetName: "BaseWidget",
 
-        modes: {
-            browse: "browse",
-            sense: "sense",
-            single: "single"
-        },
+        config: null,
+        use_cache: false,
+        cache_key_prefix: 'ok_widget_',
+        cache_ttl: 60000,
+        cacheKeyAttributes: 'id'.split(','), // Parameters to compile to generate the cache key
 
-        templates: {
-            error: "okanjo.error",
-            main: "product.block"
-        },
-
-        css: {
-            main: "product.block"
-        },
-
-        // Parameters to compile to generate the cache key
-        cacheKeyAttributes: 'mode,url,selectors,text,id,q,marketplace_status,marketplace_id,external_id,sku,sold_by,min_price,max_price,condition,manufacturer,upc,isbn,tags,category,min_donation_percent,max_donation_percent,donation_to,suboptimal,skip,take'.split(','),
-
-
-        constructor: OkanjoProduct,
+        constructor: WidgetBase,
 
         /**
-         * Loads the widget content onto the page
+         * Loads the widget
          */
         init: function() {
 
             // Ensure we have a widget key or bail out if we don't
             if (!this.findWidgetKey()) return;
 
-            // Make sure that we have the templates necessary to render Product
+            // Make sure that we have the templates necessary to render the widget
             this.ensureTemplates();
 
             // Parse the final widget instance configuration
             this.parseConfiguration();
 
-            // Check if the product ID is set or is running in single mode
-            if (this.config.id || this.config.mode == this.modes.single) {
-                // Override mode if the ID is set or not set
-                if (okanjo.util.empty(this.config.id)) {
-                    this.config.mode = this.modes.browse;
-                } else {
-                    this.config.mode = this.modes.single;
-                }
+            // Run the widget's main init logic, and  bail if needed
+            if (!this.load()) return;
 
-                // If in sense mode, ensure the URL param is set
-            } else if (this.config.url || this.config.text || this.config.mode == this.modes.sense) {
-                // Require url or text attributes
-                if (okanjo.util.empty(this.config.url) && okanjo.util.empty(this.config.text)) {
-                    this.config.url = this.getCurrentPageUrl();
-                }
-                this.config.mode = this.modes.sense;
-            } else {
-                // Make sure a mode is always set, and cannot be empty
-                this.config.mode = okanjo.util.empty(this.config.mode) ? this.modes.browse : this.config.mode;
+            // Track the widget load
+            this.trackLoad();
+
+            // Async clean the cache, if needed
+            this.autoCleanCache();
+        },
+
+
+        /**
+         * Does some magic to try to track down the widget key to use for requests
+         * @returns {boolean}
+         */
+        findWidgetKey: function() {
+
+            // Attempt to locate the proper widget key to use for this instance
+            if (!okanjo.util.empty(this.config.key)) {
+                // Use the key given in the widget instance configuration
+                this.key = this.config.key;
+                this.config.key = this.key;
+                return true;
+            } else if (!okanjo.util.empty(okanjo.key)) {
+                // Use the key on the okanjo instance if specified
+                this.key = okanjo.key;
+                this.config.key = this.key;
+                return true;
             }
 
-            // Immediately show products from the local browser cache, if present, for immediate visual feedback
-            if (this.config.use_cache && this.loadProductsFromCache()) {
-                // Loaded from cache successfully!
+            // Still no key?
+            if(!okanjo.util.empty(this.key)) {
+                this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Missing Okanjo key.' });
+                okanjo.report(this.widgetName, 'Missing key. Define one using okanjo.configure or pass the key parameter as an option in the '+this.widgetName+' constructor');
+                return false;
             } else {
-                this.getProducts();
+                this.config.key = this.key;
+                return true;
             }
-
-            // If metrics doesn't exist in the Okanjo context for some reason, don't get bent out of shape about it
-            var loc = window.location;
-            okanjo.metrics.trackEvent('Okanjo Product Widget', 'Loaded', loc.protocol + '//' + loc.hostname + (loc.port ? (':' + loc.port) : '') + loc.pathname);
-
-            // Async clean up the cache
-            var self = this;
-            setTimeout(function() {
-                self.cleanCache();
-            }, 2000);
-
         },
 
 
@@ -2713,13 +3365,15 @@ if (typeof JSON !== 'object') {
                 css = this.css,
                 key;
             for (key in templates) {
+                //noinspection JSUnresolvedFunction
                 if (templates.hasOwnProperty(key)) {
-                    if (!okanjo.mvc.isTemplateRegistered(templates[key])) throw new Error('[Okanjo] Missing template: ' + templates[key]);
+                    if (!okanjo.mvc.isTemplateRegistered(templates[key])) throw new Error('[Okanjo.'+this.widgetName+'] Missing template: ' + templates[key]);
                 }
             }
             for (key in css) {
+                //noinspection JSUnresolvedFunction
                 if (css.hasOwnProperty(key)) {
-                    if (!okanjo.mvc.isCssRegistered(css[key])) throw new Error('[Okanjo] Missing css block: ' + css[key]);
+                    if (!okanjo.mvc.isCssRegistered(css[key])) throw new Error('[Okanjo.'+this.widgetName+'] Missing css block: ' + css[key]);
                 }
             }
         },
@@ -2732,49 +3386,42 @@ if (typeof JSON !== 'object') {
             //noinspection JSUnresolvedVariable
             var attributes = okanjo.util.data(this.element);
 
-            okanjo.util.copyIfSetMap(this.config, attributes, {
+            okanjo.util.copyIfSetMap(this.config, attributes, this.configMap, { stripEmpty: true });
+        },
 
-                // Widget mode
-                mode: "mode", // What provider to use to retrieve products, browse, sense or single, default: browse
 
-                // ProductSense Params
-                url: "url",  // The URL to digest
-                selectors: "selectors", // CSV of page element selectors, default: p,title,meta[name="description"],meta[name="keywords"]
-                text: "text", // The given text to digest, but no more than 50KB
+        /**
+         * Core widget loader. Override this!
+         * @returns {boolean}
+         */
+        load: function() {
 
-                // Search Params
+            // TODO - override this on the actual wideget implementation
 
-                "id": "id", // The specific product ID to fetch (single mode), default: null
+            return true;
+        },
 
-                "q": "query", // Search query text
 
-                marketplace_status: ['marketplace-status'], // Option to switch to testing product pool, default: live
-                marketplace_id: ['marketplace-id'], // Limit products listed under the given marketplace, default: null
+        /**
+         * Tracks the widget load metric
+         */
+        trackLoad: function() {
+            // If metrics doesn't exist in the Okanjo context for some reason, don't get bent out of shape about it
+            var loc = window.location;
+            okanjo.metrics.trackEvent('Okanjo '+this.widgetName+' Widget', 'Loaded', loc.protocol + '//' + loc.hostname + (loc.port ? (':' + loc.port) : '') + loc.pathname);
+        },
 
-                external_id: "external-id", // Vendor-given ID
-                sku: "sku", // Vendor stock keeping unit
-                sold_by: 'sold-by', // Limit products listed by a certain store, default: null
 
-                min_price: "min-price", // Products with price greater-than or equal to this amount
-                max_price: "max-price", // Products with price less-than or equal to this amount
-                condition: "condition", // Condition of the product (e.g. new, used, refurbished, unspecified)
-                manufacturer: "manufacturer", // Who made the product
-                upc: "upc", // UPC code
-                isbn: "isbn", // ISBN number
-                tags: "tags", // CSV list of tags
-                category: "category", // CSV list of categories (in order)
-
-                min_donation_percent: "min-donation-percent", // Minimum donation amount: default: 0 (between 0 and 1)
-                max_donation_percent: "max-donation-percent", // Maximum donation amount: default: 1 (between 0 and 1)
-                donation_to: "donation-to", // The name of the non-profit that benefits from the purchase
-
-                suboptimal: 'suboptimal', // Option to enable products labeled as suboptimal (e.g. products that have weak descriptions and could come back as false matches)
-
-                // Pagination
-                skip: ['skip', 'page-start'], // The index of the result set to start at, starting from 0. default: 0
-                take: ['take', 'page-size'] // The number of products to return, default: 5
-
-            }, { stripEmpty: true });
+        /**
+         * Async cleans the widget cache
+         */
+        autoCleanCache: function() {
+            if (this.use_cache) {
+                var self = this;
+                setTimeout(function () {
+                    self.cleanCache();
+                }, 2000);
+            }
         },
 
 
@@ -2798,15 +3445,9 @@ if (typeof JSON !== 'object') {
 
             // On second thought, we're not so nice
             var href = window.location.href,
-                stopPos = Math.min(href.indexOf('?'), href.indexOf('#')),
-                url = stopPos > 0 ? href.substr(0, stopPos) : href;
+                stopPos = Math.min(href.indexOf('?'), href.indexOf('#'));
 
-            // Nag since we had to derive a URL from the window
-            if (this.config.nag) {
-                console.info('[Okanjo.Product] No canonical url given for ProductSense. We recommend using a canonical url to ensure page visibility by Okanjo. Using derived url:', url);
-            }
-
-            return url;
+            return stopPos > 0 ? href.substr(0, stopPos) : href;
         },
 
 
@@ -2826,7 +3467,7 @@ if (typeof JSON !== 'object') {
 
 
         /**
-         * Purges expired product stores from the cache
+         * Purges expired keys from the cache
          */
         cleanCache: function() {
             try {
@@ -2857,138 +3498,689 @@ if (typeof JSON !== 'object') {
                 }
 
             } catch (e) {
-                okanjo.report('Product', e);
+                okanjo.report(this.widgetName, e);
             }
         },
 
 
         /**
-         * Immediately show products from the local browser cache, if present
-         * @returns boolean – True if products were successfully loaded from the cache, false if not
+         * Pull a key from the cache, if it has not expired yet
+         * @returns boolean – The value of what was cached, or null if nothing
          */
-        loadProductsFromCache: function() {
+        loadFromCache: function(cacheKey) {
             // Check if items are cached, and if we should use them
             try {
-                var cacheKey = this.getCacheKey(),
-                    val = cache.getItem(cacheKey),
+                var val = cache.getItem(cacheKey),
                     expires = cache.getItem(cacheKey+"_expires"),
                     now = (new Date()).getTime();
 
                 // Make sure exists and has not expired
                 if (val !== null && expires !== null && now < parseInt(expires)) {
-                    this.items = JSON.parse(val);
-                    this.showProducts(this.items);
-                    return true;
+                    return JSON.parse(val);
                 } else {
                     // Purge if expired
                     cache.removeItem(cacheKey);
                     cache.removeItem(cacheKey + "_expires");
                 }
             } catch (e) {
-                okanjo.report("Product", e);
+                okanjo.report(this.widgetName, e);
             }
 
-            return false;
+            return null;
         },
 
 
         /**
-         * Execute the Product request to Okanjo to get some product tile markup
+         * Save a key to the cache
+         * @param cacheKey
+         * @param obj
          */
-        getProducts: function() {
+        saveInCache: function(cacheKey, obj) {
+
+            // Async save it, don't block for stringify
             var self = this;
-            this.executeSearch(function(err, res) {
-                if (err) {
-                    // Can't show anything, just render a generic error message
-                    console.error('[Okanjo.Product] Failed to retrieve products.', err);
-                    self.element.innerHTML = okanjo.mvc.render(self.templates.error, { message: 'Could not retrieve products.' });
-                } else {
-                    // Store the products array locally
-                    self.items = res.data;
+            setTimeout(function() {
+                cache.setItem(cacheKey, JSON.stringify(obj));
+                cache.setItem(cacheKey+"_expires", (new Date()).getTime() + self.cache_ttl);
+            }, 100);
 
-                    // Render the products
-                    self.showProducts(self.items);
+        }
 
-                    // Async save it, don't block for stringify
-                    setTimeout(function() {
-                        if (self.config.use_cache) {
-                            // Cache the products for next page load so something loads up right away until refreshed
-                            var key = self.getCacheKey();
-                            cache.setItem(key, JSON.stringify(self.items));
-                            cache.setItem(key+"_expires", (new Date()).getTime() + self.config.cache_ttl);
-                        }
-                    }, 100);
 
+    };
+
+    return okanjo._Widget;
+
+})(okanjo, this);
+//noinspection ThisExpressionReferencesGlobalObjectJS,JSUnusedLocalSymbols
+(function(okanjo, window) {
+
+
+    /**
+     * Okanjo Product
+     * @param element - DOM element to attach the output to
+     * @param {*} config - Optional base widget configuration object, element data attributes will override these
+     * @constructor
+     */
+    function Product(element, config) {
+        okanjo._Widget.call(this, element, config);
+
+        this.items = [];
+        this.config = config = config || {
+            mode: Product.contentTypes.browse, // Default to browse
+            use_cache: true,
+            cache_ttl: 60000
+        };
+
+        // Param to stop the URL nagging if none is given
+        this.config.nag = config.nag === undefined ? true : config.nag === true;
+        this.config.use_cache = config.use_cache === undefined ? true : config.use_cache === true;
+        this.config.cache_ttl = config.cache_ttl === undefined ? 60000 : config.cache_ttl;
+        this.use_cache = this.config.use_cache;
+        this.cache_ttl = this.config.cache_ttl;
+
+        this.cache_key_prefix = 'ok_product_block_';
+
+        this.templates = {
+            error: "okanjo.error",
+            main: "product.block"
+        };
+
+        this.css = {
+            main: "product.block",
+            modal: "okanjo.modal"
+        };
+
+        this.configMap = {
+
+            // Widget mode
+            mode: "mode", // What provider to use to retrieve products, browse, sense or single, default: browse
+
+            // ProductSense Params
+            url: "url",  // The URL to digest
+            selectors: "selectors", // CSV of page element selectors, default: p,title,meta[name="description"],meta[name="keywords"]
+            text: "text", // The given text to digest, but no more than 50KB
+
+            // Search Params
+
+            "id": "id", // The specific product ID to fetch (single mode), default: null
+
+            "q": "query", // Search query text
+
+            marketplace_status: ['marketplace-status'], // Option to switch to testing product pool, default: live
+            marketplace_id: ['marketplace-id'], // Limit products listed under the given marketplace, default: null
+
+            external_id: "external-id", // Vendor-given ID
+            sku: "sku", // Vendor stock keeping unit
+            sold_by: 'sold-by', // Limit products listed by a certain store, default: null
+
+            min_price: "min-price", // Products with price greater-than or equal to this amount
+            max_price: "max-price", // Products with price less-than or equal to this amount
+            condition: "condition", // Condition of the product (e.g. new, used, refurbished, unspecified)
+            manufacturer: "manufacturer", // Who made the product
+            upc: "upc", // UPC code
+            isbn: "isbn", // ISBN number
+            tags: "tags", // CSV list of tags
+            category: "category", // CSV list of categories (in order)
+
+            min_donation_percent: "min-donation-percent", // Minimum donation amount: default: 0 (between 0 and 1)
+            max_donation_percent: "max-donation-percent", // Maximum donation amount: default: 1 (between 0 and 1)
+            donation_to: "donation-to", // The name of the non-profit that benefits from the purchase
+
+            suboptimal: 'suboptimal', // Option to enable products labeled as suboptimal (e.g. products that have weak descriptions and could come back as false matches)
+
+            // Pagination
+            skip: ['skip', 'page-start'], // The index of the result set to start at, starting from 0. default: 0
+            take: ['take', 'page-size'] // The number of products to return, default: 5
+
+        };
+
+        // Initialize unless told not to
+        //noinspection JSUnresolvedVariable
+        if (!config.no_init) {
+            //noinspection JSUnresolvedFunction
+            this.init();
+        }
+    }
+
+    okanjo.util.inherits(Product, okanjo._Widget);
+
+
+    Product.contentTypes = {
+        browse: "browse",
+        sense: "sense",
+        single: "single"
+    };
+
+    var proto = Product.prototype;
+
+    proto.widgetName = "Product";
+
+    // Parameters to compile to generate the cache key
+    proto.cacheKeyAttributes = 'mode,url,selectors,text,id,q,marketplace_status,marketplace_id,external_id,sku,sold_by,min_price,max_price,condition,manufacturer,upc,isbn,tags,category,min_donation_percent,max_donation_percent,donation_to,suboptimal,skip,take'.split(',');
+
+    /**
+     * Loads the widget content onto the page
+     */
+    proto.load = function() {
+
+        // Check if the product ID is set or is running in single mode
+        if (this.config.id || this.config.mode == Product.contentTypes.single) {
+            // Override mode if the ID is set or not set
+            if (okanjo.util.empty(this.config.id)) {
+                this.config.mode = Product.contentTypes.browse;
+            } else {
+                this.config.mode = Product.contentTypes.single;
+            }
+
+            // If in sense mode, ensure the URL param is set
+        } else if (this.config.url || this.config.text || this.config.mode == Product.contentTypes.sense) {
+            // Require url or text attributes
+            if (okanjo.util.empty(this.config.url) && okanjo.util.empty(this.config.text)) {
+                this.config.url = this.getCurrentPageUrl();
+                // Nag since we had to derive a URL from the window
+                if (this.config.nag) {
+                    console.info('[Okanjo.'+this.widgetName+'] No canonical url given for ProductSense. We recommend using a canonical url to ensure page visibility by Okanjo. Using derived url:', url);
                 }
-            });
-        },
-
-
-        /**
-         * Does some magic to try to track down the widget key to use for requests
-         * @returns {boolean}
-         */
-        findWidgetKey: function() {
-
-            // Attempt to locate the proper widget key to use for this instance
-            if (!okanjo.util.empty(this.config.key)) {
-                // Use the key given in the widget instance configuration
-                this.key = this.config.key;
-                this.config.key = this.key;
-                return true;
-            } else if (!okanjo.util.empty(okanjo.key)) {
-                // Use the key on the okanjo instance if specified
-                this.key = okanjo.key;
-                this.config.key = this.key;
-                return true;
             }
+            this.config.mode = Product.contentTypes.sense;
+        } else {
+            // Make sure a mode is always set, and cannot be empty
+            this.config.mode = okanjo.util.empty(this.config.mode) ? Product.contentTypes.browse : this.config.mode;
+        }
 
-            // Still no key?
-            if(!okanjo.util.empty(this.key)) {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Missing Okanjo key.' });
-                okanjo.report('Product', 'Missing key. Define one using okanjo.configure or pass the key parameter as an option in the Product constructor');
-                return false;
-            } else {
-                this.config.key = this.key;
-                return true;
-            }
-        },
+        // Immediately show products from the local browser cache, if present, for immediate visual feedback
+        if (this.config.use_cache && this.loadProductsFromCache()) {
+            // Loaded from cache successfully!
+        } else {
+            this.getProducts();
+        }
 
+        return true;
 
-        /**
-         * Performs a JSONP request to the API to get the desired products
-         * @param {function(err:*, res:*)} callback – Closure to fire when completed
-         */
-        executeSearch: function(callback) {
-            if (this.config.mode === this.modes.sense) {
-                okanjo.exec(okanjo.getRoute(okanjo.routes.products_sense), this.config, callback);
-            } else if (this.config.mode === this.modes.single) {
-                okanjo.exec(okanjo.getRoute(okanjo.routes.products_id, { product_id: this.config.id }), this.config, function(err, res) {
-                    if (!err && res && res.data) {
-                        res.data = [ res.data ];
-                    }
-                    if (callback) callback(err, res);
-                });
-            } else {
-                okanjo.exec(okanjo.getRoute(okanjo.routes.products), this.config, callback);
-            }
-        },
+    };
 
 
-        /**
-         * Displays the products results
-         * @param {[*]} data - The array of products
-         */
-        showProducts: function(data) {
-            this.element.innerHTML = okanjo.mvc.render(this.templates.main, {
-                products: data || this.items || [],
-                config: this.config
-            });
+    /**
+     * Immediately show products from the local browser cache, if present
+     * @returns boolean – True if products were successfully loaded from the cache, false if not
+     */
+    proto.loadProductsFromCache = function() {
+
+        var items = this.loadFromCache(this.getCacheKey());
+        if (items !== null) {
+            this.items = items;
+            this.showProducts(this.items);
+            return true;
+        } else {
+            return false;
         }
 
     };
 
-    return okanjo.Product;
+
+    /**
+     * Execute the Product request to Okanjo to get some product tile markup
+     */
+    proto.getProducts = function() {
+        var self = this;
+        this.executeSearch(function(err, res) {
+            if (err) {
+                // Can't show anything, just render a generic error message
+                console.error('[Okanjo.'+this.widgetName+'] Failed to retrieve products.', err);
+                self.element.innerHTML = okanjo.mvc.render(self.templates.error, { message: 'Could not retrieve products.' });
+            } else {
+                // Store the products array locally
+                self.items = res.data;
+
+                // Render the products
+                self.showProducts(self.items);
+
+                if (self.use_cache) {
+                    // Cache the products for next page load so something loads up right away until refreshed
+                    var key = self.getCacheKey();
+                    self.saveInCache(key, self.items);
+                }
+
+            }
+        });
+    };
+
+
+
+    /**
+     * Performs a JSONP request to the API to get the desired products
+     * @param {function(err:*, res:*)} callback – Closure to fire when completed
+     */
+    proto.executeSearch = function(callback) {
+        if (this.config.mode === Product.contentTypes.sense) {
+            okanjo.exec(okanjo.getRoute(okanjo.routes.products_sense), this.config, callback);
+        } else if (this.config.mode === Product.contentTypes.single) {
+            okanjo.exec(okanjo.getRoute(okanjo.routes.products_id, { product_id: this.config.id }), this.config, function(err, res) {
+                if (!err && res && res.data) {
+                    res.data = [ res.data ];
+                }
+                if (callback) callback(err, res);
+            });
+        } else {
+            okanjo.exec(okanjo.getRoute(okanjo.routes.products), this.config, callback);
+        }
+    };
+
+
+    /**
+     * Displays the products results
+     * @param {[*]} data - The array of products
+     */
+    proto.showProducts = function(data) {
+        this.element.innerHTML = okanjo.mvc.render(this.templates.main, {
+            products: data || this.items || [],
+            config: this.config
+        });
+        this.bindEvents();
+    };
+
+
+    Product.interactTile = function(e, trigger) {
+        var inline = this.getAttribute('data-inline-buy-url'),
+            base = this.getAttribute('data-inline-buy-url-base');
+        if (!okanjo.util.empty(inline)) {
+
+            if (e.preventDefault) {
+                e.preventDefault();
+            } else {
+                e.returnValue = false;
+            }
+
+            var iframe = document.createElement('iframe');
+            iframe.className = "okanjo-ad-inline-buy-frame";
+            iframe.setAttribute('frameborder', 0);
+            iframe.setAttribute('allowFullscreen', "");
+            iframe.src = base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline);
+
+            var modal = okanjo.modal(iframe, {
+                autoRemove: true,
+                buttons: [],
+                classes: 'adModal'
+            });
+            modal.show();
+        } else if (trigger) {
+            this.click();
+        }
+    };
+
+
+    /**
+     * Binds event listeners to the anchor elements in the product widgets
+     */
+    proto.bindEvents = function() {
+
+        okanjo.qwery('a', this.element).every(function(a) {
+            if(a.addEventListener) {
+                a.addEventListener('click', Product.interactTile);
+            } else {
+                a.attachEvent('onclick', function(e) { Product.interactTile.call(a, e); });
+            }
+
+            return true;
+        });
+
+    };
+
+    okanjo.Product = Product;
+    return Product;
+
+})(okanjo, this);
+//noinspection ThisExpressionReferencesGlobalObjectJS,JSUnusedLocalSymbols
+(function(okanjo, window) {
+
+    /**
+     * Okanjo Ad
+     * @param element - DOM element to attach the output to
+     * @param {*} config - Optional base widget configuration object, element data attributes will override these
+     * @constructor
+     */
+    function Ad(element, config) {
+
+        okanjo._Widget.call(this, element, config);
+
+        //noinspection JSUnresolvedVariable
+        config = this.config;
+
+        this.templates = {
+            error: "okanjo.error",
+            main: "ad.block"
+        };
+
+        this.css = {
+            main: "ad.block"
+        };
+
+        this.configMap = {
+
+            // How should this thing look?
+            content: "content", // The content of the ad, creative or dynamic. Default: creative if element has markup, dynamic if not.
+            size: "size", // Hint as to the intended IAB display size, e.g. large_rectangle, leaderboard, skyscraper. Default: medium_rectangle
+
+            // What should this thing point at?
+            type: "type", // The source type. Default: product
+            id: "id" // The source id. e.g. PRasdfMyProductId. Default: null
+
+        };
+
+
+        // Initialize unless told not to
+        //noinspection JSUnresolvedVariable
+        if (!config.no_init) {
+            //noinspection JSUnresolvedFunction
+            this.init();
+        }
+    }
+
+    // Extend the base widget
+    okanjo.util.inherits(Ad, okanjo._Widget);
+
+
+    /**
+     * Ad display types
+     * @type {{creative: string, dynamic: string}}
+     */
+    Ad.contentTypes = {
+        creative: "creative",
+        dynamic: "dynamic"
+    };
+
+
+    /**
+     * Ad display types (currently just product)
+     * @type {{product: string}}
+     */
+    Ad.types = {
+        product: "product"
+    };
+
+
+    /**
+     * Known Ad Dimensions
+     */
+    Ad.sizes = {
+
+        // IAB / Others
+        billboard:              { width: 970, height: 250 }, // aka: sidekick
+        button_2:               { width: 120, height:  60 },
+        half_page:              { width: 300, height: 600 }, // aka: filmstrip, sidekick
+        leaderboard:            { width: 728, height:  90 },
+        medium_rectangle:       { width: 300, height: 250 }, // aka: sidekick
+        micro_bar:              { width:  88, height:  31 },
+        portrait:               { width: 300, height:1050 },
+        rectangle:              { width: 180, height: 150 },
+        super_leaderboard:      { width: 970, height:  90 }, // aka: pushdown, slider, large_leaderboard
+        wide_skyscraper:        { width: 160, height: 600 },
+
+        // Google
+        large_mobile_banner:    { width: 320, height: 100 },
+        mobile_leaderboard:     { width: 320, height:  50 },
+        small_square:           { width: 200, height: 200 },
+
+        // Retired / Deprecated
+        button_1:               { width: 120, height:  90 },
+        full_banner:            { width: 468, height:  60 },
+        half_banner:            { width: 234, height:  60 },
+        large_rectangle:        { width: 336, height: 280 },
+        pop_under:              { width: 720, height: 300 },
+        three_to_one_rectangle: { width: 300, height: 100 },
+        skyscraper:             { width: 120, height: 600 },
+        square:                 { width: 250, height: 250 },
+        square_button:          { width: 125, height: 125 },
+        vertical_banner:        { width: 120, height: 240 },
+        vertical_rectangle:     { width: 240, height: 400 }
+    };
+
+    var proto = Ad.prototype;
+
+    /**
+     * Ad Widget!
+     * @type {string}
+     */
+    proto.widgetName = 'Ad';
+
+    /**
+     * Widget loader, sandwiched in the widget init
+     * @returns {boolean}
+     */
+    proto.load = function() {
+        //
+        // Ensure proper content
+        //
+
+        if (okanjo.util.empty(this.config.content)) {
+            if (this.hasCreativeContent()) {
+                this.config.content = Ad.contentTypes.creative;
+            } else {
+                this.config.content = Ad.contentTypes.dynamic;
+            }
+        } else if (this.config.content === Ad.contentTypes.creative && !this.hasCreativeContent()) {
+            // You say you want creative, but you don't really have any
+            console.warn('[Okanjo.Ad] Ad content is creative, but ad placement does not contain creative markup. Switching to dynamic!');
+            this.config.content = Ad.contentTypes.dynamic;
+        } else if (this.config.content === Ad.contentTypes.dynamic && this.hasCreativeContent()) {
+            console.warn('[Okanjo.Ad] Ad content is dynamic, but ad placement contains markup. Markup will be clobbered!');
+        } else if (!Ad.contentTypes.hasOwnProperty(this.config.content)){
+            this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Invalid ad content: ' + this.config.content });
+            okanjo.report(this.widgetName, 'Invalid ad content: ' + this.config.content);
+            return false;
+        }
+
+
+        //
+        // Ensure proper type
+        //
+
+        if (okanjo.util.empty(this.config.type)) {
+
+            // Default to product
+            this.config.type = Ad.types.product;
+
+            //if (okanjo.util.empty(this.config.size)) {
+            //    this.config.size = Ad.sizes.medium_rectangle; // Defaults to medium_rectangle
+            //}
+        } else if (!Ad.types.hasOwnProperty(this.config.type)) {
+            console.warn('[Okanjo.'+this.widgetName+'] Unknown type', this.config.type, 'given, using type `product` instead');
+            this.config.type = Ad.types.product;
+        }
+
+
+        //
+        // Ensure element size
+        //
+
+        // Check if we have known dimensions
+        if (!okanjo.util.empty(this.config.size) && Ad.sizes.hasOwnProperty(this.config.size)) {
+            // Set the placement's dimensions automagically
+            this.setElementSize(Ad.sizes[this.config.size]);
+        }
+
+        //
+        // Ensure target id, and RENDER IT!
+        //
+
+        if (this.config.type === Ad.types.product) {
+
+            // Make sure an ID is set
+            if (okanjo.util.empty(this.config.id)) {
+                this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Missing ad product id' });
+                okanjo.report(this.widgetName, 'Missing ad product id');
+                return false;
+            }
+
+            // Get the product
+            if (this.config.content == Ad.contentTypes.dynamic) {
+                // If dynamic, render in a product block
+                this.insertProductWidget();
+            } else if (this.config.content == Ad.contentTypes.creative) {
+                // If creative, don't mess with the markup, just bind up the click / modal
+                this.insertCreativeWidget();
+            } else {
+                this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Cannot render ad in content: ' + this.config.content });
+                okanjo.report(this.widgetName, 'Cannot render ad in content: ' + this.config.content);
+                return false;
+            }
+
+        }
+
+        return true;
+
+    };
+
+
+    /**
+     * Renders the ad and moves existing content into the spot it should be
+     */
+    proto.render = function() {
+
+        var div = document.createElement('div'),
+            existingChildren = [],
+            i,
+            fit = this.config.content == Ad.contentTypes.dynamic && !okanjo.util.empty(this.config.size);
+
+        div.innerHTML = okanjo.mvc.render(this.templates.main, {
+            //products: data || this.items || [],
+            config: this.config
+        }, {
+            blockClasses: fit ? ['okanjo-ad-fit'] : []
+        });
+
+
+        // Get all children in the current element
+        for( i = 0; i < this.element.childNodes.length; i++) {
+            if (this.element.childNodes[i].nodeType === 1 /*Node.ELEMENT_NODE*/) {
+                existingChildren.push(this.element.childNodes[i]);
+            }
+        }
+
+
+        // Attach markup to the element
+        for( i = 0; i < div.childNodes.length; i++) {
+            if (div.childNodes[i].nodeType === 1 /*Node.ELEMENT_NODE*/) {
+                this.element.appendChild(div.childNodes[i]);
+            }
+        }
+
+        // Get the new container element
+        var container = okanjo.qwery('.okanjo-ad-container', this.element)[0];
+
+
+        // Move children to the new container
+        for( i = 0; i < existingChildren.length; i++ ) {
+            container.appendChild(existingChildren[i]);
+        }
+
+    };
+
+
+    /**
+     * When a creative ad is clicked, funnel the event to the nearest product
+     * @param e
+     */
+    proto.interact = function(e) {
+        var links = okanjo.qwery('a', this.productWidget.element);
+        if (links.length > 0) {
+            this._waitingOnProductLoad = false;
+            okanjo.Product.interactTile.call(links[0], e, true);
+        } else {
+            if (!this._waitingOnProductLoad) {
+                this._waitingOnProductLoad = true;
+                var self = this,
+                    interval = setInterval(function() {
+                        if (!self._waitingOnProductLoad) {
+                            clearInterval(interval);
+                        } else {
+                            self.interact(e);
+                        }
+                    }, 250);
+                console.warn('Waiting for Okanjo Product widget to load...');
+            }
+        }
+    };
+
+
+    /**
+     * Formats the creative content and adds a product widget in the ad space
+     */
+    proto.insertCreativeWidget = function() {
+        this.insertProductWidget({ hidden: true });
+
+        // Bind a click handler
+        var self = this;
+        if (this.element.addEventListener) {
+            this.element.addEventListener('click', function(e) { self.interact(e); });
+        } else {
+            this.element.attachEvent('onclick', function(e) { self.interact(e); });
+        }
+    };
+
+
+    /**
+     * Inserts a product widget into the ad space
+     * @param options
+     * @returns {okanjo.Product|*}
+     */
+    proto.insertProductWidget = function(options) {
+        options = options || {};
+
+        // Create a non-conflicting container for the ad block
+        var el = document.createElement('div');
+        el.className = 'okanjo-ad-dynamic-product';
+
+        if (options.hidden) {
+            el.style.display = "none";
+        }
+
+        this.element.appendChild(el);
+
+        this.render();
+
+        this.productWidget = new okanjo.Product(el, {
+            id: this.config.id,
+            mode: okanjo.Product.contentTypes.single
+        });
+
+        return this.productWidget;
+
+    };
+
+
+    /**
+     * Updates the placement element's dimensions based on given size
+     * @param size
+     */
+    proto.setElementSize = function(size) {
+        this.element.style.display = "block";
+        this.element.style.overflow = "hidden";
+        this.element.style.width = size.width + "px";
+        this.element.style.height = size.height + "px";
+    };
+
+
+    /**
+     * Check if the element has predefined content to show
+     * @returns {boolean}
+     */
+    proto.hasCreativeContent = function() {
+        if (this.element.childElementCount && this.element.childElementCount > 0) {
+            return true;
+        } else {
+            for (var i = 0; i < this.element.childNodes.length; i++) {
+                if (this.element.childNodes[i].nodeType === 1/*Node.ELEMENT_NODE*/) {
+                    return true;
+                }
+            }
+        }
+    };
+
+
+    okanjo.Ad = Ad;
+    return Ad;
 
 })(okanjo, this);
 return okanjo;

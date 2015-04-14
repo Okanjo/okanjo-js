@@ -20,6 +20,13 @@
         // Ads config
         ads: {
             apiUri: 'https://ads-api.okanjo.com'
+        },
+
+        // Moat Analytics config
+        moat: {
+            tag: 'okanjo969422799577',
+            clientLevels: [ 'MoatTest', 'MoatTest', 'MoatTest', 'MoatTest' ],
+            clientSlicers: [ 'MoatTest', 'MoatTest' ]
         }
     };
 

@@ -179,6 +179,10 @@
             view.now = function() { return (new Date()).getTime(); };
             view.classDetects = this.classDetects;
 
+            //noinspection JSUnresolvedVariable
+            if (options.blockClasses && Array.isArray(options.blockClasses)) {
+                view.classDetects = view.classDetects += " " + options.blockClasses.join(' ');
+            }
 
             // Add CSS unless we are told not to
             if (options.css !== false) {
@@ -235,6 +239,7 @@
                     //noinspection JSUnresolvedVariable
                     mixed.image_url = mixed.image_urls ? mixed.image_urls[0] : '' ;
                     mixed.escaped_buy_url = encodeURIComponent(mixed.buy_url);
+                    mixed.escaped_inline_buy_url = okanjo.util.empty(mixed.inline_buy_url) ? '' : encodeURIComponent(mixed.inline_buy_url);
                     mixed.price = this.currency(mixed.price);
                     return mixed;
                 } else { // Unknown value

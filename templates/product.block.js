@@ -11,7 +11,7 @@
         options.products = okanjo.mvc.formats.product(data.products);
         return options;
     }, {
-        css: [ /*'okanjo.core',*/ 'product.block']
+        css: [ /*'okanjo.core',*/ 'product.block', 'okanjo.modal']
     });
 
 

@@ -16,6 +16,11 @@
             },
 
             /**
+             * Placeholder, just in case okanjo-js is built without moat
+             */
+            moat: { init: function() {} },
+
+            /**
              * API route definitions
              */
             routes: {
@@ -107,7 +112,7 @@
                  * @param val
                  */
                 trim: function(val) {
-                    (val || "").replace(/^\s+|\s+$/g, '');
+                    return (val || "").replace(/^\s+|\s+$/g, '');
                 },
 
 
@@ -219,37 +224,39 @@
                     for(var k = 0; k < keys.length; k++) {
                         okanjo.util.copyIfSet(target, source, keys[k], map[keys[k]], options);
                     }
+                },
+
+                /*! https://github.com/isaacs/inherits/blob/master/inherits_browser.js */
+                /**
+                 * Extends an object from another
+                 * @param ctor – Child class
+                 * @param superCtor – Parent class
+                 */
+                inherits: function inherits(ctor, superCtor) {
+                    if (typeof Object.create === 'function') {
+                        // implementation from standard node.js 'util' module
+                        ctor.super_ = superCtor;
+                        ctor.prototype = Object.create(superCtor.prototype, {
+                            constructor: {
+                                value: ctor,
+                                enumerable: false,
+                                writable: true,
+                                configurable: true
+                            }
+                        });
+                    } else {
+                        // old school shim for old browsers
+                        ctor.super_ = superCtor;
+                        var TempCtor = function () {};
+                        TempCtor.prototype = superCtor.prototype;
+                        ctor.prototype = new TempCtor();
+                        ctor.prototype.constructor = ctor;
+                    }
                 }
 
             }
 
-
         };
-
-        /*! https://github.com/isaacs/inherits/blob/master/inherits_browser.js */
-        if (typeof Object.create === 'function') {
-            // implementation from standard node.js 'util' module
-            okanjo.util.inherits = function inherits(ctor, superCtor) {
-                ctor.super_ = superCtor;
-                ctor.prototype = Object.create(superCtor.prototype, {
-                    constructor: {
-                        value: ctor,
-                        enumerable: false,
-                        writable: true,
-                        configurable: true
-                    }
-                });
-            };
-        } else {
-            // old school shim for old browsers
-            okanjo.util.inherits = function inherits(ctor, superCtor) {
-                ctor.super_ = superCtor;
-                var TempCtor = function () {};
-                TempCtor.prototype = superCtor.prototype;
-                ctor.prototype = new TempCtor();
-                ctor.prototype.constructor = ctor;
-            };
-        }
 
         return okanjo;
 

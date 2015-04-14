@@ -71,18 +71,20 @@
     };
 
     (function configure() {
-        if (!document.getElementById('#okanjo-metrics')) {
-            var ga = document.createElement('script');
-            ga.type = 'text/javascript';
-            ga.async = true;
-            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-            ga.id = 'okanjo-metrics';
+        okanjo.onDomReady(function() {
+            if (!document.getElementById('#okanjo-metrics')) {
+                var ga = document.createElement('script');
+                ga.type = 'text/javascript';
+                ga.async = true;
+                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+                ga.id = 'okanjo-metrics';
 
-            okanjo.qwery('body')[0].appendChild(ga);
-            metrics.addGoogleTracker(okanjo.config.analyticsId, 'okanjo');
-        }
+                okanjo.qwery('body')[0].appendChild(ga);
+                metrics.addGoogleTracker(okanjo.config.analyticsId, 'okanjo');
+            }
 
-        metrics.addDefaultTracker('okanjo');
+            metrics.addDefaultTracker('okanjo');
+        });
     })();
 
 })(okanjo, this);
