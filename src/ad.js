@@ -25,6 +25,9 @@
 
         this.configMap = {
 
+            // Api Widget Key
+            key: "key",
+
             // How should this thing look?
             content: "content", // The content of the ad, creative or dynamic. Default: creative if element has markup, dynamic if not.
             size: "size", // Hint as to the intended IAB display size, e.g. large_rectangle, leaderboard, skyscraper. Default: medium_rectangle
@@ -309,6 +312,7 @@
 
         this.productWidget = new okanjo.Product(el, {
             id: this.config.id,
+            key: this.key,
             mode: okanjo.Product.contentTypes.single
         });
 

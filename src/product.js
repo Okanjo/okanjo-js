@@ -39,6 +39,9 @@
 
         this.configMap = {
 
+            // Api Widget Key
+            key: "key",
+
             // Widget mode
             mode: "mode", // What provider to use to retrieve products, browse, sense or single, default: browse
 
@@ -173,7 +176,7 @@
         this.executeSearch(function(err, res) {
             if (err) {
                 // Can't show anything, just render a generic error message
-                console.error('[Okanjo.'+this.widgetName+'] Failed to retrieve products.', err);
+                console.error('[Okanjo.'+self.widgetName+'] Failed to retrieve products.', err);
                 self.element.innerHTML = okanjo.mvc.render(self.templates.error, { message: 'Could not retrieve products.' });
             } else {
                 // Store the products array locally

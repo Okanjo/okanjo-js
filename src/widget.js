@@ -46,14 +46,14 @@
          */
         init: function() {
 
-            // Ensure we have a widget key or bail out if we don't
-            if (!this.findWidgetKey()) return;
-
             // Make sure that we have the templates necessary to render the widget
             this.ensureTemplates();
 
             // Parse the final widget instance configuration
             this.parseConfiguration();
+
+            // Ensure we have a widget key or bail out if we don't
+            if (!this.findWidgetKey()) return;
 
             // Run the widget's main init logic, and  bail if needed
             if (!this.load()) return;

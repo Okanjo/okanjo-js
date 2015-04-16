@@ -3306,14 +3306,14 @@ var okanjoModal = (function() {
          */
         init: function() {
 
-            // Ensure we have a widget key or bail out if we don't
-            if (!this.findWidgetKey()) return;
-
             // Make sure that we have the templates necessary to render the widget
             this.ensureTemplates();
 
             // Parse the final widget instance configuration
             this.parseConfiguration();
+
+            // Ensure we have a widget key or bail out if we don't
+            if (!this.findWidgetKey()) return;
 
             // Run the widget's main init logic, and  bail if needed
             if (!this.load()) return;
@@ -3593,6 +3593,9 @@ var okanjoModal = (function() {
 
         this.configMap = {
 
+            // Api Widget Key
+            key: "key",
+
             // Widget mode
             mode: "mode", // What provider to use to retrieve products, browse, sense or single, default: browse
 
@@ -3727,7 +3730,7 @@ var okanjoModal = (function() {
         this.executeSearch(function(err, res) {
             if (err) {
                 // Can't show anything, just render a generic error message
-                console.error('[Okanjo.'+this.widgetName+'] Failed to retrieve products.', err);
+                console.error('[Okanjo.'+self.widgetName+'] Failed to retrieve products.', err);
                 self.element.innerHTML = okanjo.mvc.render(self.templates.error, { message: 'Could not retrieve products.' });
             } else {
                 // Store the products array locally
@@ -3857,6 +3860,9 @@ var okanjoModal = (function() {
         };
 
         this.configMap = {
+
+            // Api Widget Key
+            key: "key",
 
             // How should this thing look?
             content: "content", // The content of the ad, creative or dynamic. Default: creative if element has markup, dynamic if not.
@@ -4142,6 +4148,7 @@ var okanjoModal = (function() {
 
         this.productWidget = new okanjo.Product(el, {
             id: this.config.id,
+            key: this.key,
             mode: okanjo.Product.contentTypes.single
         });
 

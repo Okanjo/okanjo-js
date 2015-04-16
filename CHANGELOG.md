@@ -3,6 +3,11 @@
 
 When stuff changes, it's described here.
 
+## 2015-04-16
+ * Added key parameter to ad and product widgets
+ * Fixed: when automatically inserting a product widget into an ad, use the ad's key instead of assuming a global key is defined
+ * Fixed: call `findWidgetKey` after `parseConfiguration` in the widget init process, so the given key data element can be used
+
 ## 2015-04-14
  * Added new and improved version of the initial AdCommerce widget, the Ad Widget
  * Added and integrated modified NanoModal library
@@ -22,7 +27,7 @@ When stuff changes, it's described here.
  * Removed errant console.log in JSONP
  * Ensure config.mode is always set on product widget
 
-## 2015-04-02
+## 2015-04-02 – v0.2.12
  * Fixed ga analytics id in config
  * Use window._gaq instead of internal 
  * Added product widget impression metrics
