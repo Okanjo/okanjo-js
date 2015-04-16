@@ -1,7 +1,7 @@
 {
   "name": "okanjo",
-  "main": "build/okanjo.js",
-  "version": "0.2.13",
+  "main": "dist/okanjo-bundle.min.js",
+  "version": "0.3.1",
   "authors": [
     "Okanjo Partners Inc"
   ],
