@@ -1,45 +1,42 @@
 //noinspection JSUnusedLocalSymbols
 (function(okanjo, window) {
 
+    var d = document,
+        addIfNotNull = function(list, params, label) {
+            for (var i = 0; i < list.length; i++) {
+                if (list[i] !== null) params.push(label + (i + 1) + '=' + list[i]);
+            }
+        };
+
     okanjo.moat = {
 
         /**
-         * Flag to prevent accidental loading twice
+         * Disable by default until testing is completed
          */
-        loaded: (okanjo.moat && okanjo.moat.loaded) || false,
+        enabled: false,
 
         /**
-         * Load Moat Analytics
+         * Insert a Moat Analytics tracker
+         * @param [element] - The element to append to or leave blank to track the entire page
          */
-        init: function() {
-            if (!okanjo.moat.loaded) {
-                okanjo.moat.loaded = true;
-                var d = document,
-                    b = d.getElementsByTagName('body')[0],
-                    ns = d.createElement('noscript'),
+        insert: function(element) {
+            if (okanjo.moat.enabled) {
+
+                var b = element || d.getElementsByTagName('body')[0],
                     ma = d.createElement('script'),
                     moatParams = [],
                     moat = okanjo.config.moat;
 
 
                 // Build config param string
-                moat.clientLevels.every(function (v, i) {
-                    if (v !== null) moatParams.push('moatClientLevel' + (i + 1) + '=' + v);
-                    return true;
-                });
-                moat.clientSlicers.every(function (v, i) {
-                    if (v !== null) moatParams.push('moatClientSlicer' + (i + 1) + '=' + v);
-                    return true;
-                });
+                addIfNotNull(moat.clientLevels, moatParams, 'moatClientLevel');
+                addIfNotNull(moat.clientSlicers, moatParams, 'moatClientSlicer');
                 moatParams = moatParams.join('&');
-
-                ns.className = 'MOAT-' + moat.tag + '?' + moatParams;
 
                 ma.type = 'text/javascript';
                 ma.async = true;
                 ma.src = '//js.moatads.com/' + moat.tag + '/moatad.js#' + moatParams;
 
-                b.appendChild(ns);
                 b.appendChild(ma);
             }
         }

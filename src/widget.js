@@ -153,6 +153,14 @@
 
 
         /**
+         * Injects a Moat tag into the widget
+         */
+        trackMoat: function() {
+            okanjo.moat.insert(this.element);
+        },
+
+
+        /**
          * Async cleans the widget cache
          */
         autoCleanCache: function() {

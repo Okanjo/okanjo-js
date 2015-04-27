@@ -93,7 +93,6 @@ var gulp = require('gulp'),
         'src/cache.js',
         'src/cookie.js',
         'lib/polyfill/json2.js',
-        'lib/polyfill/array.every.js',
 
         // External  dependencies & polyfills
         'build/vendor.js',
@@ -217,7 +216,7 @@ gulp.task('bundle', ['min', 'templatesjs'], function() {
         .pipe(s1)
         .pipe(gulp.dest('dist'))
         .pipe(uglify({
-            preserveComments: 'some'
+            preserveComments: 'some',
         }))
         .pipe(insert.prepend(getHeader()))
         .pipe(rename('okanjo-bundle.min.js'))

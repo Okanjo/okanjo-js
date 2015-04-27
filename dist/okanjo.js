@@ -28,7 +28,7 @@
             /**
              * Placeholder, just in case okanjo-js is built without moat
              */
-            moat: { init: function() {} },
+            moat: { insert: function() {} },
 
             /**
              * API route definitions
@@ -1494,71 +1494,6 @@ if (typeof JSON !== 'object') {
     }());
 }
 /* jshint ignore:end */
-
-    /**! Array.every polyfill | https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/every */
-    if (!Array.prototype.every) {
-        Array.prototype.every = function (callbackfn, thisArg) {
-            'use strict';
-            var T, k;
-            // jshint -W041
-            if (this == null) {  // jshint +W041
-                throw new TypeError('this is null or not defined');
-            }
-
-            // 1. Let O be the result of calling ToObject passing the this
-            //    value as the argument.
-            var O = Object(this);
-
-            // 2. Let lenValue be the result of calling the Get internal method
-            //    of O with the argument "length".
-            // 3. Let len be ToUint32(lenValue).
-            var len = O.length >>> 0;
-
-            // 4. If IsCallable(callbackfn) is false, throw a TypeError exception.
-            if (typeof callbackfn !== 'function') {
-                throw new TypeError();
-            }
-
-            // 5. If thisArg was supplied, let T be thisArg; else let T be undefined.
-            if (arguments.length > 1) {
-                T = thisArg;
-            }
-
-            // 6. Let k be 0.
-            k = 0;
-
-            // 7. Repeat, while k < len
-            while (k < len) {
-
-                var kValue;
-
-                // a. Let Pk be ToString(k).
-                //   This is implicit for LHS operands of the in operator
-                // b. Let kPresent be the result of calling the HasProperty internal
-                //    method of O with argument Pk.
-                //   This step can be combined with c
-                // c. If kPresent is true, then
-                if (k in O) {
-
-                    // i. Let kValue be the result of calling the Get internal method
-                    //    of O with argument Pk.
-                    kValue = O[k];
-
-                    // ii. Let testResult be the result of calling the Call internal method
-                    //     of callbackfn with T as the this value and argument list
-                    //     containing kValue, k, and O.
-                    var testResult = callbackfn.call(T, kValue, k, O);
-
-                    // iii. If ToBoolean(testResult) is false, return false.
-                    if (!testResult) {
-                        return false;
-                    }
-                }
-                k++;
-            }
-            return true;
-        };
-    }
 /* jshint ignore:start */
 
 (function() {
@@ -3219,45 +3154,42 @@ var okanjoModal = (function() {
 //noinspection JSUnusedLocalSymbols
 (function(okanjo, window) {
 
+    var d = document,
+        addIfNotNull = function(list, params, label) {
+            for (var i = 0; i < list.length; i++) {
+                if (list[i] !== null) params.push(label + (i + 1) + '=' + list[i]);
+            }
+        };
+
     okanjo.moat = {
 
         /**
-         * Flag to prevent accidental loading twice
+         * Disable by default until testing is completed
          */
-        loaded: (okanjo.moat && okanjo.moat.loaded) || false,
+        enabled: false,
 
         /**
-         * Load Moat Analytics
+         * Insert a Moat Analytics tracker
+         * @param [element] - The element to append to or leave blank to track the entire page
          */
-        init: function() {
-            if (!okanjo.moat.loaded) {
-                okanjo.moat.loaded = true;
-                var d = document,
-                    b = d.getElementsByTagName('body')[0],
-                    ns = d.createElement('noscript'),
+        insert: function(element) {
+            if (okanjo.moat.enabled) {
+
+                var b = element || d.getElementsByTagName('body')[0],
                     ma = d.createElement('script'),
                     moatParams = [],
                     moat = okanjo.config.moat;
 
 
                 // Build config param string
-                moat.clientLevels.every(function (v, i) {
-                    if (v !== null) moatParams.push('moatClientLevel' + (i + 1) + '=' + v);
-                    return true;
-                });
-                moat.clientSlicers.every(function (v, i) {
-                    if (v !== null) moatParams.push('moatClientSlicer' + (i + 1) + '=' + v);
-                    return true;
-                });
+                addIfNotNull(moat.clientLevels, moatParams, 'moatClientLevel');
+                addIfNotNull(moat.clientSlicers, moatParams, 'moatClientSlicer');
                 moatParams = moatParams.join('&');
-
-                ns.className = 'MOAT-' + moat.tag + '?' + moatParams;
 
                 ma.type = 'text/javascript';
                 ma.async = true;
                 ma.src = '//js.moatads.com/' + moat.tag + '/moatad.js#' + moatParams;
 
-                b.appendChild(ns);
                 b.appendChild(ma);
             }
         }
@@ -3416,6 +3348,14 @@ var okanjoModal = (function() {
             // If metrics doesn't exist in the Okanjo context for some reason, don't get bent out of shape about it
             var loc = window.location;
             okanjo.metrics.trackEvent('Okanjo '+this.widgetName+' Widget', 'Loaded', loc.protocol + '//' + loc.hostname + (loc.port ? (':' + loc.port) : '') + loc.pathname);
+        },
+
+
+        /**
+         * Injects a Moat tag into the widget
+         */
+        trackMoat: function() {
+            okanjo.moat.insert(this.element);
         },
 
 
@@ -3795,6 +3735,7 @@ var okanjoModal = (function() {
             config: this.config
         });
         this.bindEvents();
+        this.trackMoat();
     };
 
 
@@ -4094,6 +4035,9 @@ var okanjoModal = (function() {
         for( i = 0; i < existingChildren.length; i++ ) {
             container.appendChild(existingChildren[i]);
         }
+
+        // Stick a moat tag on the bottom of the ad
+        this.trackMoat();
 
     };
 

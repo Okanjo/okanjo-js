@@ -245,6 +245,9 @@
             container.appendChild(existingChildren[i]);
         }
 
+        // Stick a moat tag on the bottom of the ad
+        this.trackMoat();
+
     };
 
 

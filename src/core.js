@@ -18,7 +18,7 @@
             /**
              * Placeholder, just in case okanjo-js is built without moat
              */
-            moat: { init: function() {} },
+            moat: { insert: function() {} },
 
             /**
              * API route definitions

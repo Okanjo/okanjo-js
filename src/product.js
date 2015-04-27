@@ -234,6 +234,7 @@
             config: this.config
         });
         this.bindEvents();
+        this.trackMoat();
     };
 
 

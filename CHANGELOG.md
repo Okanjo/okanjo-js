@@ -6,6 +6,8 @@ When stuff changes, it's described here.
 ## 2015-04-27 – v0.3.3
  * Updated JSONP object serializer to handle arrays slightly better
  * Added support for Ad product pools, searches the global pool by default
+ * Updated Moat analytics support to inject per widget, currently disabled by default
+ * Removed duplicate Array.every polyfill
 
 ## 2015-04-16 – v0.3.2
  * Added key parameter to ad and product widgets
