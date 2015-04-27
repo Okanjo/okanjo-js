@@ -52,10 +52,17 @@
         var data, key, value;
         data = [];
         for (key in obj) {
-            //noinspection JSUnfilteredForInLoop
-            value = obj[key];
-            //noinspection JSUnfilteredForInLoop
-            data.push(encode(key) + '=' + encode(value));
+            if (obj.hasOwnProperty(key)) {
+                value = obj[key];
+                if (Array.isArray(value)) {
+                    var i = 0;
+                    for( ; i < value.length; i++ ) {
+                        data.push(encode(key) + '[]=' + encode(value[i]));
+                    }
+                } else {
+                    data.push(encode(key) + '=' + encode(value));
+                }
+            }
         }
         return data.join('&');
     };

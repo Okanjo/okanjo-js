@@ -640,10 +640,17 @@
         var data, key, value;
         data = [];
         for (key in obj) {
-            //noinspection JSUnfilteredForInLoop
-            value = obj[key];
-            //noinspection JSUnfilteredForInLoop
-            data.push(encode(key) + '=' + encode(value));
+            if (obj.hasOwnProperty(key)) {
+                value = obj[key];
+                if (Array.isArray(value)) {
+                    var i = 0;
+                    for( ; i < value.length; i++ ) {
+                        data.push(encode(key) + '[]=' + encode(value[i]));
+                    }
+                } else {
+                    data.push(encode(key) + '=' + encode(value));
+                }
+            }
         }
         return data.join('&');
     };
@@ -3613,6 +3620,8 @@ var okanjoModal = (function() {
             marketplace_status: ['marketplace-status'], // Option to switch to testing product pool, default: live
             marketplace_id: ['marketplace-id'], // Limit products listed under the given marketplace, default: null
 
+            pools: 'pools', // Limit products to one or more pools (CSV), default: global
+
             external_id: "external-id", // Vendor-given ID
             sku: "sku", // Vendor stock keeping unit
             sold_by: 'sold-by', // Limit products listed by a certain store, default: null
@@ -3690,6 +3699,11 @@ var okanjoModal = (function() {
         } else {
             // Make sure a mode is always set, and cannot be empty
             this.config.mode = okanjo.util.empty(this.config.mode) ? Product.contentTypes.browse : this.config.mode;
+        }
+
+        // Check for CSV of pools
+        if (this.config.pools && typeof this.config.pools === "string" && this.config.pools.indexOf(',') >= 0) {
+            this.config.pools = this.config.pools.split(',');
         }
 
         // Immediately show products from the local browser cache, if present, for immediate visual feedback
