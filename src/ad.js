@@ -11,8 +11,7 @@
 
         okanjo._Widget.call(this, element, config);
 
-        //noinspection JSUnresolvedVariable
-        config = this.config;
+        this.config = config = config || {};
 
         this.templates = {
             error: "okanjo.error",
@@ -22,6 +21,8 @@
         this.css = {
             main: "ad.block"
         };
+
+        this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
 
         this.configMap = {
 
@@ -34,7 +35,9 @@
 
             // What should this thing point at?
             type: "type", // The source type. Default: product
-            id: "id" // The source id. e.g. PRasdfMyProductId. Default: null
+            id: "id", // The source id. e.g. PRasdfMyProductId. Default: null
+
+            disable_inline_buy: "disable-inline-buy" // Whether to disable inline buy functionality, default: false
 
         };
 
@@ -170,6 +173,11 @@
             this.setElementSize(Ad.sizes[this.config.size]);
         }
 
+        // Verify the disable param is not a string
+        if (this.config.disable_inline_buy && typeof this.config.disable_inline_buy === "string") {
+            this.disable_inline_buy = this.config.disable_inline_buy.toLowerCase() === "true";
+        }
+
         //
         // Ensure target id, and RENDER IT!
         //
@@ -237,6 +245,7 @@
         }
 
         // Get the new container element
+        //noinspection JSUnresolvedFunction
         var container = okanjo.qwery('.okanjo-ad-container', this.element)[0];
 
 
@@ -256,6 +265,7 @@
      * @param e
      */
     proto.interact = function(e) {
+        //noinspection JSUnresolvedFunction
         var links = okanjo.qwery('a', this.productWidget.element);
         if (links.length > 0) {
             this._waitingOnProductLoad = false;
@@ -295,7 +305,7 @@
 
     /**
      * Inserts a product widget into the ad space
-     * @param options
+     * @param [options]
      * @returns {okanjo.Product|*}
      */
     proto.insertProductWidget = function(options) {
@@ -316,7 +326,8 @@
         this.productWidget = new okanjo.Product(el, {
             id: this.config.id,
             key: this.key,
-            mode: okanjo.Product.contentTypes.single
+            mode: okanjo.Product.contentTypes.single,
+            disable_inline_buy: this.disable_inline_buy
         });
 
         return this.productWidget;

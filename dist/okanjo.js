@@ -3526,6 +3526,9 @@ var okanjoModal = (function() {
         this.use_cache = this.config.use_cache;
         this.cache_ttl = this.config.cache_ttl;
 
+        // Option to ignore inline buy functionality
+        this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
+
         this.cache_key_prefix = 'ok_product_block_';
 
         this.templates = {
@@ -3545,6 +3548,7 @@ var okanjoModal = (function() {
 
             // Widget mode
             mode: "mode", // What provider to use to retrieve products, browse, sense or single, default: browse
+            disable_inline_buy: "disable-inline-buy", // Whether to disable inline buy functionality, default: false
 
             // ProductSense Params
             url: "url",  // The URL to digest
@@ -3653,6 +3657,11 @@ var okanjoModal = (function() {
             this.getProducts();
         }
 
+        // Verify the disable param is not a string
+        if (this.config.disable_inline_buy && typeof this.config.disable_inline_buy === "string") {
+            this.disable_inline_buy = this.config.disable_inline_buy.toLowerCase() === "true";
+        }
+
         return true;
 
     };
@@ -3726,14 +3735,33 @@ var okanjoModal = (function() {
 
 
     /**
+     * Manipulates the item data to keep or remove inline_buy URLs.
+     */
+    proto.handleInlineBuyOption = function() {
+        // If we should ignore the inline buy functionality, strip the data off the products
+        if (this.disable_inline_buy) {
+            for (var i = 0; i < this.items.length; i++) {
+                this.items[i].inline_buy_url = null;
+            }
+        }
+    };
+
+
+    /**
      * Displays the products results
      * @param {[*]} data - The array of products
      */
     proto.showProducts = function(data) {
+
+        // Handle the inline buy configuration option
+        this.handleInlineBuyOption();
+
+        // Render the product content!
         this.element.innerHTML = okanjo.mvc.render(this.templates.main, {
             products: data || this.items || [],
             config: this.config
         });
+
         this.bindEvents();
         this.trackMoat();
     };
@@ -3752,7 +3780,7 @@ var okanjoModal = (function() {
 
             var iframe = document.createElement('iframe');
             iframe.className = "okanjo-ad-inline-buy-frame";
-            iframe.setAttribute('frameborder', 0);
+            iframe.setAttribute('frameborder', "0");
             iframe.setAttribute('allowFullscreen', "");
             iframe.src = base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline);
 
@@ -3773,6 +3801,7 @@ var okanjoModal = (function() {
      */
     proto.bindEvents = function() {
 
+        //noinspection JSUnresolvedFunction
         okanjo.qwery('a', this.element).every(function(a) {
             if(a.addEventListener) {
                 a.addEventListener('click', Product.interactTile);
@@ -3802,8 +3831,7 @@ var okanjoModal = (function() {
 
         okanjo._Widget.call(this, element, config);
 
-        //noinspection JSUnresolvedVariable
-        config = this.config;
+        this.config = config = config || {};
 
         this.templates = {
             error: "okanjo.error",
@@ -3813,6 +3841,8 @@ var okanjoModal = (function() {
         this.css = {
             main: "ad.block"
         };
+
+        this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
 
         this.configMap = {
 
@@ -3825,7 +3855,9 @@ var okanjoModal = (function() {
 
             // What should this thing point at?
             type: "type", // The source type. Default: product
-            id: "id" // The source id. e.g. PRasdfMyProductId. Default: null
+            id: "id", // The source id. e.g. PRasdfMyProductId. Default: null
+
+            disable_inline_buy: "disable-inline-buy" // Whether to disable inline buy functionality, default: false
 
         };
 
@@ -3961,6 +3993,11 @@ var okanjoModal = (function() {
             this.setElementSize(Ad.sizes[this.config.size]);
         }
 
+        // Verify the disable param is not a string
+        if (this.config.disable_inline_buy && typeof this.config.disable_inline_buy === "string") {
+            this.disable_inline_buy = this.config.disable_inline_buy.toLowerCase() === "true";
+        }
+
         //
         // Ensure target id, and RENDER IT!
         //
@@ -4028,6 +4065,7 @@ var okanjoModal = (function() {
         }
 
         // Get the new container element
+        //noinspection JSUnresolvedFunction
         var container = okanjo.qwery('.okanjo-ad-container', this.element)[0];
 
 
@@ -4047,6 +4085,7 @@ var okanjoModal = (function() {
      * @param e
      */
     proto.interact = function(e) {
+        //noinspection JSUnresolvedFunction
         var links = okanjo.qwery('a', this.productWidget.element);
         if (links.length > 0) {
             this._waitingOnProductLoad = false;
@@ -4086,7 +4125,7 @@ var okanjoModal = (function() {
 
     /**
      * Inserts a product widget into the ad space
-     * @param options
+     * @param [options]
      * @returns {okanjo.Product|*}
      */
     proto.insertProductWidget = function(options) {
@@ -4107,7 +4146,8 @@ var okanjoModal = (function() {
         this.productWidget = new okanjo.Product(el, {
             id: this.config.id,
             key: this.key,
-            mode: okanjo.Product.contentTypes.single
+            mode: okanjo.Product.contentTypes.single,
+            disable_inline_buy: this.disable_inline_buy
         });
 
         return this.productWidget;

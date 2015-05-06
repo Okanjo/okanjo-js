@@ -25,6 +25,9 @@
         this.use_cache = this.config.use_cache;
         this.cache_ttl = this.config.cache_ttl;
 
+        // Option to ignore inline buy functionality
+        this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
+
         this.cache_key_prefix = 'ok_product_block_';
 
         this.templates = {
@@ -44,6 +47,7 @@
 
             // Widget mode
             mode: "mode", // What provider to use to retrieve products, browse, sense or single, default: browse
+            disable_inline_buy: "disable-inline-buy", // Whether to disable inline buy functionality, default: false
 
             // ProductSense Params
             url: "url",  // The URL to digest
@@ -152,6 +156,11 @@
             this.getProducts();
         }
 
+        // Verify the disable param is not a string
+        if (this.config.disable_inline_buy && typeof this.config.disable_inline_buy === "string") {
+            this.disable_inline_buy = this.config.disable_inline_buy.toLowerCase() === "true";
+        }
+
         return true;
 
     };
@@ -225,14 +234,33 @@
 
 
     /**
+     * Manipulates the item data to keep or remove inline_buy URLs.
+     */
+    proto.handleInlineBuyOption = function() {
+        // If we should ignore the inline buy functionality, strip the data off the products
+        if (this.disable_inline_buy) {
+            for (var i = 0; i < this.items.length; i++) {
+                this.items[i].inline_buy_url = null;
+            }
+        }
+    };
+
+
+    /**
      * Displays the products results
      * @param {[*]} data - The array of products
      */
     proto.showProducts = function(data) {
+
+        // Handle the inline buy configuration option
+        this.handleInlineBuyOption();
+
+        // Render the product content!
         this.element.innerHTML = okanjo.mvc.render(this.templates.main, {
             products: data || this.items || [],
             config: this.config
         });
+
         this.bindEvents();
         this.trackMoat();
     };
@@ -251,7 +279,7 @@
 
             var iframe = document.createElement('iframe');
             iframe.className = "okanjo-ad-inline-buy-frame";
-            iframe.setAttribute('frameborder', 0);
+            iframe.setAttribute('frameborder', "0");
             iframe.setAttribute('allowFullscreen', "");
             iframe.src = base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline);
 
@@ -272,6 +300,7 @@
      */
     proto.bindEvents = function() {
 
+        //noinspection JSUnresolvedFunction
         okanjo.qwery('a', this.element).every(function(a) {
             if(a.addEventListener) {
                 a.addEventListener('click', Product.interactTile);
