@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2015-05-06 – v0.3.4
+ * Added option `disable_inline_buy` to disable inline buy functionality in ad and product widgets, if desired (e.g. to drive traffic to a marketplace instead of transact on the publisher's page)
+
 ## 2015-04-27 – v0.3.3
  * Updated JSONP object serializer to handle arrays slightly better
  * Added support for Ad product pools, searches the global pool by default
