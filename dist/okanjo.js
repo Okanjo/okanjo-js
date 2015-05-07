@@ -1,4 +1,4 @@
-/*! okanjo-js v0.3.4 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.3.5 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -3587,7 +3587,9 @@ var okanjoModal = (function() {
 
             // Pagination
             skip: ['skip', 'page-start'], // The index of the result set to start at, starting from 0. default: 0
-            take: ['take', 'page-size'] // The number of products to return, default: 5
+            take: ['take', 'page-size'], // The number of products to return, default: 5
+
+            expandable: 'expandable'
 
         };
 
@@ -3769,7 +3771,8 @@ var okanjoModal = (function() {
 
     Product.interactTile = function(e, trigger) {
         var inline = this.getAttribute('data-inline-buy-url'),
-            base = this.getAttribute('data-inline-buy-url-base');
+            base = this.getAttribute('data-inline-buy-url-base'),
+            expandable = this.getAttribute('data-expandable');
         if (!okanjo.util.empty(inline)) {
 
             if (e.preventDefault) {
@@ -3784,12 +3787,25 @@ var okanjoModal = (function() {
             iframe.setAttribute('allowFullscreen', "");
             iframe.src = base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline);
 
-            var modal = okanjo.modal(iframe, {
-                autoRemove: true,
-                buttons: [],
-                classes: 'adModal'
-            });
-            modal.show();
+            if(expandable !== undefined && expandable.toLowerCase() === "false") {
+                iframe.className += " okanjo-ad-in-unit";
+                iframe.setAttribute('height', "100%");
+                iframe.setAttribute('width', "100%");
+                var parent = this.parentNode;
+                while(parent && parent.className != 'okanjo-ad-container') {
+                    parent = parent.parentNode;
+                }
+                if(parent) {
+                    parent.appendChild(iframe);
+                }
+            } else {
+                var modal = okanjo.modal(iframe, {
+                    autoRemove: true,
+                    buttons: [],
+                    classes: 'adModal'
+                });
+                modal.show();
+            }
         } else if (trigger) {
             this.click();
         }
@@ -3852,6 +3868,7 @@ var okanjoModal = (function() {
             // How should this thing look?
             content: "content", // The content of the ad, creative or dynamic. Default: creative if element has markup, dynamic if not.
             size: "size", // Hint as to the intended IAB display size, e.g. large_rectangle, leaderboard, skyscraper. Default: medium_rectangle
+            expandable: "expandable", // indicates whether the ad is expandable. Default: 1
 
             // What should this thing point at?
             type: "type", // The source type. Default: product
@@ -4147,7 +4164,8 @@ var okanjoModal = (function() {
             id: this.config.id,
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
-            disable_inline_buy: this.disable_inline_buy
+            disable_inline_buy: this.disable_inline_buy,
+            expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true"
         });
 
         return this.productWidget;
