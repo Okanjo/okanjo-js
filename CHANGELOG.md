@@ -3,6 +3,11 @@
 
 When stuff changes, it's described here.
 
+## 2015-05-07 - v0.3.5
+ * Added option `expandable` to indicate whether an ad should expand in a modal or remain in-unit.
+ * Fixed close button for the modal to no longer initially be visible.
+ * Added CSS for the ad iframe when it is in-unit.
+
 ## 2015-05-06 – v0.3.4
  * Added option `disable_inline_buy` to disable inline buy functionality in ad and product widgets, if desired (e.g. to drive traffic to a marketplace instead of transact on the publisher's page)
 
