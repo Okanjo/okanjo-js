@@ -86,7 +86,9 @@
 
             // Pagination
             skip: ['skip', 'page-start'], // The index of the result set to start at, starting from 0. default: 0
-            take: ['take', 'page-size'] // The number of products to return, default: 5
+            take: ['take', 'page-size'], // The number of products to return, default: 5
+
+            expandable: 'expandable'
 
         };
 
@@ -283,12 +285,25 @@
             iframe.setAttribute('allowFullscreen', "");
             iframe.src = base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline);
 
-            var modal = okanjo.modal(iframe, {
-                autoRemove: true,
-                buttons: [],
-                classes: 'adModal'
-            });
-            modal.show();
+            if(this.getAttribute('data-expandable') == 0) {
+                iframe.className += " okanjo-ad-in-unit";
+                iframe.setAttribute('height', "100%");
+                iframe.setAttribute('width', "100%");
+                var parent = this.parentNode;
+                while(parent && parent.className != 'okanjo-ad-container') {
+                    parent = parent.parentNode;
+                }
+                if(parent) {
+                    parent.appendChild(iframe);
+                }
+            } else {
+                var modal = okanjo.modal(iframe, {
+                    autoRemove: true,
+                    buttons: [],
+                    classes: 'adModal'
+                });
+                modal.show();
+            }
         } else if (trigger) {
             this.click();
         }
