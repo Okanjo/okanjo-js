@@ -329,7 +329,7 @@
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
-            expandable: (typeof this.config.expandable == 'undefined' || this.config.expandable == '1' ? '1' : '0')
+            expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true"
         });
 
         return this.productWidget;

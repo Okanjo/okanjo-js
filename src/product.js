@@ -270,7 +270,8 @@
 
     Product.interactTile = function(e, trigger) {
         var inline = this.getAttribute('data-inline-buy-url'),
-            base = this.getAttribute('data-inline-buy-url-base');
+            base = this.getAttribute('data-inline-buy-url-base'),
+            expandable = this.getAttribute('data-expandable');
         if (!okanjo.util.empty(inline)) {
 
             if (e.preventDefault) {
@@ -285,7 +286,7 @@
             iframe.setAttribute('allowFullscreen', "");
             iframe.src = base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline);
 
-            if(this.getAttribute('data-expandable') == 0) {
+            if(expandable !== undefined && expandable.toLowerCase() === "false") {
                 iframe.className += " okanjo-ad-in-unit";
                 iframe.setAttribute('height', "100%");
                 iframe.setAttribute('width', "100%");
