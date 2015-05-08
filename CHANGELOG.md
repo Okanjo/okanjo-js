@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2015-05-07 - v0.3.6
+ * Updated Ad Widget modal to be re-center on screen resize.
+
 ## 2015-05-07 - v0.3.5
  * Added option `expandable` to indicate whether an ad should expand in a modal or remain in-unit.
  * Fixed close button for the modal to no longer initially be visible.
