@@ -1,4 +1,4 @@
-/*! okanjo-js v0.3.5 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.3.6 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -2923,12 +2923,28 @@ var Modal = (function() {
             doc.body[offset], docE[offset], docE["client" + name]);
     };
 
+    var centerElement = function(element) {
+        element.style.marginLeft = -element.clientWidth / 2+"px";
+    };
+
     // Make this a static function so that main.js has access to it so it can
     // add a window keydown event listener. Modal.js also needs this function.
     Modal.resizeOverlay = function() {
-        var overlay = doc.getElementById("okanjoModalOverlay");
+        var overlay = doc.getElementById("okanjoModalOverlay"),
+            modals = okanjo.qwery('.okanjoModal'),
+            closeButtons = okanjo.qwery('.okanjoOverlayCloseButton'),
+            i;
+
         overlay.style.width = getDocumentDim("Width") + "px";
         overlay.style.height = getDocumentDim("Height") + "px";
+
+        for(i = 0; i < modals.length; i++) {
+            centerElement(modals[i])
+        }
+
+        for(i = 0; i < closeButtons.length; i++) {
+            centerElement(closeButtons[i]);
+        }
     };
 
     return Modal;
