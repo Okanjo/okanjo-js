@@ -13,7 +13,7 @@
  * index.js
  * @type {okanjo|*}
 */
-    var okanjo = okanjo || window.okanjo || (function() {
+    var okanjo = okanjo || window.okanjo || (function(ok) {
 
         var okanjo = {
 
@@ -268,9 +268,21 @@
 
         };
 
+        // Merge properties on existing okanjo object if exists
+        if (ok) {
+            for(var i in okanjo) {
+                //noinspection JSUnfilteredForInLoop
+                if (!ok.hasOwnProperty(i)) {
+                    //noinspection JSUnfilteredForInLoop
+                    ok[i] = okanjo[i];
+                }
+            }
+            return ok;
+        }
+
         return okanjo;
 
-    })();
+    })(okanjo || window.okanjo);
 
 
 
@@ -3654,7 +3666,7 @@ var okanjoModal = (function() {
                 this.config.url = this.getCurrentPageUrl();
                 // Nag since we had to derive a URL from the window
                 if (this.config.nag) {
-                    console.info('[Okanjo.'+this.widgetName+'] No canonical url given for ProductSense. We recommend using a canonical url to ensure page visibility by Okanjo. Using derived url:', url);
+                    console.info('[Okanjo.'+this.widgetName+'] No canonical url given for ProductSense. We recommend using a canonical url to ensure page visibility by Okanjo. Using derived url:', this.config.url);
                 }
             }
             this.config.mode = Product.contentTypes.sense;

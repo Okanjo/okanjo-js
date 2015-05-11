@@ -3,7 +3,7 @@
  * index.js
  * @type {okanjo|*}
 */
-    var okanjo = okanjo || window.okanjo || (function() {
+    var okanjo = okanjo || window.okanjo || (function(ok) {
 
         var okanjo = {
 
@@ -258,9 +258,21 @@
 
         };
 
+        // Merge properties on existing okanjo object if exists
+        if (ok) {
+            for(var i in okanjo) {
+                //noinspection JSUnfilteredForInLoop
+                if (!ok.hasOwnProperty(i)) {
+                    //noinspection JSUnfilteredForInLoop
+                    ok[i] = okanjo[i];
+                }
+            }
+            return ok;
+        }
+
         return okanjo;
 
-    })();
+    })(okanjo || window.okanjo);
 
 
 

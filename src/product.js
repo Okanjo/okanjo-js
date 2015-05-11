@@ -137,7 +137,7 @@
                 this.config.url = this.getCurrentPageUrl();
                 // Nag since we had to derive a URL from the window
                 if (this.config.nag) {
-                    console.info('[Okanjo.'+this.widgetName+'] No canonical url given for ProductSense. We recommend using a canonical url to ensure page visibility by Okanjo. Using derived url:', url);
+                    console.info('[Okanjo.'+this.widgetName+'] No canonical url given for ProductSense. We recommend using a canonical url to ensure page visibility by Okanjo. Using derived url:', this.config.url);
                 }
             }
             this.config.mode = Product.contentTypes.sense;

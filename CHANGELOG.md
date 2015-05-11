@@ -3,6 +3,11 @@
 
 When stuff changes, it's described here.
 
+## 2015-05-11 – v0.3.7
+ * Better okanjo namespace conflict handling
+ * Fixed reference error in product sense mode if no URL was specified
+ * Better sourcemaps for the js bundle 
+
 ## 2015-05-07 - v0.3.6
  * Updated Ad Widget modal to be re-center on screen resize.
 

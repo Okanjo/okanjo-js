@@ -211,14 +211,14 @@ gulp.task('min', ['vendor'], function() {
 gulp.task('bundle', ['min', 'templatesjs'], function() {
     var s1 = size(), s2 = size();
     return gulp.src(bundleSources)
-        .pipe(sourcemaps.init())
         .pipe(concat('okanjo-bundle.js'))
         .pipe(s1)
         .pipe(gulp.dest('dist'))
         .pipe(uglify({
-            preserveComments: 'some',
+            preserveComments: 'some'
         }))
         .pipe(insert.prepend(getHeader()))
+        .pipe(sourcemaps.init())
         .pipe(rename('okanjo-bundle.min.js'))
         .pipe(s2)
         .pipe(sourcemaps.write('../dist', { sourceRoot: './' }))
