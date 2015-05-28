@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2015-05-28 – v0.3.8
+ * Enabled integration with Moat by default
+ * Fixed AWS S3 upload handling of UTF-8 files (workaround gulp-awspublish + bad charset handling)
+
 ## 2015-05-11 – v0.3.7
  * Better okanjo namespace conflict handling
  * Fixed reference error in product sense mode if no URL was specified
