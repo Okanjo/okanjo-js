@@ -357,7 +357,8 @@ gulp.task('deploy-s3-latest', function() {
             path.dirname += '/js/latest';
         }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=60, no-transform, public'
+            'Cache-Control': 'max-age=60, no-transform, public',
+            'Content-Type': 'application/javascript; charset=utf-8'
         }, { force: true }))
         .pipe(awspublish.reporter());
 
@@ -375,7 +376,8 @@ gulp.task('deploy-s3-latest-gz', function() {
         }))
         .pipe(awspublish.gzip({ ext: '.gz' }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=60, no-transform, public'
+            'Cache-Control': 'max-age=60, no-transform, public',
+            'Content-Type': 'application/javascript; charset=utf-8'
         }, { force: true }))
         .pipe(awspublish.reporter())
 
@@ -392,7 +394,8 @@ gulp.task('deploy-s3-version', function() {
             path.dirname += '/js/v' + require('./package.json').version;
         }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=60, no-transform, public'
+            'Cache-Control': 'max-age=60, no-transform, public',
+            'Content-Type': 'application/javascript; charset=utf-8'
         }, { force: true }))
         .pipe(awspublish.reporter());
 
@@ -410,7 +413,8 @@ gulp.task('deploy-s3-version-gz', function() {
         }))
         .pipe(awspublish.gzip({ ext: '.gz' }))
         .pipe(publisher.publish({
-            'Cache-Control': 'max-age=60, no-transform, public'
+            'Cache-Control': 'max-age=60, no-transform, public',
+            'Content-Type': 'application/javascript; charset=utf-8'
         }, { force: true }))
         .pipe(awspublish.reporter());
 

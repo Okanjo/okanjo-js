@@ -3194,7 +3194,7 @@ var okanjoModal = (function() {
         /**
          * Disable by default until testing is completed
          */
-        enabled: false,
+        enabled: true,
 
         /**
          * Insert a Moat Analytics tracker
