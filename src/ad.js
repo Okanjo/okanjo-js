@@ -32,7 +32,7 @@
             // How should this thing look?
             content: "content", // The content of the ad, creative or dynamic. Default: creative if element has markup, dynamic if not.
             size: "size", // Hint as to the intended IAB display size, e.g. large_rectangle, leaderboard, skyscraper. Default: medium_rectangle
-            expandable: "expandable", // indicates whether the ad is expandable. Default: 1
+            expandable: "expandable", // indicates whether the ad is expandable. Default: true
 
             // What should this thing point at?
             type: "type", // The source type. Default: product

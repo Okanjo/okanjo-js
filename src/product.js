@@ -58,7 +58,7 @@
 
             "id": "id", // The specific product ID to fetch (single mode), default: null
 
-            "q": "query", // Search query text
+            "q": "q", // Search query text
 
             marketplace_status: ['marketplace-status'], // Option to switch to testing product pool, default: live
             marketplace_id: ['marketplace-id'], // Limit products listed under the given marketplace, default: null
@@ -146,11 +146,18 @@
             this.config.mode = okanjo.util.empty(this.config.mode) ? Product.contentTypes.browse : this.config.mode;
         }
 
-        // Check for CSV of pools
-        if (this.config.pools && typeof this.config.pools === "string" && this.config.pools.indexOf(',') >= 0) {
-            this.config.pools = this.config.pools.split(',');
-        }
-
+        // Check for CSV values and convert to an array
+        (function(configNames){
+            for(var i = 0; i < configNames.length; i++) {
+                //noinspection JSPotentiallyInvalidUsageOfThis
+                var val = this.config[configNames[i]];
+                if (val && typeof val === "string" /*&& val.indexOf(',') >= 0*/) {
+                    //noinspection JSPotentiallyInvalidUsageOfThis
+                    this.config[configNames[i]] = val.split(',');
+                }
+            }
+        }).call(this, ['pools','tags','category']);
+        
         // Immediately show products from the local browser cache, if present, for immediate visual feedback
         if (this.config.use_cache && this.loadProductsFromCache()) {
             // Loaded from cache successfully!
