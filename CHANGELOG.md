@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2015-06-29 – v0.3.9
+ * Fixed inconsistent data attribute `query` to be `q`.  
+ * Fixed CSV handling to be consistent with `pools`, `tags`, and `category`.
+
 ## 2015-05-28 – v0.3.8
  * Enabled integration with Moat by default
  * Fixed AWS S3 upload handling of UTF-8 files (workaround gulp-awspublish + bad charset handling)
