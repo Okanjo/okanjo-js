@@ -15,258 +15,299 @@
 */
     var okanjo = okanjo || window.okanjo || (function(ok) {
 
-        var okanjo = {
 
-            /**
-             * Placeholder, just in case okanjo-js is built without metrics
-             */
-            metrics: {
-                trackEvent: function() {},
-                trackPageView: function() {}
-            },
+        //noinspection JSValidateTypes
+        var supportPageOffset = window.pageXOffset !== undefined,
+            isCSS1Compatible = ((document.compatMode || "") === "CSS1Compat"),
+            noop = function(){},
+            okanjo = {
 
-            /**
-             * Placeholder, just in case okanjo-js is built without moat
-             */
-            moat: { insert: function() {} },
-
-            /**
-             * API route definitions
-             */
-            routes: {
-                products: '/products',
-                products_id: '/products/:product_id',
-                products_sense: '/products/sense'
-            },
+                // Override these later
+                qwery: noop,
 
 
-            /**
-             * Compiles a route and parameters into a final URL
-             * @param route – The route to use (e.g. okanjo.routes.products )
-             * @param [params] - Optional route parameters
-             * @returns {*}
-             */
-            getRoute: function(route, params) {
-                if (params) {
-                    for (var i in params) {
-                        if (params.hasOwnProperty(i)) {
-                            route = route.replace(":"+i, params[i] + "");
+                /**
+                 * Placeholder, just in case okanjo-js is built without metrics
+                 */
+                metrics: {
+                    trackEvent: noop,
+                    trackPageView: noop
+                },
+
+                /**
+                 * Placeholder, just in case okanjo-js is built without moat
+                 */
+                moat: { insert: noop },
+
+                /**
+                 * API route definitions
+                 */
+                routes: {
+                    products: '/products',
+                    products_id: '/products/:product_id',
+                    products_sense: '/products/sense'
+                },
+
+
+                /**
+                 * Compiles a route and parameters into a final URL
+                 * @param route – The route to use (e.g. okanjo.routes.products )
+                 * @param [params] - Optional route parameters
+                 * @returns {*}
+                 */
+                getRoute: function(route, params) {
+                    if (params) {
+                        for (var i in params) {
+                            if (params.hasOwnProperty(i)) {
+                                route = route.replace(":"+i, params[i] + "");
+                            }
                         }
                     }
-                }
-                return okanjo.config.ads.apiUri + route;
-            },
+                    return okanjo.config.ads.apiUri + route;
+                },
 
 
-            /**
-             * Execute a JSONP request
-             * @param {string} url – Request URL
-             * @param {*} data – Request data
-             * @param {function(err:*, res:*)} callback – Closure to fire when completed
-             */
-            exec: function(url, data, callback) {
-                data = data || {};
-                okanjo.JSONP({
-                    url: url,
-                    data: data,
-                    error: function(data) {
-                        var err = { statusCode: 500, error: "Communication Error", message: data.message || "JSONP communication failure." };
-                        okanjo.report("core-jsonp", data.error || new Error(err.message));
-                        callback(err, null);
-                    },
-                    success: function(data) {
-                        var err, res;
-                        if (data) {
-                            if (data.error) {
-                                err = data;
+                /**
+                 * Execute a JSONP request
+                 * @param {string} url – Request URL
+                 * @param {*} data – Request data
+                 * @param {function(err:*, res:*)} callback – Closure to fire when completed
+                 */
+                exec: function(url, data, callback) {
+                    data = data || {};
+                    //noinspection JSUnresolvedFunction
+                    okanjo.JSONP({
+                        url: url,
+                        data: data,
+                        error: function(data) {
+                            var err = { statusCode: 500, error: "Communication Error", message: data.message || "JSONP communication failure." };
+                            okanjo.report("core-jsonp", data.error || new Error(err.message));
+                            callback(err, null);
+                        },
+                        success: function(data) {
+                            var err, res;
+                            if (data) {
+                                if (data.error) {
+                                    err = data;
+                                } else {
+                                    res = data;
+                                }
                             } else {
-                                res = data;
+                                err = { statusCode: 500, error: "Invalid Response", message: "Could not interpret the JSONP response."};
+                                okanjo.report('core-jsonp', new Error(err.message));
                             }
+
+                            callback(err, res);
+                        }
+                    });
+                },
+
+
+                /**
+                 * Report a message or error back to Okanjo
+                 * @param {string} context – What module is responsible for emitting the error (e.g. Product)
+                 * @param {string|Error} mixed – The message or Error to report
+                 */
+                report: function(context, mixed) {
+                    // REPORT THIS BACK TO OKANJO!
+                    var error;
+                    if (typeof mixed === "string") {
+                        error = new Error('[Okanjo' + (context ? ' ' + context : '') + '] ' + mixed);
+                    } else if (typeof mixed === "object" && mixed instanceof Error) {
+                        error = mixed;
+                    }
+
+                    console.error(error);
+                    //TODO - integrate with Raven
+                },
+
+
+                /**
+                 * Utility functions
+                 */
+                util: {
+
+                    /**
+                     * Trims leading and trailing whitespace on a string
+                     * @param val
+                     */
+                    trim: function(val) {
+                        return (val || "").replace(/^\s+|\s+$/g, '');
+                    },
+
+
+                    /**
+                     * Function to test whether the given var has a value
+                     * @param val - The var to check
+                     * @returns {boolean} - True when the var has value, false when it does not
+                     */
+                    empty: function (val) {
+                        return (val === null || val === undefined || (typeof val === "string" && okanjo.util.trim(val) === ""));
+                    },
+
+                    /**
+                     * Helper to shallow clone an object so we don't ruin the top-level object reference
+                     * Note: If the shallow keys are objects, the references to the keyed objects will be maintained!
+                     *
+                     * @param {*} obj – Source object to copy
+                     * @returns {{}} – Shallow clone of the object
+                     */
+                    clone: function (obj) {
+                        var clone = {};
+                        obj = obj || {};
+                        for (var k in obj) {
+                            if (obj.hasOwnProperty(k)) {
+                                clone[k] = obj[k];
+                            }
+                        }
+                        return clone;
+                    },
+
+
+                    /**
+                     * Super simple hashing algorithm
+                     * @see http://jsperf.com/hashing-strings
+                     * @param str - String to hash
+                     * @returns {string}
+                     */
+                    hash: function(str) {
+                        var hash = 0;
+                        if (str.length === 0) return ""+hash;
+                        for (var i = 0; i < str.length; i++) {
+                            var char = str.charCodeAt(i);
+                            hash = ((hash<<5)-hash)+char;
+                        }
+
+                        return hash.toString(16).replace(/^-/, 'n');
+
+                    },
+
+
+                    /**
+                     * Instead of using HTML5 dataset, just rip through attributes and return data attributes
+                     * @param element
+                     * @returns {{}}
+                     */
+                    data: function (element) {
+                        var data = {};
+                        if (element) {
+                            var attrs = element.attributes;
+                            for(var i = attrs.length - 1; i >= 0; i--) {
+                                if (attrs[i].name.indexOf('data-') === 0) {
+                                    data[attrs[i].name.substr(5)] = attrs[i].value;
+                                }
+                            }
+                        }
+                        return data;
+                    },
+
+
+                    /**
+                     * Copies a value to the target if the source contains it
+                     * @param {*} target – The destination object
+                     * @param {*} source – The source object
+                     * @param {string} targetKey – The destination key name
+                     * @param {string} [sourceKey] – The source key name, if different
+                     * @param {{stripEmpty:boolean}} [options] – Copy options, e.g. strip empty values
+                     */
+                    copyIfSet: function(target, source, targetKey, sourceKey, options) {
+                        sourceKey = sourceKey || targetKey;
+                        options = options || { };
+
+                        function doCopy(sourceKey) {
+                            if (source && source[sourceKey] !== undefined && (!options.stripEmpty || !okanjo.util.empty(source[sourceKey]))) {
+                                target[targetKey] = source[sourceKey];
+                            }
+                        }
+
+                        if (typeof sourceKey === "object" && Array.isArray(sourceKey)) {
+                            // Copy the first source key that is found
+                            for(var k = 0; k < sourceKey.length; k++) {
+                                doCopy(sourceKey[k]);
+                            }
+
                         } else {
-                            err = { statusCode: 500, error: "Invalid Response", message: "Could not interpret the JSONP response."};
-                            okanjo.report('core-jsonp', new Error(err.message));
+                            doCopy(sourceKey);
                         }
+                    },
 
-                        callback(err, res);
+
+                    /**
+                     * Copies a mapping of target-source from source to target
+                     * @param {*} target – The destination object
+                     * @param {*} source – The source object
+                     * @param {*} map – The mapping of targetKey => sourceKey (null if same)
+                     * @param {{stripEmpty:boolean}} [options] – Copy options, e.g. strip empty values
+                     */
+                    copyIfSetMap: function(target, source, map, options) {
+                        var keys = Object.keys(map);
+                        for(var k = 0; k < keys.length; k++) {
+                            okanjo.util.copyIfSet(target, source, keys[k], map[keys[k]], options);
+                        }
+                    },
+
+                    /*! https://github.com/isaacs/inherits/blob/master/inherits_browser.js */
+                    /**
+                     * Extends an object from another
+                     * @param ctor – Child class
+                     * @param superCtor – Parent class
+                     */
+                    inherits: function inherits(ctor, superCtor) {
+                        if (typeof Object.create === 'function') {
+                            // implementation from standard node.js 'util' module
+                            ctor.super_ = superCtor;
+                            ctor.prototype = Object.create(superCtor.prototype, {
+                                constructor: {
+                                    value: ctor,
+                                    enumerable: false,
+                                    writable: true,
+                                    configurable: true
+                                }
+                            });
+                        } else {
+                            // old school shim for old browsers
+                            ctor.super_ = superCtor;
+                            var TempCtor = function () {};
+                            TempCtor.prototype = superCtor.prototype;
+                            ctor.prototype = new TempCtor();
+                            ctor.prototype.constructor = ctor;
+                        }
+                    },
+
+
+                    /**
+                     * Gets the current page's scroll position
+                     * @returns {{x: Number, y: Number}}
+                     */
+                    getScrollPosition: function() {
+                        return {
+                            x: supportPageOffset ? window.pageXOffset : isCSS1Compatible ? document.documentElement.scrollLeft : document.body.scrollLeft,
+                            y: supportPageOffset ? window.pageYOffset : isCSS1Compatible ? document.documentElement.scrollTop : document.body.scrollTop
+                        };
+                    },
+
+
+                    /**
+                     * Return various browser detections
+                     * @returns {Array}
+                     */
+                    detectClasses: function() {
+                        var classDetects = [];
+                        if (navigator.appVersion.indexOf("MSIE 9.") != -1) {
+                            classDetects.push('lt-ie10');
+                        } else if (navigator.appVersion.indexOf("MSIE 8.") != -1) {
+                            classDetects.push('lt-ie9');
+                        } else if (navigator.appVersion.indexOf("MSIE 7.") != -1) {
+                            classDetects.push('lt-ie8');
+                        } else if (navigator.appVersion.indexOf("MSIE 6.") != -1) {
+                            classDetects.push('lt-ie7');
+                        }
+                        return classDetects;
                     }
-                });
-            },
 
-
-            /**
-             * Report a message or error back to Okanjo
-             * @param {string} context – What module is responsible for emitting the error (e.g. Product)
-             * @param {string|Error} mixed – The message or Error to report
-             */
-            report: function(context, mixed) {
-                // REPORT THIS BACK TO OKANJO!
-                var error;
-                if (typeof mixed === "string") {
-                    error = new Error('[Okanjo' + (context ? ' ' + context : '') + '] ' + mixed);
-                } else if (typeof mixed === "object" && mixed instanceof Error) {
-                    error = mixed;
                 }
 
-                console.error(error);
-                //TODO - integrate with Raven
-            },
-
-
-            /**
-             * Utility functions
-             */
-            util: {
-
-                /**
-                 * Trims leading and trailing whitespace on a string
-                 * @param val
-                 */
-                trim: function(val) {
-                    return (val || "").replace(/^\s+|\s+$/g, '');
-                },
-
-
-                /**
-                 * Function to test whether the given var has a value
-                 * @param val - The var to check
-                 * @returns {boolean} - True when the var has value, false when it does not
-                 */
-                empty: function (val) {
-                    return (val === null || val === undefined || (typeof val === "string" && okanjo.util.trim(val) === ""));
-                },
-
-                /**
-                 * Helper to shallow clone an object so we don't ruin the top-level object reference
-                 * Note: If the shallow keys are objects, the references to the keyed objects will be maintained!
-                 *
-                 * @param {*} obj – Source object to copy
-                 * @returns {{}} – Shallow clone of the object
-                 */
-                clone: function (obj) {
-                    var clone = {};
-                    obj = obj || {};
-                    for (var k in obj) {
-                        if (obj.hasOwnProperty(k)) {
-                            clone[k] = obj[k];
-                        }
-                    }
-                    return clone;
-                },
-
-
-                /**
-                 * Super simple hashing algorithm
-                 * @see http://jsperf.com/hashing-strings
-                 * @param str - String to hash
-                 * @returns {string}
-                 */
-                hash: function(str) {
-                    var hash = 0;
-                    if (str.length === 0) return hash;
-                    for (var i = 0; i < str.length; i++) {
-                        var char = str.charCodeAt(i);
-                        hash = ((hash<<5)-hash)+char;
-                    }
-
-                    return hash.toString(16).replace(/^-/, 'n');
-
-                },
-
-
-                /**
-                 * Instead of using HTML5 dataset, just rip through attributes and return data attributes
-                 * @param element
-                 * @returns {{}}
-                 */
-                data: function (element) {
-                    var data = {};
-                    if (element) {
-                        var attrs = element.attributes;
-                        for(var i = attrs.length - 1; i >= 0; i--) {
-                            if (attrs[i].name.indexOf('data-') === 0) {
-                                data[attrs[i].name.substr(5)] = attrs[i].value;
-                            }
-                        }
-                    }
-                    return data;
-                },
-
-
-                /**
-                 * Copies a value to the target if the source contains it
-                 * @param {*} target – The destination object
-                 * @param {*} source – The source object
-                 * @param {string} targetKey – The destination key name
-                 * @param {string} [sourceKey] – The source key name, if different
-                 * @param {{stripEmpty:boolean}} [options] – Copy options, e.g. strip empty values
-                 */
-                copyIfSet: function(target, source, targetKey, sourceKey, options) {
-                    sourceKey = sourceKey || targetKey;
-                    options = options || { };
-
-                    function doCopy(sourceKey) {
-                        if (source && source[sourceKey] !== undefined && (!options.stripEmpty || !okanjo.util.empty(source[sourceKey]))) {
-                            target[targetKey] = source[sourceKey];
-                        }
-                    }
-
-                    if (typeof sourceKey === "object" && Array.isArray(sourceKey)) {
-                        // Copy the first source key that is found
-                        for(var k = 0; k < sourceKey.length; k++) {
-                            doCopy(sourceKey[k]);
-                        }
-
-                    } else {
-                        doCopy(sourceKey);
-                    }
-                },
-
-
-                /**
-                 * Copies a mapping of target-source from source to target
-                 * @param {*} target – The destination object
-                 * @param {*} source – The source object
-                 * @param {*} map – The mapping of targetKey => sourceKey (null if same)
-                 * @param {{stripEmpty:boolean}} [options] – Copy options, e.g. strip empty values
-                 */
-                copyIfSetMap: function(target, source, map, options) {
-                    var keys = Object.keys(map);
-                    for(var k = 0; k < keys.length; k++) {
-                        okanjo.util.copyIfSet(target, source, keys[k], map[keys[k]], options);
-                    }
-                },
-
-                /*! https://github.com/isaacs/inherits/blob/master/inherits_browser.js */
-                /**
-                 * Extends an object from another
-                 * @param ctor – Child class
-                 * @param superCtor – Parent class
-                 */
-                inherits: function inherits(ctor, superCtor) {
-                    if (typeof Object.create === 'function') {
-                        // implementation from standard node.js 'util' module
-                        ctor.super_ = superCtor;
-                        ctor.prototype = Object.create(superCtor.prototype, {
-                            constructor: {
-                                value: ctor,
-                                enumerable: false,
-                                writable: true,
-                                configurable: true
-                            }
-                        });
-                    } else {
-                        // old school shim for old browsers
-                        ctor.super_ = superCtor;
-                        var TempCtor = function () {};
-                        TempCtor.prototype = superCtor.prototype;
-                        ctor.prototype = new TempCtor();
-                        ctor.prototype.constructor = ctor;
-                    }
-                }
-
-            }
-
-        };
+            };
 
         // Merge properties on existing okanjo object if exists
         if (ok) {
@@ -340,8 +381,7 @@
 
 
     };
-
-//noinspection JSUnusedLocalSymbols
+//noinspection JSUnusedLocalSymbols,ThisExpressionReferencesGlobalObjectJS
 (function(okanjo, window) {
 
     var TemplateEngine = okanjo.TemplateEngine = function TemplateEngine(options) {
@@ -350,16 +390,7 @@
         this._css = options.css || {};
 
         // Add special styles for ie 7, 8, 9
-        this.classDetects = [];
-        if (navigator.appVersion.indexOf("MSIE 9.") != -1) {
-            this.classDetects.push('lt-ie10');
-        } else if (navigator.appVersion.indexOf("MSIE 8.") != -1) {
-            this.classDetects.push('lt-ie9');
-        } else if (navigator.appVersion.indexOf("MSIE 7.") != -1) {
-            this.classDetects.push('lt-ie8');
-        } else if (navigator.appVersion.indexOf("MSIE 6.") != -1) {
-            this.classDetects.push('lt-ie7');
-        }
+        this.classDetects = okanjo.util.detectClasses();
         this.classDetects = this.classDetects.join(' ');
     };
 
@@ -370,7 +401,7 @@
         /**
          * Register a template
          * @param {string} name – Template name
-         * @param {string} template - Template markup string
+         * @param {string|HTMLElement} template - Template markup string
          * @param {function(data:*):*} [viewClosure] – Optional data manipulation closure
          * @param {*} [options] – Optional hash of template options, e.g. css: [ 'name1', 'name2' ]
          */
@@ -379,6 +410,7 @@
             // {{title}} spends {{calc}}
 
             if (typeof template === "object") {
+                //noinspection JSValidateTypes
                 if (template.nodeType === undefined) {
                     throw new Error('Parameter template must be a string or a DOM element');
                 } else {
@@ -420,6 +452,7 @@
             options = options || {};
 
             if (typeof css === "object") {
+                //noinspection JSValidateTypes
                 if (css.nodeType === undefined) {
                     throw new Error('Parameter css must be a string or a DOM element');
                 }
@@ -461,6 +494,7 @@
         ensureCss: function(name) {
 
             if (this._css[name]) {
+                //noinspection JSValidateTypes
                 var css = this._css[name],
                     id = css.markup.nodeType === undefined ? css.options.id || "okanjo-css-" + name : null; // If it's a DOM element, just forget it cuz it's already on the page
 
@@ -491,6 +525,8 @@
                         }
                     }
                 }
+            } else {
+                console.warn('[Okanjo.Template] Attempted to add CSS template "'+name+'" to the DOM, however it does not appear to be registered?');
             }
 
         },
@@ -565,7 +601,7 @@
 
             /**
              * Formats a product or an array of product objects for the view
-             * @param {*|[]} mixed – Product or an array of product objects
+             * @param {*} mixed – Product or an array of product objects
              * @returns {*} – Formatted product array or object
              */
             product: function(mixed) {
@@ -578,8 +614,10 @@
                     return products;
                 } else if(typeof mixed === "object" ) { // Individual product
                     // Set first image as the display image
+
                     //noinspection JSUnresolvedVariable
                     mixed.image_url = mixed.image_urls ? mixed.image_urls[0] : '' ;
+                    //noinspection JSUnresolvedVariable
                     mixed.escaped_buy_url = encodeURIComponent(mixed.buy_url);
                     mixed.escaped_inline_buy_url = okanjo.util.empty(mixed.inline_buy_url) ? '' : encodeURIComponent(mixed.inline_buy_url);
                     mixed.price = this.currency(mixed.price);
@@ -969,78 +1007,83 @@ if (!Array.prototype.every) {
 
 // Doesn't work in IE7 so it's only here for reference
 //https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-//(function() {
-//    if (!Event.prototype.preventDefault) {
-//        Event.prototype.preventDefault=function() {
-//            this.returnValue=false;
-//        };
-//    }
-//    if (!Event.prototype.stopPropagation) {
-//        Event.prototype.stopPropagation=function() {
-//            this.cancelBubble=true;
-//        };
-//    }
-//    if (!Element.prototype.addEventListener) {
-//        var eventListeners=[];
-//
-//        var addEventListener=function(type,listener /*, useCapture (will be ignored) */) {
-//            var self=this;
-//            var wrapper=function(e) {
-//                e.target=e.srcElement;
-//                e.currentTarget=self;
-//                if (listener.handleEvent) {
-//                    listener.handleEvent(e);
-//                } else {
-//                    listener.call(self,e);
-//                }
-//            };
-//            if (type=="DOMContentLoaded") {
-//                var wrapper2=function(e) {
-//                    if (document.readyState=="complete") {
-//                        wrapper(e);
-//                    }
-//                };
-//                document.attachEvent("onreadystatechange",wrapper2);
-//                eventListeners.push({object:this,type:type,listener:listener,wrapper:wrapper2});
-//
-//                if (document.readyState=="complete") {
-//                    var e=new Event();
-//                    e.srcElement=window;
-//                    wrapper2(e);
-//                }
-//            } else {
-//                this.attachEvent("on"+type,wrapper);
-//                eventListeners.push({object:this,type:type,listener:listener,wrapper:wrapper});
-//            }
-//        };
-//        var removeEventListener=function(type,listener /*, useCapture (will be ignored) */) {
-//            var counter=0;
-//            while (counter<eventListeners.length) {
-//                var eventListener=eventListeners[counter];
-//                if (eventListener.object==this && eventListener.type==type && eventListener.listener==listener) {
-//                    if (type=="DOMContentLoaded") {
-//                        this.detachEvent("onreadystatechange",eventListener.wrapper);
-//                    } else {
-//                        this.detachEvent("on"+type,eventListener.wrapper);
-//                    }
-//                    eventListeners.splice(counter, 1);
-//                    break;
-//                }
-//                ++counter;
-//            }
-//        };
-//        Element.prototype.addEventListener=addEventListener;
-//        Element.prototype.removeEventListener=removeEventListener;
-//        if (HTMLDocument) {
-//            HTMLDocument.prototype.addEventListener=addEventListener;
-//            HTMLDocument.prototype.removeEventListener=removeEventListener;
-//        }
-//        if (Window) {
-//            Window.prototype.addEventListener=addEventListener;
-//            Window.prototype.removeEventListener=removeEventListener;
-//        }
-//    }
-//})();
+(function() {
+    if (!Event.prototype.preventDefault) {
+        Event.prototype.preventDefault=function() {
+            //noinspection JSUnusedGlobalSymbols
+            this.returnValue=false;
+        };
+    }
+    if (!Event.prototype.stopPropagation) {
+        Event.prototype.stopPropagation=function() {
+            //noinspection JSUnusedGlobalSymbols
+            this.cancelBubble=true;
+        };
+    }
+    if (!Element.prototype.addEventListener) {
+        var eventListeners=[];
+
+        var addEventListener=function(type,listener /*, useCapture (will be ignored) */) {
+            var self=this;
+            var wrapper=function(e) {
+                e.target=e.srcElement;
+                e.currentTarget=self;
+                if (listener.handleEvent) {
+                    listener.handleEvent(e);
+                } else {
+                    listener.call(self,e);
+                }
+            };
+            if (type=="DOMContentLoaded") {
+                var wrapper2=function(e) {
+                    if (document.readyState=="complete") {
+                        wrapper(e);
+                    }
+                };
+                document.attachEvent("onreadystatechange",wrapper2);
+                eventListeners.push({object:this,type:type,listener:listener,wrapper:wrapper2});
+
+                if (document.readyState=="complete") {
+                    //noinspection JSClosureCompilerSyntax
+                    var e=new Event();
+                    e.srcElement=window;
+                    wrapper2(e);
+                }
+            } else {
+                this.attachEvent("on"+type,wrapper);
+                eventListeners.push({object:this,type:type,listener:listener,wrapper:wrapper});
+            }
+        };
+        var removeEventListener=function(type,listener /*, useCapture (will be ignored) */) {
+            var counter=0;
+            while (counter<eventListeners.length) {
+                var eventListener=eventListeners[counter];
+                if (eventListener.object==this && eventListener.type==type && eventListener.listener==listener) {
+                    if (type=="DOMContentLoaded") {
+                        this.detachEvent("onreadystatechange",eventListener.wrapper);
+                    } else {
+                        this.detachEvent("on"+type,eventListener.wrapper);
+                    }
+                    eventListeners.splice(counter, 1);
+                    break;
+                }
+                ++counter;
+            }
+        };
+        Element.prototype.addEventListener=addEventListener;
+        Element.prototype.removeEventListener=removeEventListener;
+        if (HTMLDocument) {
+            HTMLDocument.prototype.addEventListener=addEventListener;
+            HTMLDocument.prototype.removeEventListener=removeEventListener;
+        }
+        if (Window) {
+            //noinspection JSUnresolvedVariable
+            Window.prototype.addEventListener=addEventListener;
+            //noinspection JSUnresolvedVariable
+            Window.prototype.removeEventListener=removeEventListener;
+        }
+    }
+})();
 
     // Make it safe to do console.log() always.
     /*! Console-polyfill. | MIT license. | https://github.com/paulmillr/console-polyfill */
@@ -1069,6 +1112,7 @@ if (!Array.prototype.every) {
     })(this.console || {});
 
     /*! Okanjo Local Storage Polyfill v1.0.0 | (c) 2013 Okanjo Partners Inc | Based on https://gist.github.com/juliocesar/926500/ddb28fb72903be87cb9044a945c6edbe1aa28b3a */
+    //noinspection ThisExpressionReferencesGlobalObjectJS
     (function(c, window) {
         var OkanjoCache = null;
         if ('localStorage' in window && window.localStorage !== null && isLocalStorageNameSupported()) {
@@ -1104,6 +1148,7 @@ if (!Array.prototype.every) {
     })(okanjo || this, this);
 
     /*! Okanjo Cookie Helper v1.0.0 | (c) 2013 Okanjo Partners Inc */
+    //noinspection ThisExpressionReferencesGlobalObjectJS
     (function(c, w) {
 
         var document = w.document || { cookie: '' };
@@ -2618,477 +2663,11 @@ if (typeof JSON !== 'object') {
 
 }));
 
-(function(okanjo) {
-function El(tag, classNames) {
-    var doc = document;
-    var el = (tag.nodeType || tag === window) ? tag : doc.createElement(tag);
-    var eventHandlers = [];
-    if (classNames) {
-        el.className = classNames;
-    }
-
-    var onShowEvent = ModalEvent();
-    var onHideEvent = ModalEvent();
-
-    var addListener = function(event, handler) {
-        if (el.addEventListener) {
-            el.addEventListener(event, handler, false);
-        } else {
-            el.attachEvent("on" + event, handler);
-        }
-        eventHandlers.push({
-            event: event,
-            handler: handler
-        });
-    };
-
-    var removeListener = function(event, handler) {
-        if (el.removeEventListener) {
-            el.removeEventListener(event, handler);
-        } else {
-            el.detachEvent("on" + event, handler);
-        }
-        var t = eventHandlers.length;
-        var handlerObj;
-        while (t-- > 0) {
-            handlerObj = eventHandlers[t];
-            if (handlerObj.event === event && handlerObj.handler === handler) {
-                eventHandlers.splice(t, 1);
-                break;
-            }
-        }
-    };
-
-    var addClickListener = function(handler) {
-        if ("ontouchend" in document.documentElement) {
-            addListener("touchstart", handler);
-        } else {
-            addListener("click", handler);
-        }
-    };
-
-    var show = function(arg) {
-        if (el) {
-            el.style.display = "block";
-            onShowEvent.fire(arg);
-        }
-    };
-
-    var hide = function(arg) {
-        if (el) {
-            el.style.display = "none";
-            onHideEvent.fire(arg);
-        }
-    };
-
-    var isShowing = function() {
-        return el.style && el.style.display === "block";
-    };
-
-    var html = function(html) {
-        if (el) {
-            el.innerHTML = html;
-        }
-    };
-
-    var text = function(text) {
-        if (el) {
-            html("");
-            el.appendChild(doc.createTextNode(text));
-        }
-    };
-
-    var remove = function() {
-        if (el.parentNode) {
-            var x = eventHandlers.length;
-            var eventHandler;
-            while (x-- > 0) {
-                eventHandler = eventHandlers[x];
-                removeListener(eventHandler.event, eventHandler.handler);
-            }
-            el.parentNode.removeChild(el);
-            onShowEvent.removeAllListeners();
-            onHideEvent.removeAllListeners();
-        }
-    };
-
-    var add = function(elObject) {
-        var elementToAppend = elObject.el || elObject;
-        el.appendChild(elementToAppend);
-    };
-
-    return {
-        el: el,
-        addListener: addListener,
-        addClickListener: addClickListener,
-        onShowEvent: onShowEvent,
-        onHideEvent: onHideEvent,
-        show: show,
-        hide: hide,
-        isShowing: isShowing,
-        html: html,
-        text: text,
-        remove: remove,
-        add: add
-    };
-}
-
-var Modal = (function() {
-
-    function Modal(content, options, overlay, overlayButton, customShow, customHide) {
-        if (content === undefined) {
-            return;
-        }
-        options = options || {};
-        var modal = El("div", "okanjoModal okanjoModalOverride " + (options.classes || ""));
-        var contentContainer = El("div", "okanjoModalContent");
-        var buttonArea = El("div", "okanjoModalButtons");
-        var onRequestHideListenerId;
-
-        modal.add(contentContainer);
-        modal.add(buttonArea);
-        modal.el.style.display = "none";
-
-        var buttons = [];
-        var pub;
-
-        options.buttons = options.buttons || [{
-            text: "Close",
-            handler: "hide",
-            primary: true
-        }];
-
-        var removeButtons = function() {
-            var t = buttons.length;
-            while (t-- > 0) {
-                var button = buttons[t];
-                button.remove();
-            }
-            buttons = [];
-        };
-
-        var center = function() {
-            modal.el.style.marginLeft = -modal.el.clientWidth / 2 + "px";
-            overlayButton.el.style.marginLeft = modal.el.style.marginLeft;
-        };
-
-        var anyModalsOpen = function() {
-            var modals = okanjo.qwery(".okanjoModal");
-            var t = modals.length;
-            while (t-- > 0) {
-                if (modals[t].style.display !== "none") {
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        var defaultShow = function() {
-            if (!modal.isShowing()) {
-                // Call the static method from the Modal module.
-                Modal.resizeOverlay();
-                overlay.show(overlay);
-                overlayButton.show(overlayButton);
-                modal.show(pub);
-                center();
-            }
-        };
-
-        var defaultHide = function() {
-            if (modal.isShowing()) {
-                modal.hide(pub);
-                if (!anyModalsOpen()) {
-                    overlay.hide(overlay);
-                    overlayButton.hide(overlayButton);
-                }
-                if (options.autoRemove) {
-                    pub.remove();
-                }
-            }
-        };
-
-        var quickClone = function(obj) {
-            var newObj = {};
-            for (var key in obj) {
-                if (obj.hasOwnProperty(key)) {
-                    newObj[key] = obj[key];
-                }
-            }
-            return newObj;
-        };
-
-        pub = {
-            modal: modal,
-            overlay: overlay,
-            overlayButton: overlayButton,
-            show: function() {
-                if (customShow) {
-                    customShow(defaultShow, pub);
-                } else {
-                    defaultShow();
-                }
-                return pub;
-            },
-            hide: function() {
-                if (customHide) {
-                    customHide(defaultHide, pub);
-                } else {
-                    defaultHide();
-                }
-                return pub;
-            },
-            onShow: function(callback) {
-                modal.onShowEvent.addListener(function() {
-                    callback(pub);
-                });
-                return pub;
-            },
-            onHide: function(callback) {
-                modal.onHideEvent.addListener(function() {
-                    callback(pub);
-                });
-                return pub;
-            },
-            remove: function() {
-                overlay.onRequestHide.removeListener(onRequestHideListenerId);
-                onRequestHideListenerId = null;
-                removeButtons();
-                modal.remove();
-            },
-            setButtons: function(buttonList) {
-                var btnIdx = buttonList.length;
-                var btnObj;
-                var btnEl;
-                var classes;
-                var giveButtonCustomClickListener = function(btnEl, btnObj) {
-                    var pubCopy = quickClone(pub);
-                    btnEl.addClickListener(function(e) {
-                        pubCopy.event = e || window.event;
-                        btnObj.handler(pubCopy);
-                    });
-                };
-
-                removeButtons();
-
-                if (btnIdx === 0) {
-                    buttonArea.hide();
-                } else {
-                    buttonArea.show();
-                    while (btnIdx-- > 0) {
-                        btnObj = buttonList[btnIdx];
-                        classes = "okanjoModalBtn";
-                        if (btnObj.primary) {
-                            classes += " okanjoModalBtnPrimary";
-                        }
-                        classes += btnObj.classes ? " " + btnObj.classes : "";
-                        btnEl = El("button", classes);
-                        if (btnObj.handler === "hide") {
-                            btnEl.addClickListener(pub.hide);
-                        } else if (btnObj.handler) {
-                            giveButtonCustomClickListener(btnEl, btnObj);
-                        }
-                        btnEl.text(btnObj.text);
-                        buttonArea.add(btnEl);
-                        buttons.push(btnEl);
-                    }
-                }
-                center();
-                return pub;
-            },
-            setContent: function(newContent) {
-                // Only good way of checking if a node in IE8...
-                if (newContent.nodeType) {
-                    contentContainer.html("");
-                    contentContainer.add(newContent);
-                } else {
-                    contentContainer.html(newContent);
-                }
-                center();
-                content = newContent;
-                return pub;
-            },
-            getContent: function() {
-                return content;
-            }
-        };
-
-        onRequestHideListenerId = overlay.onRequestHide.addListener(function() {
-            if (options.overlayClose !== false && modal.isShowing()) {
-                pub.hide();
-            }
-        });
-
-        pub.setContent(content).setButtons(options.buttons);
-
-        document.body.appendChild(modal.el);
-
-        return pub;
-    }
-
-    var doc = document;
-
-    var getDocumentDim = function(name) {
-        var docE = doc.documentElement;
-        var scroll = "scroll" + name;
-        var offset = "offset" + name;
-        return Math.max(doc.body[scroll], docE[scroll],
-            doc.body[offset], docE[offset], docE["client" + name]);
-    };
-
-    var centerElement = function(element) {
-        element.style.marginLeft = -element.clientWidth / 2+"px";
-    };
-
-    // Make this a static function so that main.js has access to it so it can
-    // add a window keydown event listener. Modal.js also needs this function.
-    Modal.resizeOverlay = function() {
-        var overlay = doc.getElementById("okanjoModalOverlay"),
-            modals = okanjo.qwery('.okanjoModal'),
-            closeButtons = okanjo.qwery('.okanjoOverlayCloseButton'),
-            i;
-
-        overlay.style.width = getDocumentDim("Width") + "px";
-        overlay.style.height = getDocumentDim("Height") + "px";
-
-        for(i = 0; i < modals.length; i++) {
-            centerElement(modals[i])
-        }
-
-        for(i = 0; i < closeButtons.length; i++) {
-            centerElement(closeButtons[i]);
-        }
-    };
-
-    return Modal;
-})();
-
-function ModalEvent() {
-    var listeners = {};
-    var nextListenerId = 0;
-
-    var addListener = function(callback) {
-        listeners[nextListenerId] = callback;
-        return nextListenerId++;
-    };
-
-    var removeListener = function(id) {
-        if (id) {
-            delete listeners[id];
-        }
-    };
-
-    var removeAllListeners = function() {
-        listeners = {};
-    };
-
-    var fire = function() {
-        for (var x = 0, num = nextListenerId; x < num; ++x) {
-            if (listeners[x]) {
-                listeners[x].apply(null, arguments);
-            }
-        }
-    };
-
-    return {
-        addListener: addListener,
-        removeListener: removeListener,
-        removeAllListeners: removeAllListeners,
-        fire: fire
-    };
-}
-
-
-
-
-var okanjoModal = (function() {
-
-    var overlay, overlayButton;
-    var doc = document;
-
-    function init() {
-        //noinspection JSUnresolvedFunction
-        if (okanjo.qwery("#okanjoModalOverlay").length === 0) {
-            //// Put the main styles on the page.
-            //var styleObj = El("style");
-            //var style = styleObj.el;
-            //var firstElInHead = okanjo.qwery("head")[0].childNodes[0];
-            //firstElInHead.parentNode.insertBefore(style, firstElInHead);
-            //
-            //var styleText = fs.readFileSync("src/style.min.css", "utf8");
-            //if (style.styleSheet) {
-            //    style.styleSheet.cssText = styleText;
-            //} else {
-            //    styleObj.text(styleText);
-            //}"
-
-            // Make the overlay and put it on the page.
-            overlay = El("div", "okanjoModalOverlay okanjoModalOverride");
-            overlay.el.id = "okanjoModalOverlay";
-
-            // Make a pretty overlay button
-            overlayButton = El("button", "okanjoOverlayCloseButton");
-            overlayButton.el.setAttribute("title", "Close (Esc)");
-            overlayButton.el.setAttribute("type", "button");
-            overlayButton.el.innerHTML = '×';
-            //overlay.el.appendChild(overlayButton.el);
-            doc.body.appendChild(overlayButton.el);
-
-            doc.body.appendChild(overlay.el);
-
-            // Add an event so that the modals can hook into it to close.
-            overlay.onRequestHide = ModalEvent();
-
-            var overlayCloseFunc = function() {
-                overlay.onRequestHide.fire();
-            };
-
-            overlay.addClickListener(overlayCloseFunc);
-            overlayButton.addClickListener(overlayCloseFunc);
-            El(doc).addListener("keydown", function(e) {
-                var keyCode = e.which || e.keyCode;
-                if (keyCode === 27) { // 27 is Escape
-                    overlayCloseFunc();
-                }
-            });
-
-            var windowEl = El(window);
-            var resizeOverlayTimeout;
-            windowEl.addListener("resize", function() {
-                if (resizeOverlayTimeout) {
-                    clearTimeout(resizeOverlayTimeout);
-                }
-                resizeOverlayTimeout = setTimeout(Modal.resizeOverlay, 100);
-            });
-
-            // Make SURE we have the correct dimensions so we make the overlay the right size.
-            // Some devices fire the event before the document is ready to return the new dimensions.
-            windowEl.addListener("orientationchange", function() {
-                for (var t = 0; t < 3; ++t) {
-                    setTimeout(Modal.resizeOverlay, 1000 * t + 200);
-                }
-            });
-        }
-    }
-
-    if (document.body) {
-        init();
-    }
-
-    var api = function(content, options) {
-        init();
-        //noinspection JSPotentiallyInvalidConstructorUsage
-        return Modal(content, options, overlay, overlayButton, api.customShow, api.customHide);
-    };
-    api.resizeOverlay = Modal.resizeOverlay;
-
-    return api;
-})();
-
- okanjo.modal = okanjoModal; })(this);
 
 }).apply(okanjo);
 
 /* jshint ignore:end */
+//noinspection ThisExpressionReferencesGlobalObjectJS
 (function(okanjo, window) {
 
     var metrics = okanjo.metrics = {
@@ -3108,6 +2687,7 @@ var okanjoModal = (function() {
             }
 
             _gaq.push(function() {
+                //noinspection JSUnresolvedVariable,JSUnresolvedFunction
                 window._gat._createTracker(id, prefix);
             });
 
@@ -3179,7 +2759,7 @@ var okanjoModal = (function() {
     })();
 
 })(okanjo, this);
-//noinspection JSUnusedLocalSymbols
+//noinspection JSUnusedLocalSymbols,ThisExpressionReferencesGlobalObjectJS
 (function(okanjo, window) {
 
     var d = document,
@@ -3273,11 +2853,14 @@ var okanjoModal = (function() {
          */
         init: function() {
 
-            // Make sure that we have the templates necessary to render the widget
-            this.ensureTemplates();
-
             // Parse the final widget instance configuration
             this.parseConfiguration();
+
+            // Override template names if given as parameters
+            this.processTemplateOverrides();
+
+            // Make sure that the templates specified are present to render the widget
+            this.ensureTemplates();
 
             // Ensure we have a widget key or bail out if we don't
             if (!this.findWidgetKey()) return;
@@ -3325,6 +2908,35 @@ var okanjoModal = (function() {
 
 
         /**
+         * Check for configuration parameters that start with template_ and css_, and replace the template and css templates where specified.
+         */
+        processTemplateOverrides: function() {
+
+            var m;
+            for (var i in this.config) {
+                if (this.config.hasOwnProperty(i)) {
+
+                    // Check for template override
+                    m = i.match(/^template_(.+)$/);
+                    //noinspection JSUnresolvedFunction
+                    if (m !== null && this.templates.hasOwnProperty(m[1])) {
+                        this.templates[m[1]] = this.config[i];
+                    } else {
+                        // Check for css override
+                        m = i.match(/^css_(.+)$/);
+                        //noinspection JSUnresolvedFunction
+                        if (m !== null && this.css.hasOwnProperty(m[1])) {
+                            this.css[m[1]] = this.config[i];
+                        }
+                    }
+
+                }
+            }
+
+        },
+
+
+        /**
          * Make sure that a set of templates have been defined
          */
         ensureTemplates: function() {
@@ -3334,13 +2946,13 @@ var okanjoModal = (function() {
             for (key in templates) {
                 //noinspection JSUnresolvedFunction
                 if (templates.hasOwnProperty(key)) {
-                    if (!okanjo.mvc.isTemplateRegistered(templates[key])) throw new Error('[Okanjo.'+this.widgetName+'] Missing template: ' + templates[key]);
+                    if (!okanjo.mvc.isTemplateRegistered(templates[key])) throw new Error('[Okanjo.'+this.widgetName+'] Missing template: ' + templates[key] + ". Did you forget to include the template?");
                 }
             }
             for (key in css) {
                 //noinspection JSUnresolvedFunction
                 if (css.hasOwnProperty(key)) {
-                    if (!okanjo.mvc.isCssRegistered(css[key])) throw new Error('[Okanjo.'+this.widgetName+'] Missing css block: ' + css[key]);
+                    if (!okanjo.mvc.isCssRegistered(css[key])) throw new Error('[Okanjo.'+this.widgetName+'] Missing css block: ' + css[key] + ". Did you forget to include the css template?");
                 }
             }
         },
@@ -3530,6 +3142,238 @@ var okanjoModal = (function() {
 //noinspection ThisExpressionReferencesGlobalObjectJS,JSUnusedLocalSymbols
 (function(okanjo, window) {
 
+    /*
+
+     div .modal-container .fade-out .hidden
+     | div .modal-window .clearfix
+     | |
+     | | div .modal-window-skin
+     | | | div .modal-window-outer
+     | | | | div .modal-window-inner
+     | | | | | iframe .okanjo-inline-buy-frame
+     | | | | /div
+     | | | /div
+     | | /div
+     | |
+     | | div .close-button
+     | | | ×
+     | | /div
+     | |
+     | /div
+     /div
+
+     */
+
+    var initialized = false,
+        scrollY = null,
+        isMobile = !!navigator.userAgent.match(/iphone|android|blackberry/ig) || false,
+
+        // Selectors
+        $html, $body, $modalContainer, $modalWindow, $modalSkin, $modalOuter, $modalInner, $modalClose, $modalFrame,
+
+        createElements = function() {
+
+            // Page elements
+            //noinspection JSUnresolvedFunction
+            $html = okanjo.qwery('html')[0];
+            //noinspection JSUnresolvedFunction
+            $body = okanjo.qwery('body')[0] || document.body;
+
+            // Modal elements
+            $modalContainer = document.createElement('div');
+            $modalWindow = document.createElement('div');
+            $modalSkin = document.createElement('div');
+            $modalOuter = document.createElement('div');
+            $modalInner = document.createElement('div');
+            $modalClose = document.createElement('div');
+            $modalFrame = document.createElement('iframe');
+
+            $modalContainer.setAttribute('class', 'okanjo-modal-container okanjo-modal-hidden ' + okanjo.util.detectClasses().join(' '));
+            $modalWindow.setAttribute('class', 'okanjo-modal-window');
+            $modalSkin.setAttribute('class', 'okanjo-modal-window-skin');
+            $modalOuter.setAttribute('class', 'okanjo-modal-window-outer');
+            $modalInner.setAttribute('class', 'okanjo-modal-window-inner');
+            $modalClose.setAttribute('class', 'okanjo-modal-close-button');
+
+            $modalFrame.setAttribute('class', 'okanjo-inline-buy-frame');
+            $modalFrame.setAttribute('frameborder', '0');
+            $modalFrame.setAttribute('vspace', '0');
+            $modalFrame.setAttribute('hspace', '0');
+            $modalFrame.setAttribute('webkitallowfullscreen', '');
+            $modalFrame.setAttribute('mozallowfullscreen', '');
+            $modalFrame.setAttribute('allowfullscreen', '');
+            $modalFrame.setAttribute('scrolling', 'auto');
+
+            $modalClose.innerHTML = '×';
+
+            // Create the modal element tree
+            $modalInner.appendChild($modalFrame);
+            $modalOuter.appendChild($modalInner);
+            $modalSkin.appendChild($modalOuter);
+            $modalWindow.appendChild($modalSkin);
+            $modalWindow.appendChild($modalClose);
+            $modalContainer.appendChild($modalWindow);
+
+            // Add the modal stuff to the body
+            $body.appendChild($modalContainer);
+        },
+
+        bindEvents = function() {
+
+            // If the device orientation changes, adjust the modal view port
+            addListener(window, 'orientationchange', function() {
+                for (var t = 0; t < 2; t++) {
+                    setTimeout(handleReposition, 1000 * t + 10);
+                }
+            });
+
+            // If the window changes size, also adjust the modal view port
+            addListener(window, 'resize', function() {
+                setTimeout(handleReposition, 100);
+            });
+
+            // Click the overlay to close the modal
+            addListener($modalContainer, 'click', closeModal);
+
+            // If you click in the modal, don't close it!
+            addListener($modalWindow, 'click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+
+            // Click the close button to close it
+            addListener($modalClose, 'click', function(e) {
+
+                // Don't close it twice
+                e.preventDefault();
+                e.stopPropagation();
+
+                closeModal();
+            });
+
+        },
+
+        addListener = function(el, event, handler) {
+            if (el.addEventListener) {
+                el.addEventListener(event, handler, false);
+            } else {
+                el.attachEvent("on" + event, handler);
+            }
+        },
+
+        //removeListener = function(el, event, handler) {
+        //    if (el.removeEventListener) {
+        //        el.removeEventListener(event, handler);
+        //    } else {
+        //        el.detachEvent("on" + event, handler);
+        //    }
+        //},
+
+        addClass = function(el, name) {
+            el.className += " " + name;
+        },
+
+        removeClass = function(el, name) {
+            el.className = el.className.replace(new RegExp(' *?'+name), '');
+        },
+
+        getWindowHeight = function() {
+            return window.innerHeight || document.documentElement.clientHeight;
+        },
+
+        handleReposition = function() {
+            scrollY = okanjo.util.getScrollPosition().y;
+            $modalWindow.style.marginTop = scrollY + 40 + "px";
+            $modalWindow.style.height = getWindowHeight() - 80 + "px";
+        },
+
+        openModal = function() {
+
+            scrollY = document.body.scrollTop;
+
+            removeClass($modalContainer, 'okanjo-modal-hidden');
+            addClass($modalContainer, 'okanjo-modal-fade-out');
+
+            handleReposition();
+
+            addClass($html, "okanjo-modal-active");
+
+            if (!isMobile) {
+                addClass($html, "okanjo-modal-margin-fix");
+            }
+
+            setTimeout(function() {
+                removeClass($modalContainer, 'okanjo-modal-fade-out');
+            }, 10);
+
+            // Click the overlay to close the modal
+            //addListener($body, 'click', closeModal);
+
+        },
+
+        closeModal = function() {
+            addClass($modalContainer, 'okanjo-modal-fade-out');
+
+            setTimeout(function() {
+                removeClass($modalContainer, 'okanjo-modal-fade-out');
+                addClass($modalContainer, "okanjo-modal-hidden");
+
+                removeClass($html, "okanjo-modal-active");
+                if (!isMobile) {
+                    removeClass($html, "okanjo-modal-margin-fix");
+                }
+            }, 210);
+
+            // Click the overlay to close the modal
+            //removeListener($body, 'click', closeModal);
+        },
+
+
+        /**
+         * Insert an element or markup into the modal
+         * @param content
+         */
+        setContent = function(content) {
+
+            // Remove existing content
+            $modalInner.innerHTML = "";
+
+            // Insert new content
+            if (typeof content === "string") {
+                $modalInner.innerHTML = content;
+            } else {
+                $modalInner.appendChild(content);
+            }
+        };
+
+
+    // Expose the modal functions
+    okanjo.modal = {
+
+        show: function(content) {
+
+            if (!initialized) {
+                initialized = true;
+                createElements();
+                bindEvents();
+            }
+
+            setContent(content);
+            openModal();
+        },
+
+        hide: function() {
+            closeModal();
+        }
+
+    };
+
+    return okanjo.modal;
+
+})(okanjo, this);
+//noinspection ThisExpressionReferencesGlobalObjectJS,JSUnusedLocalSymbols
+(function(okanjo, window) {
+
 
     /**
      * Okanjo Product
@@ -3560,13 +3404,13 @@ var okanjoModal = (function() {
         this.cache_key_prefix = 'ok_product_block_';
 
         this.templates = {
-            error: "okanjo.error",
-            main: "product.block"
+            product_error: "okanjo.error",
+            product_main: "product.block"
         };
 
         this.css = {
-            main: "product.block",
-            modal: "okanjo.modal"
+            product_main: "product.block",
+            product_modal: "okanjo.modal"
         };
 
         this.configMap = {
@@ -3617,8 +3461,11 @@ var okanjoModal = (function() {
             skip: ['skip', 'page-start'], // The index of the result set to start at, starting from 0. default: 0
             take: ['take', 'page-size'], // The number of products to return, default: 5
 
-            expandable: 'expandable'
+            expandable: 'expandable', // Indicates whether the inline_buy experience is allowed to expand outside the bounds of the widget. Default: true
 
+            // Override template names
+            template_product_main: 'template-product-main', // The product template to render, default: product.block
+            template_product_error: 'template-product-error' // The product error template to render, default: okanjo.error
         };
 
         // Initialize unless told not to
@@ -3731,7 +3578,7 @@ var okanjoModal = (function() {
             if (err) {
                 // Can't show anything, just render a generic error message
                 console.error('[Okanjo.'+self.widgetName+'] Failed to retrieve products.', err);
-                self.element.innerHTML = okanjo.mvc.render(self.templates.error, { message: 'Could not retrieve products.' });
+                self.element.innerHTML = okanjo.mvc.render(self.templates.product_error, { message: 'Could not retrieve products.' });
             } else {
                 // Store the products array locally
                 self.items = res.data;
@@ -3748,7 +3595,6 @@ var okanjoModal = (function() {
             }
         });
     };
-
 
 
     /**
@@ -3794,7 +3640,7 @@ var okanjoModal = (function() {
         this.handleInlineBuyOption();
 
         // Render the product content!
-        this.element.innerHTML = okanjo.mvc.render(this.templates.main, {
+        this.element.innerHTML = okanjo.mvc.render(this.templates.product_main, {
             products: data || this.items || [],
             config: this.config
         });
@@ -3804,10 +3650,16 @@ var okanjoModal = (function() {
     };
 
 
+    /**
+     * Handle user interaction with the product tile
+     * @param e – User interaction DOM event
+     * @param trigger – Whether to trigger the click event or not on the link
+     */
     Product.interactTile = function(e, trigger) {
         var inline = this.getAttribute('data-inline-buy-url'),
             base = this.getAttribute('data-inline-buy-url-base'),
             expandable = this.getAttribute('data-expandable');
+
         if (!okanjo.util.empty(inline)) {
 
             if (e.preventDefault) {
@@ -3816,10 +3668,17 @@ var okanjoModal = (function() {
                 e.returnValue = false;
             }
 
+
             var iframe = document.createElement('iframe');
-            iframe.className = "okanjo-ad-inline-buy-frame";
-            iframe.setAttribute('frameborder', "0");
-            iframe.setAttribute('allowFullscreen', "");
+            iframe.setAttribute('class', 'okanjo-inline-buy-frame');
+            iframe.setAttribute('frameborder', '0');
+            iframe.setAttribute('vspace', '0');
+            iframe.setAttribute('hspace', '0');
+            iframe.setAttribute('webkitallowfullscreen', '');
+            iframe.setAttribute('mozallowfullscreen', '');
+            iframe.setAttribute('allowfullscreen', '');
+            iframe.setAttribute('scrolling', 'auto');
+
             iframe.src = base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline);
 
             if(expandable !== undefined && expandable.toLowerCase() === "false") {
@@ -3834,12 +3693,7 @@ var okanjoModal = (function() {
                     parent.appendChild(iframe);
                 }
             } else {
-                var modal = okanjo.modal(iframe, {
-                    autoRemove: true,
-                    buttons: [],
-                    classes: 'adModal'
-                });
-                modal.show();
+                okanjo.modal.show(iframe);
             }
         } else if (trigger) {
             this.click();
@@ -3885,12 +3739,12 @@ var okanjoModal = (function() {
         this.config = config = config || {};
 
         this.templates = {
-            error: "okanjo.error",
-            main: "ad.block"
+            ad_error: "okanjo.error",
+            ad_main: "ad.block"
         };
 
         this.css = {
-            main: "ad.block"
+            ad_main: "ad.block"
         };
 
         this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
@@ -3903,14 +3757,20 @@ var okanjoModal = (function() {
             // How should this thing look?
             content: "content", // The content of the ad, creative or dynamic. Default: creative if element has markup, dynamic if not.
             size: "size", // Hint as to the intended IAB display size, e.g. large_rectangle, leaderboard, skyscraper. Default: medium_rectangle
-            expandable: "expandable", // indicates whether the ad is expandable. Default: true
+            expandable: "expandable", // Indicates whether the inline_buy experience is allowed to expand outside the bounds of the widget. Default: true
 
             // What should this thing point at?
             type: "type", // The source type. Default: product
             id: "id", // The source id. e.g. PRasdfMyProductId. Default: null
 
-            disable_inline_buy: "disable-inline-buy" // Whether to disable inline buy functionality, default: false
+            // Allow overriding of the ad templates
+            template_ad_main: 'template-ad-main',
+            template_ad_error: 'template-ad-error',
 
+            // Pass these params through to the underlying product widget
+            disable_inline_buy: "disable-inline-buy", // Whether to disable inline buy functionality, default: false
+            template_product_main: 'template-product-main', // The product template to render, default: product.block
+            template_product_error: 'template-product-error' // The product error template to render, default: okanjo.error
         };
 
 
@@ -4011,7 +3871,7 @@ var okanjoModal = (function() {
         } else if (this.config.content === Ad.contentTypes.dynamic && this.hasCreativeContent()) {
             console.warn('[Okanjo.Ad] Ad content is dynamic, but ad placement contains markup. Markup will be clobbered!');
         } else if (!Ad.contentTypes.hasOwnProperty(this.config.content)){
-            this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Invalid ad content: ' + this.config.content });
+            this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Invalid ad content: ' + this.config.content });
             okanjo.report(this.widgetName, 'Invalid ad content: ' + this.config.content);
             return false;
         }
@@ -4058,7 +3918,7 @@ var okanjoModal = (function() {
 
             // Make sure an ID is set
             if (okanjo.util.empty(this.config.id)) {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Missing ad product id' });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Missing ad product id' });
                 okanjo.report(this.widgetName, 'Missing ad product id');
                 return false;
             }
@@ -4071,7 +3931,7 @@ var okanjoModal = (function() {
                 // If creative, don't mess with the markup, just bind up the click / modal
                 this.insertCreativeWidget();
             } else {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Cannot render ad in content: ' + this.config.content });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Cannot render ad in content: ' + this.config.content });
                 okanjo.report(this.widgetName, 'Cannot render ad in content: ' + this.config.content);
                 return false;
             }
@@ -4093,7 +3953,7 @@ var okanjoModal = (function() {
             i,
             fit = this.config.content == Ad.contentTypes.dynamic && !okanjo.util.empty(this.config.size);
 
-        div.innerHTML = okanjo.mvc.render(this.templates.main, {
+        div.innerHTML = okanjo.mvc.render(this.templates.ad_main, {
             //products: data || this.items || [],
             config: this.config
         }, {
@@ -4195,16 +4055,27 @@ var okanjoModal = (function() {
 
         this.render();
 
-        this.productWidget = new okanjo.Product(el, {
+        var productWidgetConfig = {
             id: this.config.id,
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
             expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true"
-        });
+        };
+
+        // Copy parameters through from the ad config, to the product config, if set
+        (function addIfSet(params,config) {
+            for (var i = 0; i < params.length; i++) {
+                if (config[params[i]] !== undefined) {
+                    productWidgetConfig[params[i]] = config[params[i]];
+                }
+            }
+        })(['template_product_main','template_product_error'], this.config);
+
+        // Instantiate the widget
+        this.productWidget = new okanjo.Product(el, productWidgetConfig);
 
         return this.productWidget;
-
     };
 
 
@@ -4261,11 +4132,11 @@ okanjo.mvc.registerTemplate("ad.block", "<div class=\"okanjo-ad-block {{classDet
 
 
 okanjo.mvc.registerCss("okanjo.core", "", { id: 'okanjo-core' });
-okanjo.mvc.registerCss("okanjo.modal", ".okanjoModal,.okanjoOverlayCloseButton{display:none;left:50%;z-index:9999;position:fixed}.okanjoOverlayCloseButton{top:-4px;height:50px;font-size:39px;background:0 0;border:0;color:#fff;padding:0;max-width:900px;width:100%;margin:0;text-align:right}.okanjoModal{top:100px;padding:15px 20px 10px;border-radius:10px;background:#fff;background:linear-gradient(to bottom,#fff 0,#ddd 100%);filter:progid:DXImageTransform.Microsoft.gradient(startColorstr=\'#ffffff\', endColorstr=\'#dddddd\', GradientType=0)}.okanjoModalOverlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:9998;background:#000;display:none;-ms-filter:\"progid:DXImageTransform.Microsoft.Alpha(Opacity=50)\";filter:alpha(opacity=50);-moz-opacity:.5;-khtml-opacity:.5;opacity:.5}.okanjoModalButtons{border-top:1px solid #ddd;margin-top:15px;text-align:right}.okanjoModalBtn{color:#333;background-color:#fff;display:inline-block;padding:6px 12px;margin:8px 4px 0;font-size:14px;text-align:center;white-space:nowrap;vertical-align:middle;cursor:pointer;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;border:1px solid transparent;border-radius:4px}.okanjoModalBtn:active,.okanjoModalBtn:focus,.okanjoModalBtn:hover{color:#333;background-color:#e6e6e6;border-color:#adadad}.okanjoModalBtn.okanjoModalBtnPrimary{color:#fff;background-color:#428bca;border-color:#357ebd}.okanjoModalBtn.okanjoModalBtnPrimary:active,.okanjoModalBtn.okanjoModalBtnPrimary:focus,.okanjoModalBtn.okanjoModalBtnPrimary:hover{color:#fff;background-color:#3071a9;border-color:#285e8e}", { id: 'okanjo-modal' });
+okanjo.mvc.registerCss("okanjo.modal", "html.okanjo-modal-active{position:absolute;top:0;bottom:0;right:0;left:0}html.okanjo-modal-active body{position:relative!important;overflow:hidden!important;margin:0}.okanjo-modal-margin-fix{margin-right:15px!important}.okanjo-modal-container{position:absolute;width:100%;top:0;right:0;left:0;bottom:0;z-index:2147483647;background-color:rgba(0,0,0,.65);transition-duration:210ms;transition-property:background-color}.okanjo-modal-container.lt-ie9{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNiWAoAAK4AqL41IDIAAAAASUVORK5CYII=)}.okanjo-modal-container.okanjo-modal-fade-out{background-color:transparent}.okanjo-modal-container.okanjo-modal-fade-out .okanjo-modal-window{opacity:0;-webkit-transform:scale(.95,.95)translateY(50px);transform:scale(.95,.95)translateY(50px)}.okanjo-modal-container.okanjo-modal-hidden{display:none!important}.okanjo-modal-container .okanjo-modal-window{position:relative;max-width:900px;width:90%;background:0 0;margin:40px auto;opacity:1;-webkit-transform:scale(1,1)translateY(0);transform:scale(1,1)translateY(0);transition-duration:210ms;transition-timing-function:cubic-bezier(.13,.025,.15,1);transition-timing-function:cubic-bezier(.13,.025,.15,1.15);transition-property:-webkit-transform,opacity}.okanjo-modal-container .okanjo-modal-window:after,.okanjo-modal-container .okanjo-modal-window:before{content:\" \";display:table}.okanjo-modal-container .okanjo-modal-window:after{clear:both}.okanjo-modal-container .okanjo-modal-window .okanjo-modal-header{padding-top:5px;padding-bottom:5px;border-bottom:1px solid #d7d7d7}.okanjo-modal-container .okanjo-modal-window .okanjo-modal-header img{height:50px;width:auto}.okanjo-modal-container .okanjo-modal-window-skin{width:auto;height:auto;box-shadow:0 10px 25px rgba(0,0,0,.5);position:absolute;background:#fff;border-radius:4px;top:0;bottom:0;left:0;right:0}.okanjo-modal-container .okanjo-modal-window-outer{position:absolute;top:15px;left:15px;bottom:15px;right:15px;vertical-align:top}.okanjo-modal-container .okanjo-modal-window-inner{position:relative;width:100%;height:100%;-webkit-overflow-scrolling:touch;overflow:auto}.okanjo-modal-container .okanjo-modal-window-inner iframe{height:100%;width:100%;margin-right:-15px}.okanjo-modal-container .okanjo-modal-close-button{color:#fff;cursor:pointer;position:absolute;right:0;top:-48px;text-align:right;font-size:40px;line-height:1em;overflow:visible;width:40px;height:40px}", { id: 'okanjo-modal' });
 
 okanjo.mvc.registerTemplate("okanjo.error", "<span class=okanjo-error>{{ message }}</span> {{#code}} <span class=okanjo-error-code>Reference: {{ code }}</span> {{/code}}", { css: ['okanjo.core'] });
 
-    okanjo.mvc.registerCss("product.block", ".lt-ie8.okanjo-product-block .okanjo-product-title,.lt-ie8.okanjo-product-block .okanjo-product-title-container:before{zoom:1}.okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0}.okanjo-product-block .okanjo-product{width:150px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:.5em;display:inline-block;margin:0 .1em;box-shadow:1px 1px 1px 1px #eee;background-color:#fff}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:150px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-block .okanjo-product-title-container{margin:.5em;height:4em;overflow:auto;vertical-align:middle}.okanjo-product-block .okanjo-product-title-container:before{content:\"\";display:inline-block;height:100%;vertical-align:middle}.okanjo-product-block .okanjo-product-title{vertical-align:middle;display:inline-block}.okanjo-product-block .okanjo-product-meta{height:0;width:0;text-indent:-100%;overflow:hidden}.lt-ie7.okanjo-product-block .okanjo-product,.lt-ie8.okanjo-product-block .okanjo-product,.lt-ie9.okanjo-product-block .okanjo-product{margin-bottom:.2em}.lt-ie7.okanjo-product-block .okanjo-product-title-container:before,.lt-ie8.okanjo-product-block .okanjo-product-title-container:before,.lt-ie9.okanjo-product-block .okanjo-product-title-container:before{display:block;height:0}.lt-ie7.okanjo-product-block .okanjo-product-title,.lt-ie8.okanjo-product-block .okanjo-product-title,.lt-ie9.okanjo-product-block .okanjo-product-title{display:block}.okanjoModal.adModal{padding:0;overflow:hidden;top:50px;bottom:50px;max-width:900px;width:100%}.okanjoModal.adModal .okanjoModalContent{position:absolute;top:0;bottom:0;left:0;right:0;height:100%;width:100%}.adModal iframe{display:block;height:100%;width:100%}", { id: 'okanjo-product-block' });
+    okanjo.mvc.registerCss("product.block", ".lt-ie8.okanjo-product-block .okanjo-product-title,.lt-ie8.okanjo-product-block .okanjo-product-title-container:before{zoom:1}.okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0}.okanjo-product-block .okanjo-product{width:150px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:.5em;display:inline-block;margin:0 .1em;box-shadow:1px 1px 1px 1px #eee;background-color:#fff}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:150px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-block .okanjo-product-title-container{margin:.5em;height:4em;overflow:auto;vertical-align:middle}.okanjo-product-block .okanjo-product-title-container:before{content:\"\";display:inline-block;height:100%;vertical-align:middle}.okanjo-product-block .okanjo-product-title{vertical-align:middle;display:inline-block}.okanjo-product-block .okanjo-product-meta{height:0;width:0;text-indent:-100%;overflow:hidden}.lt-ie7.okanjo-product-block .okanjo-product,.lt-ie8.okanjo-product-block .okanjo-product,.lt-ie9.okanjo-product-block .okanjo-product{margin-bottom:.2em}.lt-ie7.okanjo-product-block .okanjo-product-title-container:before,.lt-ie8.okanjo-product-block .okanjo-product-title-container:before,.lt-ie9.okanjo-product-block .okanjo-product-title-container:before{display:block;height:0}.lt-ie7.okanjo-product-block .okanjo-product-title,.lt-ie8.okanjo-product-block .okanjo-product-title,.lt-ie9.okanjo-product-block .okanjo-product-title{display:block}.okanjoModal.adModal{padding:0;overflow:hidden;top:50px;bottom:50px;max-width:900px;width:100%}.okanjoModal.adModal .okanjoModalContent{position:absolute;top:0;bottom:0;left:0;right:0;height:100%;width:100%}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-block' });
 
     okanjo.mvc.registerTemplate("product.block", "<div class=\"okanjo-product-block {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c=pw&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}&u={{ escaped_buy_url }}\" data-inline-buy-url-base=\"//{{okanjoMetricUrl}}/metrics/{{ id }}?c=pw&a=inline_click&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}\" data-inline-buy-url=\"{{ inline_buy_url }}\" data-expandable=\"{{#config}}{{ expandable }}{{/config}}\" target=_blank itemprop=url><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div class=okanjo-product-price-container itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price }}</span></div><div class=okanjo-product-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c=pw&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"> {{! Okanjo impression tracking URL }} {{#impression_url}}<img src=\"{{ impression_url }}\" alt=\"\">{{/impression_url}} {{! Vendor impression tracking URL }} {{#sold_by}}<span itemprop=brand>{{brand}}</span>{{/sold_by}} {{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul><div class=okanjo-product-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c=pw&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"></div></div>", function(data, options) {
         // Ensure params

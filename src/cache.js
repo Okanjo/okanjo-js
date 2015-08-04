@@ -1,5 +1,6 @@
 
     /*! Okanjo Local Storage Polyfill v1.0.0 | (c) 2013 Okanjo Partners Inc | Based on https://gist.github.com/juliocesar/926500/ddb28fb72903be87cb9044a945c6edbe1aa28b3a */
+    //noinspection ThisExpressionReferencesGlobalObjectJS
     (function(c, window) {
         var OkanjoCache = null;
         if ('localStorage' in window && window.localStorage !== null && isLocalStorageNameSupported()) {

@@ -46,11 +46,14 @@
          */
         init: function() {
 
-            // Make sure that we have the templates necessary to render the widget
-            this.ensureTemplates();
-
             // Parse the final widget instance configuration
             this.parseConfiguration();
+
+            // Override template names if given as parameters
+            this.processTemplateOverrides();
+
+            // Make sure that the templates specified are present to render the widget
+            this.ensureTemplates();
 
             // Ensure we have a widget key or bail out if we don't
             if (!this.findWidgetKey()) return;
@@ -98,6 +101,35 @@
 
 
         /**
+         * Check for configuration parameters that start with template_ and css_, and replace the template and css templates where specified.
+         */
+        processTemplateOverrides: function() {
+
+            var m;
+            for (var i in this.config) {
+                if (this.config.hasOwnProperty(i)) {
+
+                    // Check for template override
+                    m = i.match(/^template_(.+)$/);
+                    //noinspection JSUnresolvedFunction
+                    if (m !== null && this.templates.hasOwnProperty(m[1])) {
+                        this.templates[m[1]] = this.config[i];
+                    } else {
+                        // Check for css override
+                        m = i.match(/^css_(.+)$/);
+                        //noinspection JSUnresolvedFunction
+                        if (m !== null && this.css.hasOwnProperty(m[1])) {
+                            this.css[m[1]] = this.config[i];
+                        }
+                    }
+
+                }
+            }
+
+        },
+
+
+        /**
          * Make sure that a set of templates have been defined
          */
         ensureTemplates: function() {
@@ -107,13 +139,13 @@
             for (key in templates) {
                 //noinspection JSUnresolvedFunction
                 if (templates.hasOwnProperty(key)) {
-                    if (!okanjo.mvc.isTemplateRegistered(templates[key])) throw new Error('[Okanjo.'+this.widgetName+'] Missing template: ' + templates[key]);
+                    if (!okanjo.mvc.isTemplateRegistered(templates[key])) throw new Error('[Okanjo.'+this.widgetName+'] Missing template: ' + templates[key] + ". Did you forget to include the template?");
                 }
             }
             for (key in css) {
                 //noinspection JSUnresolvedFunction
                 if (css.hasOwnProperty(key)) {
-                    if (!okanjo.mvc.isCssRegistered(css[key])) throw new Error('[Okanjo.'+this.widgetName+'] Missing css block: ' + css[key]);
+                    if (!okanjo.mvc.isCssRegistered(css[key])) throw new Error('[Okanjo.'+this.widgetName+'] Missing css block: ' + css[key] + ". Did you forget to include the css template?");
                 }
             }
         },

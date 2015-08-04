@@ -1,4 +1,4 @@
-//noinspection JSUnusedLocalSymbols
+//noinspection JSUnusedLocalSymbols,ThisExpressionReferencesGlobalObjectJS
 (function(okanjo, window) {
 
     var d = document,
