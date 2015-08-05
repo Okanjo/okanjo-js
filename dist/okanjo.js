@@ -1,4 +1,4 @@
-/*! okanjo-js v0.4.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.4.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -3283,8 +3283,8 @@ if (typeof JSON !== 'object') {
 
         handleReposition = function() {
             scrollY = okanjo.util.getScrollPosition().y;
-            $modalWindow.style.marginTop = scrollY + 40 + "px";
-            $modalWindow.style.height = getWindowHeight() - 80 + "px";
+            //$modalWindow.style.marginTop = scrollY + 40 + "px";
+            $modalWindow.style.height = (getWindowHeight() - 80) + "px";
         },
 
         openModal = function() {
