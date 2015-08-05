@@ -101,6 +101,7 @@ var gulp = require('gulp'),
         'src/metrics.js',
         'src/moat.js',
         'src/widget.js',
+        'src/modal.js',
         'src/product.js',
         'src/ad.js'
     ],
@@ -109,8 +110,8 @@ var gulp = require('gulp'),
     vendorSources = [
         'lib/qwery/qwery.js',
         'lib/polyfill/domready.js',
-        'lib/mustache.js/mustache.js',
-        'build/modal.js'
+        'lib/mustache.js/mustache.js' //,
+        //'build/modal.js'
     ],
 
     bundleSources = [
@@ -136,11 +137,11 @@ var gulp = require('gulp'),
         'dist/okanjo-templates.min.js',
         'dist/okanjo-templates.min.js.map'
 
-    ],
-
-    modalFiles = [
-        'lib/modal/*.js'
-    ];
+    ]; //,
+    //
+    //modalFiles = [
+    //    'lib/modal/*.js'
+    //];
 
 //
 // OKANJO.JS ===========================================================================================================
@@ -152,15 +153,15 @@ gulp.task('deps', function() {
 });
 
 
-gulp.task('modal', function() {
-    return gulp.src(modalFiles)
-        .pipe(concat('modal.js'))
-        .pipe(wrap('(function(okanjo) {<%= contents %> okanjo.modal = okanjoModal; })(this);'))
-        .pipe(gulp.dest('build'))
-});
+//gulp.task('modal', function() {
+//    return gulp.src(modalFiles)
+//        .pipe(concat('modal.js'))
+//        .pipe(wrap('(function(okanjo) {<%= contents %> okanjo.modal = okanjoModal; })(this);'))
+//        .pipe(gulp.dest('build'))
+//});
 
 
-gulp.task('vendor', ['deps', 'modal'], function() {
+gulp.task('vendor', ['deps'], function() {
     return gulp.src(vendorSources)
         .pipe(concat('vendor.js'))
         .pipe(wrap({ src: 'lib/vendor.js.tpl' }))

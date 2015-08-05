@@ -1,5 +1,4 @@
-
-//noinspection JSUnusedLocalSymbols
+//noinspection JSUnusedLocalSymbols,ThisExpressionReferencesGlobalObjectJS
 (function(okanjo, window) {
 
     var TemplateEngine = okanjo.TemplateEngine = function TemplateEngine(options) {
@@ -8,16 +7,7 @@
         this._css = options.css || {};
 
         // Add special styles for ie 7, 8, 9
-        this.classDetects = [];
-        if (navigator.appVersion.indexOf("MSIE 9.") != -1) {
-            this.classDetects.push('lt-ie10');
-        } else if (navigator.appVersion.indexOf("MSIE 8.") != -1) {
-            this.classDetects.push('lt-ie9');
-        } else if (navigator.appVersion.indexOf("MSIE 7.") != -1) {
-            this.classDetects.push('lt-ie8');
-        } else if (navigator.appVersion.indexOf("MSIE 6.") != -1) {
-            this.classDetects.push('lt-ie7');
-        }
+        this.classDetects = okanjo.util.detectClasses();
         this.classDetects = this.classDetects.join(' ');
     };
 
@@ -28,7 +18,7 @@
         /**
          * Register a template
          * @param {string} name – Template name
-         * @param {string} template - Template markup string
+         * @param {string|HTMLElement} template - Template markup string
          * @param {function(data:*):*} [viewClosure] – Optional data manipulation closure
          * @param {*} [options] – Optional hash of template options, e.g. css: [ 'name1', 'name2' ]
          */
@@ -37,6 +27,7 @@
             // {{title}} spends {{calc}}
 
             if (typeof template === "object") {
+                //noinspection JSValidateTypes
                 if (template.nodeType === undefined) {
                     throw new Error('Parameter template must be a string or a DOM element');
                 } else {
@@ -78,6 +69,7 @@
             options = options || {};
 
             if (typeof css === "object") {
+                //noinspection JSValidateTypes
                 if (css.nodeType === undefined) {
                     throw new Error('Parameter css must be a string or a DOM element');
                 }
@@ -119,6 +111,7 @@
         ensureCss: function(name) {
 
             if (this._css[name]) {
+                //noinspection JSValidateTypes
                 var css = this._css[name],
                     id = css.markup.nodeType === undefined ? css.options.id || "okanjo-css-" + name : null; // If it's a DOM element, just forget it cuz it's already on the page
 
@@ -149,6 +142,8 @@
                         }
                     }
                 }
+            } else {
+                console.warn('[Okanjo.Template] Attempted to add CSS template "'+name+'" to the DOM, however it does not appear to be registered?');
             }
 
         },
@@ -223,7 +218,7 @@
 
             /**
              * Formats a product or an array of product objects for the view
-             * @param {*|[]} mixed – Product or an array of product objects
+             * @param {*} mixed – Product or an array of product objects
              * @returns {*} – Formatted product array or object
              */
             product: function(mixed) {
@@ -236,8 +231,10 @@
                     return products;
                 } else if(typeof mixed === "object" ) { // Individual product
                     // Set first image as the display image
+
                     //noinspection JSUnresolvedVariable
                     mixed.image_url = mixed.image_urls ? mixed.image_urls[0] : '' ;
+                    //noinspection JSUnresolvedVariable
                     mixed.escaped_buy_url = encodeURIComponent(mixed.buy_url);
                     mixed.escaped_inline_buy_url = okanjo.util.empty(mixed.inline_buy_url) ? '' : encodeURIComponent(mixed.inline_buy_url);
                     mixed.price = this.currency(mixed.price);

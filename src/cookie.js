@@ -1,5 +1,6 @@
 
     /*! Okanjo Cookie Helper v1.0.0 | (c) 2013 Okanjo Partners Inc */
+    //noinspection ThisExpressionReferencesGlobalObjectJS
     (function(c, w) {
 
         var document = w.document || { cookie: '' };

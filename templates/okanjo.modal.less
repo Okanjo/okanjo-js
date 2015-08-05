@@ -1,107 +1,147 @@
+@import "okanjo.core.less";
 
-
-.okanjoOverlayCloseButton {
-  position: fixed;
-  top: -4px;
-  height: 50px;
-  display: none;
-  font-size: 39px;
-  background: rgba(0, 0, 0, 0);
-  border: 0;
-  color: rgb(255, 255, 255);
-  left: 50%;
-  z-index: 9999;
-  padding: 0;
-  max-width: 900px;
-//  min-width: 400px;
-  width: 100%;
-  margin: 0;
-  text-align: right;
-
-//  margin-left: -450px; // Appled dynamically
-}
-
-.okanjoModal {
-//  position: absolute;
-  top: 100px;
-  left: 50%;
-  display: none;
-  background: #fff;
-  z-index: 9999;
-//  min-width: 300px;
-  padding: 15px 20px 10px 20px;
-  -webkit-border-radius: 10px;
-  -moz-border-radius: 10px;
-  border-radius: 10px;
-  background: #fff; /* Old browsers */
-  background: -moz-linear-gradient(top, #fff 0%, #ddd 100%); /* FF3.6+ */
-  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#fff), color-stop(100%,#ddd)); /* Chrome,Safari4+ */
-  background: -webkit-linear-gradient(top, #fff 0%,#ddd 100%); /* Chrome10+,Safari5.1+ */
-  background: -o-linear-gradient(top, #fff 0%,#ddd 100%); /* Opera 11.10+ */
-  background: -ms-linear-gradient(top, #fff 0%,#ddd 100%); /* IE10+ */
-  background: linear-gradient(to bottom, #fff 0%,#ddd 100%); /* W3C */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#dddddd',GradientType=0 ); /* IE6-9 */
-  position: fixed;
-}
-
-.okanjoModalOverlay {
+html.okanjo-modal-active {
   position: absolute;
   top: 0;
+  bottom: 0;
+  right: 0;
   left: 0;
+
+  body {
+    position: relative !important;
+    overflow: hidden !important;
+    margin: 0;
+  }
+}
+
+.okanjo-modal-margin-fix {
+  margin-right: 15px !important;
+}
+
+.okanjo-modal-container {
+  position: absolute;
+
   width: 100%;
-  height: 100%;
-  z-index: 9998;
-  background: #000;
-  display: none;
-  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
-  filter: alpha(opacity=50);
-  -moz-opacity: 0.5;
-  -khtml-opacity: 0.5;
-  opacity: 0.5;
-}
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
 
-.okanjoModalButtons {
-  border-top: 1px solid #ddd;
-  margin-top: 15px;
-  text-align: right;
-}
+  z-index: 2147483647; // int max, baby
 
-.okanjoModalBtn {
-  color: #333;
-  background-color: #fff;
-  border-color: #ccc;
-  display: inline-block;
-  padding: 6px 12px;
-  margin: 8px 4px 0 4px;
-  font-size: 14px;
-  text-align: center;
-  white-space: nowrap;
-  vertical-align: middle;
-  cursor: pointer;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  border: 1px solid transparent;
-  -webkit-border-radius: 4px;
-  -moz-border-radius: 4px;
-  border-radius: 4px;
-}
+  &.lt-ie9 {
+    //  background-color: #000;
+    //  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#32000000', endColorstr='#32000000',GradientType=0 ); /* IE6-9 */
+    //  zoom: 1;
 
-.okanjoModalBtn:hover, .okanjoModalBtn:focus, .okanjoModalBtn:active {
-  color: #333;
-  background-color: #e6e6e6;
-  border-color: #adadad;
-}
+    // ^ Don't do that, because IE8 doesn't treat event handling / bubbling right with that filter crap, instead: force a bg image
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNiWAoAAK4AqL41IDIAAAAASUVORK5CYII=);
+  }
 
-.okanjoModalBtn.okanjoModalBtnPrimary {
-  color: #fff;
-  background-color: #428bca;
-  border-color: #357ebd;
-}
+  background-color: rgba(0, 0, 0, .65);
+  transition-duration: 210ms;
+  transition-property: background-color;
 
-.okanjoModalBtn.okanjoModalBtnPrimary:hover, .okanjoModalBtn.okanjoModalBtnPrimary:focus, .okanjoModalBtn.okanjoModalBtnPrimary:active {
-  color: #fff;
-  background-color: #3071a9;
-  border-color: #285e8e;
+  &.okanjo-modal-fade-out {
+    background-color: rgba(0, 0, 0, 0);
+
+    .okanjo-modal-window {
+      opacity: 0;
+      transform: scale(.95, .95) translateY(50px);
+    }
+  }
+
+  &.okanjo-modal-hidden {
+    display: none !important;
+  }
+
+  .okanjo-modal-window {
+
+    .clearfix();
+
+    position: relative;
+    max-width: 900px;
+    width: 90%;
+    background: transparent;
+    margin: 40px auto;
+    opacity: 1;
+
+//    min-height: 600px;
+
+    transform: scale(1, 1) translateY(0px);
+    transition-duration: 210ms;
+    //noinspection CssOverwrittenProperties
+    transition-timing-function: cubic-bezier(0.130, 0.025, 0.150, 1); /* older webkit */
+    //noinspection CssOverwrittenProperties
+    transition-timing-function: cubic-bezier(0.130, 0.025, 0.150, 1.15);
+
+    transition-property: -webkit-transform, opacity;
+
+    .okanjo-modal-header {
+      padding-top: 5px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #d7d7d7;
+
+      img {
+        height: 50px;
+        width: auto;
+      }
+    }
+  }
+
+  .okanjo-modal-window-skin {
+    width: auto;
+    height: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    position: absolute;
+    background: white;
+    border-radius: 4px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+
+  .okanjo-modal-window-outer {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    bottom: 15px;
+    right: 15px;
+    vertical-align: top;
+  }
+
+  .okanjo-modal-window-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    //noinspection CssUnknownProperty
+    -webkit-overflow-scrolling: touch;
+    overflow: auto;
+
+    iframe {
+      height: 100%;
+      width: 100%;
+      margin-right: -15px;
+    }
+
+  }
+
+  /* Close Button */
+  .okanjo-modal-close-button {
+    color: #ffffff;
+    cursor: pointer;
+    position: absolute;
+    right: 0;
+    top: -48px;
+
+    text-align: right;
+
+    font-size: 40px;
+    line-height: 1em;
+    overflow: visible;
+
+    width: 40px;
+    height: 40px;
+  }
 }

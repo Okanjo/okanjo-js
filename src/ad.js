@@ -14,12 +14,12 @@
         this.config = config = config || {};
 
         this.templates = {
-            error: "okanjo.error",
-            main: "ad.block"
+            ad_error: "okanjo.error",
+            ad_main: "ad.block"
         };
 
         this.css = {
-            main: "ad.block"
+            ad_main: "ad.block"
         };
 
         this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
@@ -32,14 +32,20 @@
             // How should this thing look?
             content: "content", // The content of the ad, creative or dynamic. Default: creative if element has markup, dynamic if not.
             size: "size", // Hint as to the intended IAB display size, e.g. large_rectangle, leaderboard, skyscraper. Default: medium_rectangle
-            expandable: "expandable", // indicates whether the ad is expandable. Default: true
+            expandable: "expandable", // Indicates whether the inline_buy experience is allowed to expand outside the bounds of the widget. Default: true
 
             // What should this thing point at?
             type: "type", // The source type. Default: product
             id: "id", // The source id. e.g. PRasdfMyProductId. Default: null
 
-            disable_inline_buy: "disable-inline-buy" // Whether to disable inline buy functionality, default: false
+            // Allow overriding of the ad templates
+            template_ad_main: 'template-ad-main',
+            template_ad_error: 'template-ad-error',
 
+            // Pass these params through to the underlying product widget
+            disable_inline_buy: "disable-inline-buy", // Whether to disable inline buy functionality, default: false
+            template_product_main: 'template-product-main', // The product template to render, default: product.block
+            template_product_error: 'template-product-error' // The product error template to render, default: okanjo.error
         };
 
 
@@ -140,7 +146,7 @@
         } else if (this.config.content === Ad.contentTypes.dynamic && this.hasCreativeContent()) {
             console.warn('[Okanjo.Ad] Ad content is dynamic, but ad placement contains markup. Markup will be clobbered!');
         } else if (!Ad.contentTypes.hasOwnProperty(this.config.content)){
-            this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Invalid ad content: ' + this.config.content });
+            this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Invalid ad content: ' + this.config.content });
             okanjo.report(this.widgetName, 'Invalid ad content: ' + this.config.content);
             return false;
         }
@@ -187,7 +193,7 @@
 
             // Make sure an ID is set
             if (okanjo.util.empty(this.config.id)) {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Missing ad product id' });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Missing ad product id' });
                 okanjo.report(this.widgetName, 'Missing ad product id');
                 return false;
             }
@@ -200,7 +206,7 @@
                 // If creative, don't mess with the markup, just bind up the click / modal
                 this.insertCreativeWidget();
             } else {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Cannot render ad in content: ' + this.config.content });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Cannot render ad in content: ' + this.config.content });
                 okanjo.report(this.widgetName, 'Cannot render ad in content: ' + this.config.content);
                 return false;
             }
@@ -222,7 +228,7 @@
             i,
             fit = this.config.content == Ad.contentTypes.dynamic && !okanjo.util.empty(this.config.size);
 
-        div.innerHTML = okanjo.mvc.render(this.templates.main, {
+        div.innerHTML = okanjo.mvc.render(this.templates.ad_main, {
             //products: data || this.items || [],
             config: this.config
         }, {
@@ -324,16 +330,27 @@
 
         this.render();
 
-        this.productWidget = new okanjo.Product(el, {
+        var productWidgetConfig = {
             id: this.config.id,
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
             expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true"
-        });
+        };
+
+        // Copy parameters through from the ad config, to the product config, if set
+        (function addIfSet(params,config) {
+            for (var i = 0; i < params.length; i++) {
+                if (config[params[i]] !== undefined) {
+                    productWidgetConfig[params[i]] = config[params[i]];
+                }
+            }
+        })(['template_product_main','template_product_error'], this.config);
+
+        // Instantiate the widget
+        this.productWidget = new okanjo.Product(el, productWidgetConfig);
 
         return this.productWidget;
-
     };
 
 

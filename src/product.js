@@ -31,13 +31,13 @@
         this.cache_key_prefix = 'ok_product_block_';
 
         this.templates = {
-            error: "okanjo.error",
-            main: "product.block"
+            product_error: "okanjo.error",
+            product_main: "product.block"
         };
 
         this.css = {
-            main: "product.block",
-            modal: "okanjo.modal"
+            product_main: "product.block",
+            product_modal: "okanjo.modal"
         };
 
         this.configMap = {
@@ -88,8 +88,11 @@
             skip: ['skip', 'page-start'], // The index of the result set to start at, starting from 0. default: 0
             take: ['take', 'page-size'], // The number of products to return, default: 5
 
-            expandable: 'expandable'
+            expandable: 'expandable', // Indicates whether the inline_buy experience is allowed to expand outside the bounds of the widget. Default: true
 
+            // Override template names
+            template_product_main: 'template-product-main', // The product template to render, default: product.block
+            template_product_error: 'template-product-error' // The product error template to render, default: okanjo.error
         };
 
         // Initialize unless told not to
@@ -202,7 +205,7 @@
             if (err) {
                 // Can't show anything, just render a generic error message
                 console.error('[Okanjo.'+self.widgetName+'] Failed to retrieve products.', err);
-                self.element.innerHTML = okanjo.mvc.render(self.templates.error, { message: 'Could not retrieve products.' });
+                self.element.innerHTML = okanjo.mvc.render(self.templates.product_error, { message: 'Could not retrieve products.' });
             } else {
                 // Store the products array locally
                 self.items = res.data;
@@ -219,7 +222,6 @@
             }
         });
     };
-
 
 
     /**
@@ -265,7 +267,7 @@
         this.handleInlineBuyOption();
 
         // Render the product content!
-        this.element.innerHTML = okanjo.mvc.render(this.templates.main, {
+        this.element.innerHTML = okanjo.mvc.render(this.templates.product_main, {
             products: data || this.items || [],
             config: this.config
         });
@@ -275,10 +277,16 @@
     };
 
 
+    /**
+     * Handle user interaction with the product tile
+     * @param e – User interaction DOM event
+     * @param trigger – Whether to trigger the click event or not on the link
+     */
     Product.interactTile = function(e, trigger) {
         var inline = this.getAttribute('data-inline-buy-url'),
             base = this.getAttribute('data-inline-buy-url-base'),
             expandable = this.getAttribute('data-expandable');
+
         if (!okanjo.util.empty(inline)) {
 
             if (e.preventDefault) {
@@ -287,10 +295,17 @@
                 e.returnValue = false;
             }
 
+
             var iframe = document.createElement('iframe');
-            iframe.className = "okanjo-ad-inline-buy-frame";
-            iframe.setAttribute('frameborder', "0");
-            iframe.setAttribute('allowFullscreen', "");
+            iframe.setAttribute('class', 'okanjo-inline-buy-frame');
+            iframe.setAttribute('frameborder', '0');
+            iframe.setAttribute('vspace', '0');
+            iframe.setAttribute('hspace', '0');
+            iframe.setAttribute('webkitallowfullscreen', '');
+            iframe.setAttribute('mozallowfullscreen', '');
+            iframe.setAttribute('allowfullscreen', '');
+            iframe.setAttribute('scrolling', 'auto');
+
             iframe.src = base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline);
 
             if(expandable !== undefined && expandable.toLowerCase() === "false") {
@@ -305,12 +320,7 @@
                     parent.appendChild(iframe);
                 }
             } else {
-                var modal = okanjo.modal(iframe, {
-                    autoRemove: true,
-                    buttons: [],
-                    classes: 'adModal'
-                });
-                modal.show();
+                okanjo.modal.show(iframe);
             }
         } else if (trigger) {
             this.click();

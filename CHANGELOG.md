@@ -3,6 +3,43 @@
 
 When stuff changes, it's described here.
 
+## 2015-08-05 - v0.4.1
+
+General
+ * Added IDEA linting hinting & fixes
+ * Removed support for IE7. Lowest IE support is now IE8.
+ 
+Core
+ * Added `getScrollPosition` util function to get the current page scroll location
+ * Moved template class detect logic to `detectClasses` util function
+ * Added clearfix and inline-block LESS mixins
+
+Modal
+ * Removed (customized) NanoModal
+ * Created a new modal UI from scratch to better facilitate cross-platform inline-buy functionality
+ 
+Polyfill
+ * Re-enabled the IE8 Event preventDefault and stopPropagation shim
+ 
+Ad
+ * Prefixed template key names with `ad_`
+ * Added config params to override which markup templates to use when rendering the widget instance (`template_ad_main` and `template_ad_error`)
+ * Added product template override params to pass-through to the product widget
+ 
+Product
+ * Prefixed template key names with `product_`
+ * Added config params to override which markup templates to use when rendering the widget instance (`template_product_main` and `template_product_error`)
+ * Changed the class name given to the inline buy iframe to `okanjo-inline-buy-frame`
+ * Updated inline_buy functionality to use the new modal
+ 
+Templates
+ * Added warning when attempting to insert a stylesheet that is not registered
+ 
+Widget Base
+ * Added a new step to the widget init workflow, `processTemplateOverrides` which handles overriding markup templates given in the  widget configuration
+ * Changed the init order so that configuration parsing occurs first, then overriding templates, then followed by ensuring the templates are registered.
+ * Added an additional note to the console when a template is fails the registration check, to check if the template was included.
+
 ## 2015-06-29 – v0.3.9
  * Fixed inconsistent data attribute `query` to be `q`.  
  * Fixed CSV handling to be consistent with `pools`, `tags`, and `category`.

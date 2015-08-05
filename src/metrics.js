@@ -1,3 +1,4 @@
+//noinspection ThisExpressionReferencesGlobalObjectJS
 (function(okanjo, window) {
 
     var metrics = okanjo.metrics = {
@@ -17,6 +18,7 @@
             }
 
             _gaq.push(function() {
+                //noinspection JSUnresolvedVariable,JSUnresolvedFunction
                 window._gat._createTracker(id, prefix);
             });
 
