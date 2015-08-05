@@ -142,8 +142,8 @@
 
         handleReposition = function() {
             scrollY = okanjo.util.getScrollPosition().y;
-            $modalWindow.style.marginTop = scrollY + 40 + "px";
-            $modalWindow.style.height = getWindowHeight() - 80 + "px";
+            //$modalWindow.style.marginTop = scrollY + 40 + "px";
+            $modalWindow.style.height = (getWindowHeight() - 80) + "px";
         },
 
         openModal = function() {

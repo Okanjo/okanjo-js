@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2015-08-06 - v0.4.2
+ * Changed modal overlay logic to fixed position instead of absolute positioning to better handle edge cases on scroll-hacked websites
+
 ## 2015-08-05 - v0.4.1
 
 General
