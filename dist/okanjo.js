@@ -354,9 +354,7 @@
 
         // Moat Analytics config
         moat: {
-            tag: 'okanjo969422799577',
-            clientLevels: [ 'MoatTest', 'MoatTest', 'MoatTest', 'MoatTest' ],
-            clientSlicers: [ 'MoatTest', 'MoatTest' ]
+            tag: 'okanjo969422799577'
         }
     };
 
@@ -2765,7 +2763,7 @@ if (typeof JSON !== 'object') {
     var d = document,
         addIfNotNull = function(list, params, label) {
             for (var i = 0; i < list.length; i++) {
-                if (list[i] !== null) params.push(label + (i + 1) + '=' + list[i]);
+                if (list[i] !== null) params.push(label + (i + 1) + '=' + encodeURIComponent(list[i]));
             }
         };
 
@@ -2779,26 +2777,48 @@ if (typeof JSON !== 'object') {
         /**
          * Insert a Moat Analytics tracker
          * @param [element] - The element to append to or leave blank to track the entire page
+         * @param {{levels:Array,slicers:Array}} options – Moat levels and slicers to report on
          */
-        insert: function(element) {
+        insert: function(element, options) {
             if (okanjo.moat.enabled) {
 
                 var b = element || d.getElementsByTagName('body')[0],
                     ma = d.createElement('script'),
-                    moatParams = [],
+                    uri = okanjo.moat.getTagUrl(options);
+
+                if (uri) {
+                    ma.type = 'text/javascript';
+                    ma.async = true;
+                    ma.src = uri;
+
+                    b.appendChild(ma);
+                }
+            }
+        },
+
+
+        /**
+         * Builds a Moat script tag URL based on the options received
+         * @param {{levels:Array,slicers:Array}} options – Moat levels and slicers to report on
+         * @returns {string}
+         */
+        getTagUrl: function(options) {
+            if (options && options.levels && Array.isArray(options.levels) && options.slicers && Array.isArray(options.slicers)) {
+
+                var moatParams = [],
                     moat = okanjo.config.moat;
 
 
                 // Build config param string
-                addIfNotNull(moat.clientLevels, moatParams, 'moatClientLevel');
-                addIfNotNull(moat.clientSlicers, moatParams, 'moatClientSlicer');
+                addIfNotNull(options.levels, moatParams, 'moatClientLevel');
+                addIfNotNull(options.slicers, moatParams, 'moatClientSlicer');
                 moatParams = moatParams.join('&');
 
-                ma.type = 'text/javascript';
-                ma.async = true;
-                ma.src = '//js.moatads.com/' + moat.tag + '/moatad.js#' + moatParams;
+                return '//js.moatads.com/' + moat.tag + '/moatad.js#' + moatParams;
 
-                b.appendChild(ma);
+            } else {
+                console.warn(new Error('Invalid moat tag options'), options);
+                return null;
             }
         }
 
@@ -2992,10 +3012,12 @@ if (typeof JSON !== 'object') {
 
 
         /**
-         * Injects a Moat tag into the widget
+         * Injects a Moat tag into the widget, optionally into a specific element
+         *
+         * @param {{element:HTMLElement|null,levels:Array,slicers:Array}} options – Moat levels and slicers to report on
          */
-        trackMoat: function() {
-            okanjo.moat.insert(this.element);
+        trackMoat: function(options) {
+            okanjo.moat.insert(options.element || this.element, options);
         },
 
 
@@ -3393,10 +3415,15 @@ if (typeof JSON !== 'object') {
 
         // Param to stop the URL nagging if none is given
         this.config.nag = config.nag === undefined ? true : config.nag === true;
+
+        // Set default caching settings
         this.config.use_cache = config.use_cache === undefined ? true : config.use_cache === true;
         this.config.cache_ttl = config.cache_ttl === undefined ? 60000 : config.cache_ttl;
         this.use_cache = this.config.use_cache;
         this.cache_ttl = this.config.cache_ttl;
+
+        // Allow changing the metrics context, e.g. embedded in an Ad widget
+        this.config.metrics_context = config.metrics_context === undefined ? "pw" : config.metrics_context;
 
         // Option to ignore inline buy functionality
         this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
@@ -3646,7 +3673,6 @@ if (typeof JSON !== 'object') {
         });
 
         this.bindEvents();
-        this.trackMoat();
     };
 
 
@@ -3706,12 +3732,30 @@ if (typeof JSON !== 'object') {
      */
     proto.bindEvents = function() {
 
+        var self = this;
+
         //noinspection JSUnresolvedFunction
         okanjo.qwery('a', this.element).every(function(a) {
+
             if(a.addEventListener) {
                 a.addEventListener('click', Product.interactTile);
             } else {
                 a.attachEvent('onclick', function(e) { Product.interactTile.call(a, e); });
+            }
+
+            // Only stick moat on the product widget if *not* embedded in another widget
+            if (self.config.metrics_context == "pw") {
+                self.trackMoat({
+                    element: a,
+                    levels: [
+                        self.config.key,
+                        self.config.metrics_context,
+                        a.getAttribute('data-id')
+                    ],
+                    slicers: [
+                        window.location.hostname + window.location.pathname
+                    ]
+                });
             }
 
             return true;
@@ -3987,7 +4031,17 @@ if (typeof JSON !== 'object') {
         }
 
         // Stick a moat tag on the bottom of the ad
-        this.trackMoat();
+        this.trackMoat({
+            element: container,
+            levels: [
+                this.config.key,
+                'aw',
+                this.config.id
+            ],
+            slicers: [
+                window.location.hostname + window.location.pathname
+            ]
+        });
 
     };
 
@@ -4060,7 +4114,8 @@ if (typeof JSON !== 'object') {
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
-            expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true"
+            expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true",
+            metrics_context: "aw" // Set the context of the click to the Ad widget please!
         };
 
         // Copy parameters through from the ad config, to the product config, if set

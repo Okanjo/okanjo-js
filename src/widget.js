@@ -185,10 +185,12 @@
 
 
         /**
-         * Injects a Moat tag into the widget
+         * Injects a Moat tag into the widget, optionally into a specific element
+         *
+         * @param {{element:HTMLElement|null,levels:Array,slicers:Array}} options – Moat levels and slicers to report on
          */
-        trackMoat: function() {
-            okanjo.moat.insert(this.element);
+        trackMoat: function(options) {
+            okanjo.moat.insert(options.element || this.element, options);
         },
 
 

@@ -2,7 +2,7 @@
     <ul class="okanjo-product-list" itemscope itemtype="http://schema.org/ItemList">
     {{#products}}
         <li class="okanjo-product" itemscope itemtype="http://schema.org/Product">
-            <a href="http://{{okanjoMetricUrl}}/metrics/{{ id }}?c=pw&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}&u={{ escaped_buy_url }}" data-inline-buy-url-base="//{{okanjoMetricUrl}}/metrics/{{ id }}?c=pw&a=inline_click&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}" data-inline-buy-url="{{ inline_buy_url }}" data-expandable="{{#config}}{{ expandable }}{{/config}}" target="_blank" itemprop="url">
+            <a href="http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}" data-inline-buy-url-base="//{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&a=inline_click&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}" data-inline-buy-url="{{ inline_buy_url }}" data-expandable="{{#config}}{{ expandable }}{{/config}}" data-id="{{ id }}" target="_blank" itemprop="url">
                 <div class="okanjo-product-image-container">
                     <img class="okanjo-product-image" src="{{ image_url }}" title="{{ name }}" itemprop="image">
                 </div>
@@ -13,8 +13,8 @@
                     <span itemprop="priceCurrency" content="{{ currency }}">$</span><span class="okanjo-product-price" itemprop="price">{{ price }}</span>
                 </div>
                 <div class="okanjo-product-meta">
-                    <img src="{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c=pw&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}" alt=""> {{! Okanjo impression tracking URL }}
-                    {{#impression_url}}<img src="{{ impression_url }}" alt="">{{/impression_url}} {{! Vendor impression tracking URL }}
+                    <img src="{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}" alt=""> {{! Okanjo impression tracking URL }}
+                    {{#impression_url}}<img src="{{impression_url}}" alt="">{{/impression_url}} <!-- Vendor impression tracking URL -->
                     {{#sold_by}}<span itemprop="brand">{{brand}}</span>{{/sold_by}}
                     {{#upc}}<span itemprop="productID">upc:{{upc}}</span>{{/upc}}
                     {{#manufacturer}}<span itemprop="manufacturer">{{manufacturer}}</span>{{/manufacturer}}
@@ -24,6 +24,7 @@
     {{/products}}
     </ul>
     <div class="okanjo-product-meta">
-        <img src="{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c=pw&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}" alt="">
+        <!--suppress HtmlUnknownTarget -->
+        <img src="{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}" alt="">
     </div>
 </div>
