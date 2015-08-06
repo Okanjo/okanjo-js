@@ -3,7 +3,28 @@
 
 When stuff changes, it's described here.
 
-## 2015-08-06 - v0.4.2
+## 2015-08-06 – v0.4.3
+
+Core
+ * Removed Moat levels and slicers from the config
+ 
+Moat
+ * Fixed level/slicer values not getting encoded during compilation
+ * Refactored the Moat URL generation logic to its own function, getTagUrl
+ 
+Widget Base
+ * Updated trackMoat to accept options for levels/slicers and the element to stick the tag in
+
+Product
+ * Added metrics_context constructor-only param to override the metrics reporting context
+ * Updated the Moat usage to insert per product tile including levels and slicers, instead of per widget
+ * Updated the product.block template to use the metrics_context value 
+
+Ad
+ * Updated Moat usage to include levels and slicers
+ * Added an override to set the metrics context of the embedded product widget (to the ad widget)
+
+## 2015-08-05 - v0.4.2
  * Changed modal overlay logic to fixed position instead of absolute positioning to better handle edge cases on scroll-hacked websites
 
 ## 2015-08-05 - v0.4.1
