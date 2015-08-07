@@ -20,10 +20,15 @@
 
         // Param to stop the URL nagging if none is given
         this.config.nag = config.nag === undefined ? true : config.nag === true;
+
+        // Set default caching settings
         this.config.use_cache = config.use_cache === undefined ? true : config.use_cache === true;
         this.config.cache_ttl = config.cache_ttl === undefined ? 60000 : config.cache_ttl;
         this.use_cache = this.config.use_cache;
         this.cache_ttl = this.config.cache_ttl;
+
+        // Allow changing the metrics context, e.g. embedded in an Ad widget
+        this.config.metrics_context = config.metrics_context === undefined ? "pw" : config.metrics_context;
 
         // Option to ignore inline buy functionality
         this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
@@ -273,7 +278,6 @@
         });
 
         this.bindEvents();
-        this.trackMoat();
     };
 
 
@@ -333,12 +337,30 @@
      */
     proto.bindEvents = function() {
 
+        var self = this;
+
         //noinspection JSUnresolvedFunction
         okanjo.qwery('a', this.element).every(function(a) {
+
             if(a.addEventListener) {
                 a.addEventListener('click', Product.interactTile);
             } else {
                 a.attachEvent('onclick', function(e) { Product.interactTile.call(a, e); });
+            }
+
+            // Only stick moat on the product widget if *not* embedded in another widget
+            if (self.config.metrics_context == "pw") {
+                self.trackMoat({
+                    element: a,
+                    levels: [
+                        self.config.key,
+                        self.config.metrics_context,
+                        a.getAttribute('data-id')
+                    ],
+                    slicers: [
+                        window.location.hostname + window.location.pathname
+                    ]
+                });
             }
 
             return true;

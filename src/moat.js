@@ -4,7 +4,7 @@
     var d = document,
         addIfNotNull = function(list, params, label) {
             for (var i = 0; i < list.length; i++) {
-                if (list[i] !== null) params.push(label + (i + 1) + '=' + list[i]);
+                if (list[i] !== null) params.push(label + (i + 1) + '=' + encodeURIComponent(list[i]));
             }
         };
 
@@ -18,26 +18,48 @@
         /**
          * Insert a Moat Analytics tracker
          * @param [element] - The element to append to or leave blank to track the entire page
+         * @param {{levels:Array,slicers:Array}} options – Moat levels and slicers to report on
          */
-        insert: function(element) {
+        insert: function(element, options) {
             if (okanjo.moat.enabled) {
 
                 var b = element || d.getElementsByTagName('body')[0],
                     ma = d.createElement('script'),
-                    moatParams = [],
+                    uri = okanjo.moat.getTagUrl(options);
+
+                if (uri) {
+                    ma.type = 'text/javascript';
+                    ma.async = true;
+                    ma.src = uri;
+
+                    b.appendChild(ma);
+                }
+            }
+        },
+
+
+        /**
+         * Builds a Moat script tag URL based on the options received
+         * @param {{levels:Array,slicers:Array}} options – Moat levels and slicers to report on
+         * @returns {string}
+         */
+        getTagUrl: function(options) {
+            if (options && options.levels && Array.isArray(options.levels) && options.slicers && Array.isArray(options.slicers)) {
+
+                var moatParams = [],
                     moat = okanjo.config.moat;
 
 
                 // Build config param string
-                addIfNotNull(moat.clientLevels, moatParams, 'moatClientLevel');
-                addIfNotNull(moat.clientSlicers, moatParams, 'moatClientSlicer');
+                addIfNotNull(options.levels, moatParams, 'moatClientLevel');
+                addIfNotNull(options.slicers, moatParams, 'moatClientSlicer');
                 moatParams = moatParams.join('&');
 
-                ma.type = 'text/javascript';
-                ma.async = true;
-                ma.src = '//js.moatads.com/' + moat.tag + '/moatad.js#' + moatParams;
+                return '//js.moatads.com/' + moat.tag + '/moatad.js#' + moatParams;
 
-                b.appendChild(ma);
+            } else {
+                console.warn(new Error('Invalid moat tag options'), options);
+                return null;
             }
         }
 

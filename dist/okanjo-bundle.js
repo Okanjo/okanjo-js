@@ -354,9 +354,7 @@
 
         // Moat Analytics config
         moat: {
-            tag: 'okanjo969422799577',
-            clientLevels: [ 'MoatTest', 'MoatTest', 'MoatTest', 'MoatTest' ],
-            clientSlicers: [ 'MoatTest', 'MoatTest' ]
+            tag: 'okanjo969422799577'
         }
     };
 
@@ -2765,7 +2763,7 @@ if (typeof JSON !== 'object') {
     var d = document,
         addIfNotNull = function(list, params, label) {
             for (var i = 0; i < list.length; i++) {
-                if (list[i] !== null) params.push(label + (i + 1) + '=' + list[i]);
+                if (list[i] !== null) params.push(label + (i + 1) + '=' + encodeURIComponent(list[i]));
             }
         };
 
@@ -2779,26 +2777,48 @@ if (typeof JSON !== 'object') {
         /**
          * Insert a Moat Analytics tracker
          * @param [element] - The element to append to or leave blank to track the entire page
+         * @param {{levels:Array,slicers:Array}} options – Moat levels and slicers to report on
          */
-        insert: function(element) {
+        insert: function(element, options) {
             if (okanjo.moat.enabled) {
 
                 var b = element || d.getElementsByTagName('body')[0],
                     ma = d.createElement('script'),
-                    moatParams = [],
+                    uri = okanjo.moat.getTagUrl(options);
+
+                if (uri) {
+                    ma.type = 'text/javascript';
+                    ma.async = true;
+                    ma.src = uri;
+
+                    b.appendChild(ma);
+                }
+            }
+        },
+
+
+        /**
+         * Builds a Moat script tag URL based on the options received
+         * @param {{levels:Array,slicers:Array}} options – Moat levels and slicers to report on
+         * @returns {string}
+         */
+        getTagUrl: function(options) {
+            if (options && options.levels && Array.isArray(options.levels) && options.slicers && Array.isArray(options.slicers)) {
+
+                var moatParams = [],
                     moat = okanjo.config.moat;
 
 
                 // Build config param string
-                addIfNotNull(moat.clientLevels, moatParams, 'moatClientLevel');
-                addIfNotNull(moat.clientSlicers, moatParams, 'moatClientSlicer');
+                addIfNotNull(options.levels, moatParams, 'moatClientLevel');
+                addIfNotNull(options.slicers, moatParams, 'moatClientSlicer');
                 moatParams = moatParams.join('&');
 
-                ma.type = 'text/javascript';
-                ma.async = true;
-                ma.src = '//js.moatads.com/' + moat.tag + '/moatad.js#' + moatParams;
+                return '//js.moatads.com/' + moat.tag + '/moatad.js#' + moatParams;
 
-                b.appendChild(ma);
+            } else {
+                console.warn(new Error('Invalid moat tag options'), options);
+                return null;
             }
         }
 
@@ -2992,10 +3012,12 @@ if (typeof JSON !== 'object') {
 
 
         /**
-         * Injects a Moat tag into the widget
+         * Injects a Moat tag into the widget, optionally into a specific element
+         *
+         * @param {{element:HTMLElement|null,levels:Array,slicers:Array}} options – Moat levels and slicers to report on
          */
-        trackMoat: function() {
-            okanjo.moat.insert(this.element);
+        trackMoat: function(options) {
+            okanjo.moat.insert(options.element || this.element, options);
         },
 
 
@@ -3393,10 +3415,15 @@ if (typeof JSON !== 'object') {
 
         // Param to stop the URL nagging if none is given
         this.config.nag = config.nag === undefined ? true : config.nag === true;
+
+        // Set default caching settings
         this.config.use_cache = config.use_cache === undefined ? true : config.use_cache === true;
         this.config.cache_ttl = config.cache_ttl === undefined ? 60000 : config.cache_ttl;
         this.use_cache = this.config.use_cache;
         this.cache_ttl = this.config.cache_ttl;
+
+        // Allow changing the metrics context, e.g. embedded in an Ad widget
+        this.config.metrics_context = config.metrics_context === undefined ? "pw" : config.metrics_context;
 
         // Option to ignore inline buy functionality
         this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
@@ -3646,7 +3673,6 @@ if (typeof JSON !== 'object') {
         });
 
         this.bindEvents();
-        this.trackMoat();
     };
 
 
@@ -3706,12 +3732,30 @@ if (typeof JSON !== 'object') {
      */
     proto.bindEvents = function() {
 
+        var self = this;
+
         //noinspection JSUnresolvedFunction
         okanjo.qwery('a', this.element).every(function(a) {
+
             if(a.addEventListener) {
                 a.addEventListener('click', Product.interactTile);
             } else {
                 a.attachEvent('onclick', function(e) { Product.interactTile.call(a, e); });
+            }
+
+            // Only stick moat on the product widget if *not* embedded in another widget
+            if (self.config.metrics_context == "pw") {
+                self.trackMoat({
+                    element: a,
+                    levels: [
+                        self.config.key,
+                        self.config.metrics_context,
+                        a.getAttribute('data-id')
+                    ],
+                    slicers: [
+                        window.location.hostname + window.location.pathname
+                    ]
+                });
             }
 
             return true;
@@ -3987,7 +4031,17 @@ if (typeof JSON !== 'object') {
         }
 
         // Stick a moat tag on the bottom of the ad
-        this.trackMoat();
+        this.trackMoat({
+            element: container,
+            levels: [
+                this.config.key,
+                'aw',
+                this.config.id
+            ],
+            slicers: [
+                window.location.hostname + window.location.pathname
+            ]
+        });
 
     };
 
@@ -4060,7 +4114,8 @@ if (typeof JSON !== 'object') {
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
-            expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true"
+            expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true",
+            metrics_context: "aw" // Set the context of the click to the Ad widget please!
         };
 
         // Copy parameters through from the ad config, to the product config, if set
@@ -4132,13 +4187,13 @@ okanjo.mvc.registerTemplate("ad.block", "<div class=\"okanjo-ad-block {{classDet
 
 
 okanjo.mvc.registerCss("okanjo.core", "", { id: 'okanjo-core' });
-okanjo.mvc.registerCss("okanjo.modal", "html.okanjo-modal-active body{overflow:hidden!important;margin:0}.okanjo-modal-margin-fix{margin-right:15px!important}.okanjo-modal-container{position:fixed;top:0;right:0;left:0;bottom:0;z-index:2147483647;background-color:rgba(0,0,0,.65);transition-duration:210ms;transition-property:background-color}.okanjo-modal-container.lt-ie9{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNiWAoAAK4AqL41IDIAAAAASUVORK5CYII=)}.okanjo-modal-container.okanjo-modal-fade-out{background-color:transparent}.okanjo-modal-container.okanjo-modal-fade-out .okanjo-modal-window{opacity:0;-webkit-transform:scale(.95,.95)translateY(50px);transform:scale(.95,.95)translateY(50px)}.okanjo-modal-container.okanjo-modal-hidden{display:none!important}.okanjo-modal-container .okanjo-modal-window{position:relative;max-width:900px;width:90%;background:0 0;margin:56px auto 40px;opacity:1;-webkit-transform:scale(1,1)translateY(0);transform:scale(1,1)translateY(0);transition-duration:210ms;transition-timing-function:cubic-bezier(.13,.025,.15,1);transition-timing-function:cubic-bezier(.13,.025,.15,1.15);transition-property:-webkit-transform,opacity}.okanjo-modal-container .okanjo-modal-window:after,.okanjo-modal-container .okanjo-modal-window:before{content:\" \";display:table}.okanjo-modal-container .okanjo-modal-window:after{clear:both}.okanjo-modal-container .okanjo-modal-window .okanjo-modal-header{padding-top:5px;padding-bottom:5px;border-bottom:1px solid #d7d7d7}.okanjo-modal-container .okanjo-modal-window .okanjo-modal-header img{height:50px;width:auto}.okanjo-modal-container .okanjo-modal-window-skin{width:auto;height:auto;box-shadow:0 10px 25px rgba(0,0,0,.5);position:absolute;background:#fff;border-radius:4px;top:0;bottom:0;left:0;right:0}.okanjo-modal-container .okanjo-modal-window-outer{position:absolute;top:15px;left:15px;bottom:15px;right:15px;vertical-align:top}.okanjo-modal-container .okanjo-modal-window-inner{position:relative;width:100%;height:100%;-webkit-overflow-scrolling:touch;overflow:auto}.okanjo-modal-container .okanjo-modal-window-inner iframe{height:100%;width:100%;margin-right:-15px}.okanjo-modal-container .okanjo-modal-close-button{color:#fff;cursor:pointer;position:absolute;right:0;top:-48px;text-align:right;font-size:40px;line-height:1em;overflow:visible;width:40px;height:40px}", { id: 'okanjo-modal' });
+okanjo.mvc.registerCss("okanjo.modal", "html.okanjo-modal-active{overflow:hidden!important}html.okanjo-modal-active body{overflow:hidden!important;margin:0}.okanjo-modal-margin-fix{margin-right:15px!important}.okanjo-modal-container{position:fixed;top:0;right:0;left:0;bottom:0;z-index:2147483647;background-color:rgba(0,0,0,.65);transition-duration:210ms;transition-property:background-color}.okanjo-modal-container.lt-ie9{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNiWAoAAK4AqL41IDIAAAAASUVORK5CYII=)}.okanjo-modal-container.okanjo-modal-fade-out{background-color:transparent}.okanjo-modal-container.okanjo-modal-fade-out .okanjo-modal-window{opacity:0;-webkit-transform:scale(.95,.95)translateY(50px);transform:scale(.95,.95)translateY(50px)}.okanjo-modal-container.okanjo-modal-hidden{display:none!important}.okanjo-modal-container .okanjo-modal-window{position:relative;max-width:900px;width:90%;background:0 0;margin:56px auto 40px;opacity:1;-webkit-transform:scale(1,1)translateY(0);transform:scale(1,1)translateY(0);transition-duration:210ms;transition-timing-function:cubic-bezier(.13,.025,.15,1);transition-timing-function:cubic-bezier(.13,.025,.15,1.15);transition-property:-webkit-transform,opacity}.okanjo-modal-container .okanjo-modal-window:after,.okanjo-modal-container .okanjo-modal-window:before{content:\" \";display:table}.okanjo-modal-container .okanjo-modal-window:after{clear:both}.okanjo-modal-container .okanjo-modal-window .okanjo-modal-header{padding-top:5px;padding-bottom:5px;border-bottom:1px solid #d7d7d7}.okanjo-modal-container .okanjo-modal-window .okanjo-modal-header img{height:50px;width:auto}.okanjo-modal-container .okanjo-modal-window-skin{width:auto;height:auto;box-shadow:0 10px 25px rgba(0,0,0,.5);position:absolute;background:#fff;border-radius:4px;top:0;bottom:0;left:0;right:0}.okanjo-modal-container .okanjo-modal-window-outer{position:absolute;top:15px;left:15px;bottom:15px;right:15px;vertical-align:top}.okanjo-modal-container .okanjo-modal-window-inner{position:relative;width:100%;height:100%;-webkit-overflow-scrolling:touch;overflow:auto}.okanjo-modal-container .okanjo-modal-window-inner iframe{height:100%;width:100%;margin-right:-15px}.okanjo-modal-container .okanjo-modal-close-button{color:#fff;cursor:pointer;position:absolute;right:0;top:-48px;text-align:right;font-size:40px;line-height:1em;overflow:visible;width:40px;height:40px}", { id: 'okanjo-modal' });
 
 okanjo.mvc.registerTemplate("okanjo.error", "<span class=okanjo-error>{{ message }}</span> {{#code}} <span class=okanjo-error-code>Reference: {{ code }}</span> {{/code}}", { css: ['okanjo.core'] });
 
     okanjo.mvc.registerCss("product.block", ".lt-ie8.okanjo-product-block .okanjo-product-title,.lt-ie8.okanjo-product-block .okanjo-product-title-container:before{zoom:1}.okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0}.okanjo-product-block .okanjo-product{width:150px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:.5em;display:inline-block;margin:0 .1em;box-shadow:1px 1px 1px 1px #eee;background-color:#fff}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:150px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-block .okanjo-product-title-container{margin:.5em;height:4em;overflow:auto;vertical-align:middle}.okanjo-product-block .okanjo-product-title-container:before{content:\"\";display:inline-block;height:100%;vertical-align:middle}.okanjo-product-block .okanjo-product-title{vertical-align:middle;display:inline-block}.okanjo-product-block .okanjo-product-meta{height:0;width:0;text-indent:-100%;overflow:hidden}.lt-ie7.okanjo-product-block .okanjo-product,.lt-ie8.okanjo-product-block .okanjo-product,.lt-ie9.okanjo-product-block .okanjo-product{margin-bottom:.2em}.lt-ie7.okanjo-product-block .okanjo-product-title-container:before,.lt-ie8.okanjo-product-block .okanjo-product-title-container:before,.lt-ie9.okanjo-product-block .okanjo-product-title-container:before{display:block;height:0}.lt-ie7.okanjo-product-block .okanjo-product-title,.lt-ie8.okanjo-product-block .okanjo-product-title,.lt-ie9.okanjo-product-block .okanjo-product-title{display:block}.okanjoModal.adModal{padding:0;overflow:hidden;top:50px;bottom:50px;max-width:900px;width:100%}.okanjoModal.adModal .okanjoModalContent{position:absolute;top:0;bottom:0;left:0;right:0;height:100%;width:100%}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-block' });
 
-    okanjo.mvc.registerTemplate("product.block", "<div class=\"okanjo-product-block {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c=pw&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}&u={{ escaped_buy_url }}\" data-inline-buy-url-base=\"//{{okanjoMetricUrl}}/metrics/{{ id }}?c=pw&a=inline_click&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}\" data-inline-buy-url=\"{{ inline_buy_url }}\" data-expandable=\"{{#config}}{{ expandable }}{{/config}}\" target=_blank itemprop=url><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div class=okanjo-product-price-container itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price }}</span></div><div class=okanjo-product-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c=pw&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"> {{! Okanjo impression tracking URL }} {{#impression_url}}<img src=\"{{ impression_url }}\" alt=\"\">{{/impression_url}} {{! Vendor impression tracking URL }} {{#sold_by}}<span itemprop=brand>{{brand}}</span>{{/sold_by}} {{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul><div class=okanjo-product-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c=pw&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"></div></div>", function(data, options) {
+    okanjo.mvc.registerTemplate("product.block", "<div class=\"okanjo-product-block {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\" data-inline-buy-url-base=\"//{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&a=inline_click&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}\" data-inline-buy-url=\"{{ inline_buy_url }}\" data-expandable=\"{{#config}}{{ expandable }}{{/config}}\" data-id=\"{{ id }}\" target=_blank itemprop=url><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div class=okanjo-product-price-container itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price }}</span></div><div class=okanjo-product-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"> {{! Okanjo impression tracking URL }} {{#impression_url}}<img src={{impression_url}} alt=\"\">{{/impression_url}}{{#sold_by}}<span itemprop=brand>{{brand}}</span>{{/sold_by}} {{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul><div class=okanjo-product-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"></div></div>", function(data, options) {
         // Ensure params
         data = data || { products: [], config: {} };
         options = okanjo.util.clone(options);
