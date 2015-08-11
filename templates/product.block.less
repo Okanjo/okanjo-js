@@ -3,28 +3,35 @@
 
 .okanjo-product-block {
 
+    font: 14px Helvetica, Arial, sans-serif;
+    line-height: 1.2em;
+
+    a {
+        .clearfix();
+        display: block;
+        text-decoration: none;
+    }
+
     .okanjo-product-list {
         list-style-type: none;
         padding: 0;
     }
 
     .okanjo-product {
-//        float: left;
-//        min-width: 130px;
-//        max-width: 200px;
-        width: 150px;
+        width: 130px;
         overflow: hidden;
         text-align: center;
         border: solid 1px #ccc;
-        padding: .5em;
+        padding: 7px;
+        margin: 0 4px 1px 0;
         .inline-block();
-        margin: 0 0.1em;
         box-shadow: 1px 1px 1px 1px rgb(238, 238, 238);
         background-color: #fff;
+        box-sizing: content-box;
     }
 
     .okanjo-product-image-container {
-        height: 150px;
+        height: 130px;
     }
 
     .okanjo-product-image {
@@ -34,86 +41,88 @@
     }
 
     .okanjo-product-title-container {
-//        padding: 0 .5em;
-        margin: .5em .5em;
-        height: 4em; // I like 3 better but the web likes 4
-//        overflow: hidden;
-        overflow: auto;
-        vertical-align: middle;
-
-    }
-
-    // This gets the product name to center vertically
-    .okanjo-product-title-container:before {
-        content: "";
-        .inline-block();
-        height: 100%;
-        vertical-align: middle;
-//        margin-right: -0.25em; // IDK about this,
-    }
-
-    .okanjo-product-title {
-//        margin: auto;
-//        margin-right: -0.25em;
-        vertical-align: middle;
-        .inline-block();
-    }
-
-//    .okanjo-product-price-container {
-//        padding: 0.5em 0 0;
-//    }
-
-    .okanjo-product-meta {
-        height: 0;
-        width: 0;
-        text-indent: -100%;
+        line-height: 17px;
         overflow: hidden;
+        height: 51px;
+        margin: 10px 0 0 0;
+    }
+
+    .okanjo-ellipses {
+        .ellipses-after();
+    }
+
+    .okanjo-visually-hidden {
+        .visually-hidden();
+    }
+
+    .okanjo-product-price-container {
+
+        line-height: 21px;
+        font-weight: bold;
+        color: #333;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        margin-right: 5px;
+    }
+
+    .okanjo-product-buy-button {
+        color: #333;
+        border: 1px solid #ccc;
+        border-bottom-color: #bbb;
+        background-color: #eeeeee;
+        background-repeat: no-repeat;
+        //background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#ffffff), color-stop(25%, #ffffff), to(#e6e6e6));
+//        background-image: -webkit-linear-gradient(top, #ffffff,   #eeeeee); /* For Chrome 25 and Safari 6, iOS 6.1, Android 4.3 */
+//        background-image:    -moz-linear-gradient(top, #ffffff,  #eeeeee); /* For Firefox (3.6 to 15) */
+//        background-image:      -o-linear-gradient(top, #ffffff,  #eeeeee); /* For old Opera (11.1 to 12.0) */
+        background-image:         linear-gradient(to bottom, #ffffff, #eeeeee); /* Standard syntax; must be last */
+        text-shadow: 0 1px 1px rgba(255, 255, 255, 0.75);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),0 1px 2px rgba(0, 0, 0, 0.05);
+
+//        -webkit-transition: .1s;
+//        -moz-transition: .1s;
+//        -ms-transition: .1s;
+//        -o-transitiion: .1s;
+        transition: .1s;
+
+        font-size: 13px;
+        border-radius: 4px;
+        padding: 5px 12px 6px;
+        position: relative;
+        bottom: 2px;
+    }
+
+    a:hover .okanjo-product-buy-button {
+        color: #111;
+        border: 1px solid #bbb;
+        border-bottom-color: #aaa;
+
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .okanjo-product-seller-container {
+        margin-top: 5px;
+        height: 17px;
+        font-size: 12px;
+        line-height: 17px;
+
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+
+        .okanjo-product-seller-intro {
+            color: #333;
+        }
     }
 }
 
 // IE8 and below tweaks
-.lt-ie9.okanjo-product-block,
-.lt-ie8.okanjo-product-block,
-.lt-ie7.okanjo-product-block {
-
-    .okanjo-product {
-        margin-bottom: 0.2em;
-    }
-
-//    .okanjo-product-title-container {
-//        overflow: auto;
-//    }
-
-    .okanjo-product-title-container:before {
-        display: block;
-        height: 0;
-    }
-
-    .okanjo-product-title {
-        display: block;
-    }
-}
-
-
-.okanjoModal.adModal {
-    padding: 0;
-    overflow: hidden;
-    top: 50px;
-    bottom: 50px;
-//    min-width: 400px;
-    max-width: 900px;
-    width: 100%;
-}
-
-.okanjoModal.adModal .okanjoModalContent {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 100%;
-    width: 100%;
-}
+//.lt-ie9.okanjo-product-block,
+//.lt-ie8.okanjo-product-block,
+//.lt-ie7.okanjo-product-block {
+//
+//}
 
 .okanjo-inline-buy-frame {
     display: block;

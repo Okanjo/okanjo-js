@@ -366,6 +366,12 @@
             return true;
         });
 
+        // Show ellipses on title text that doesn't quite fit
+        okanjo.qwery('.okanjo-product-title', this.element).every(function(t) {
+            okanjo.util.ellipsify(t);
+            return true;
+        });
+
     };
 
     okanjo.Product = Product;

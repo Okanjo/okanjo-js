@@ -3,6 +3,24 @@
 
 When stuff changes, it's described here.
 
+## 2015-08-11
+
+Core
+ * Added util function `getOuterHeight` to get the height of an element
+ * Added util function `ellipsify` to programmatically slice off text and add an ellipses, useful for multi-line overflow handling (won't break screen readers)
+ 
+Product
+ * Updated product.block template to include more default styling to work better as-is
+ * Added buy button to the product.block template
+ * Added the seller name to the product.block template
+ * Updated overflow handling to use `ellipsify` for the title and standard css overflow for the seller name
+
+Templates
+ * Added common `visually-hidden` mixin to make things invisible on a page but still visible to the DOM
+ * Added common `ellipses-after` mixin to add an ellipsis after the element's content
+ * Moved the clearfix mixin from core to common
+ * Updated modal.less to include from common instead of core
+
 ## 2015-08-06 – v0.4.3
 
 Core

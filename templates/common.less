@@ -1,3 +1,14 @@
+.clearfix() {
+  &:before,
+  &:after {
+    content: " "; /* 1 */
+    display: table; /* 2 */
+  }
+
+  &:after {
+    clear: both;
+  }
+}
 
 // inline-block hack for IE 7
 .inline-block() {
@@ -5,5 +16,22 @@
   .lt-ie8&  {
     display: inline;
     zoom: 1;
+  }
+}
+
+.visually-hidden() {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.ellipses-after() {
+  &:after{
+    content: "...";
   }
 }
