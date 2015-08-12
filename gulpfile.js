@@ -421,6 +421,43 @@ gulp.task('deploy-s3-version-gz', function() {
 
 });
 
+gulp.task('deploy-s3-preview', function() {
+
+    var publisher = awspublish.create(require('./aws-credentials.json'));
+
+    return gulp.src(deployFiles)
+
+        // Deploy to Amazon S3 LATEST
+        .pipe(rename(function(path) {
+            path.dirname += '/js/preview';
+        }))
+        .pipe(publisher.publish({
+            'Cache-Control': 'max-age=60, no-transform, public',
+            'Content-Type': 'application/javascript; charset=utf-8'
+        }, { force: true }))
+        .pipe(awspublish.reporter());
+
+});
+
+gulp.task('deploy-s3-preview-gz', function() {
+
+    var publisher = awspublish.create(require('./aws-credentials.json'));
+
+    return gulp.src(deployFiles)
+
+        // Deploy to Amazon S3 LATEST
+        .pipe(rename(function(path) {
+            path.dirname += '/js/preview';
+        }))
+        .pipe(awspublish.gzip({ ext: '.gz' }))
+        .pipe(publisher.publish({
+            'Cache-Control': 'max-age=60, no-transform, public',
+            'Content-Type': 'application/javascript; charset=utf-8'
+        }, { force: true }))
+        .pipe(awspublish.reporter())
+
+});
+
 //gulp.task('deploy-packages', function() {
 //    // NPM Publish
 //    // Bower Publish
@@ -439,7 +476,10 @@ gulp.task('watch-templates', function() {
 
 gulp.task('full-build', ['lint', 'min', 'templatesjs', 'bundle', 'fix-maps']);
 
-gulp.task('deploy-s3', ['deploy-s3-latest', 'deploy-s3-version', 'deploy-s3-latest-gz', 'deploy-s3-version-gz']);
+gulp.task('deploy-s3', ['deploy-s3-latest', 'deploy-s3-version', 'deploy-s3-latest-gz', 'deploy-s3-version-gz', 'deploy-s3-preview', 'deploy-s3-preview-gz']);
+
+gulp.task('deploy-preview', ['deploy-s3-preview', 'deploy-s3-preview-gz']);
+
 gulp.task('deploy', ['pre-deploy-bump', 'deploy-s3']);
 
 

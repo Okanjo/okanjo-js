@@ -5,7 +5,7 @@
     /**
      * Okanjo Product
      * @param element - DOM element to attach the output to
-     * @param {*} config - Optional base widget configuration object, element data attributes will override these
+     * @param {*} [config] - Optional base widget configuration object, element data attributes will override these
      * @constructor
      */
     function Product(element, config) {

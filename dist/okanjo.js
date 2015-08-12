@@ -3479,7 +3479,7 @@ if (typeof JSON !== 'object') {
     /**
      * Okanjo Product
      * @param element - DOM element to attach the output to
-     * @param {*} config - Optional base widget configuration object, element data attributes will override these
+     * @param {*} [config] - Optional base widget configuration object, element data attributes will override these
      * @constructor
      */
     function Product(element, config) {
@@ -3858,7 +3858,7 @@ if (typeof JSON !== 'object') {
     /**
      * Okanjo Ad
      * @param element - DOM element to attach the output to
-     * @param {*} config - Optional base widget configuration object, element data attributes will override these
+     * @param {*} [config] - Optional base widget configuration object, element data attributes will override these
      * @constructor
      */
     function Ad(element, config) {
@@ -4200,7 +4200,8 @@ if (typeof JSON !== 'object') {
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
             expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true",
-            metrics_context: "aw" // Set the context of the click to the Ad widget please!
+            metrics_context: "aw", // Set the context of the click to the Ad widget please!
+            template_product_main: "product.single"
         };
 
         // Copy parameters through from the ad config, to the product config, if set

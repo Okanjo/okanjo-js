@@ -1,4 +1,4 @@
-<div class="okanjo-product-block {{classDetects}}">
+<div class="{{template_name}} {{classDetects}}">
     <ul class="okanjo-product-list" itemscope itemtype="http://schema.org/ItemList">
     {{#products}}
         <li class="okanjo-product" itemscope itemtype="http://schema.org/Product">
@@ -22,11 +22,11 @@
                     </div>
                     <div class="okanjo-product-button-container">
                         <div class="okanjo-product-buy-button">Buy Now</div>
-                        <meta itemprop="url" content="http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}">
+                        <meta property="url" itemprop="url" content="http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}">
                     </div>
                     {{#sold_by}}
                         <div class="okanjo-product-seller-container" itemprop="seller" itemscope itemtype="http://schema.org/Organization">
-                            <span><span class="okanjo-product-seller-intro">Sold by</span>&#32;<span class="okanjo-product-seller" itemprop="name" title="{{ sold_by }}">{{ sold_by }}</span></span>
+                            <span><span class="okanjo-product-seller-intro">From</span>&#32;<span class="okanjo-product-seller" itemprop="name" title="{{ sold_by }}">{{ sold_by }}</span></span>
                         </div>
                     {{/sold_by}}
                 </div>
@@ -40,7 +40,7 @@
         </li>
     {{/products}}
     </ul>
-    <div class="okanjo-product-meta">
+    <div class="okanjo-product-meta okanjo-visually-hidden">
         <!--suppress HtmlUnknownTarget -->
         <img src="{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}" alt="">
     </div>
