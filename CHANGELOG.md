@@ -3,6 +3,20 @@
 
 When stuff changes, it's described here.
 
+## 2015-08-12
+
+Core
+ * Added preview s3 CDN deployment for testing upcoming changes and related gulp task
+ 
+Ad Widget
+ * Uses the `product.single` template when dynamically rendering a product in an ad
+ 
+Product Widget
+ * Added template `product.sidebar` for a vertically-stacking product tile view
+ * Added template `product.single` for a scaling a single product to fit into a medium_rectangle ad size
+ * Updated the product.block template to accept a template name for reuse across other templates
+ * Changed the text "Sold by" to "From" on product tiles for better semantic reading
+
 ## 2015-08-11
 
 Core
