@@ -288,6 +288,85 @@
 
 
                     /**
+                     * Cross browser way to get the height of an element
+                     * @param {HTMLElement} el – The DOM element to get the height of
+                     * @param {boolean} [includeMargin] – Whether to include the margins of the element in the size
+                     * @returns {number} – Height of the element
+                     */
+                    getOuterHeight: function(el, includeMargin) {
+                        if (includeMargin) {
+                            var height = el.offsetHeight;
+                            var style = el.currentStyle || getComputedStyle(el);
+
+                            height += parseInt(style.marginTop) + parseInt(style.marginBottom);
+                            return height;
+                        } else {
+                            return el.offsetHeight;
+                        }
+                    },
+
+
+                    /**
+                     * Splits the text in the element to fit within the visible height of its container, and separates with an ellipses
+                     * @param {HTMLElement} element – The DOM element containing the text to fit
+                     * @param {HTMLElement} [container] – Optional container to compute fit on. Defaults to the element's parent
+                     */
+                    ellipsify: function(element, container) {
+
+                        // It's a sad day when you have to resort to JS because CSS kludges are too hacky to work down to IE8, programmatically
+                        //noinspection JSValidateTypes
+                        var parent = container || element.parentNode,
+                            targetHeight = okanjo.util.getOuterHeight(parent),
+                            useTextContent = element.textContent !== undefined,
+                            text = useTextContent ? element.textContent : element.innerText,
+                            replacedText = "",
+                            safety = 5000, // Safety switch to bust out of the loop in the event something goes terribly wrong
+                            replacer = function(match) {
+                                replacedText = match.substr(0, match.length-3) + replacedText;
+                                return '...';
+                            };
+
+                        // Trim off characters until we can fit the text and ellipses
+                        // If the text already fits, this loop is ignored
+                        while (okanjo.util.getOuterHeight(element) > targetHeight && text.length > 0 && (safety-- > 0)) {
+                            text = useTextContent ? element.textContent : element.innerText;
+
+                            text = text.replace(/[\s\S](?:\.\.\.)?$/, replacer);
+
+                            if (useTextContent) {
+                                element.textContent = text;
+                            } else {
+                                element.innerText = text;
+                            }
+                        }
+
+                        // If there is work to do, split the content into two span tags
+                        // Like so: [content]...[hidden content]
+                        if (replacedText.length > 0) {
+
+                            var content = document.createElement('span'),
+                                span = document.createElement('span');
+
+                            content.setAttribute('class','okanjo-ellipses');
+                            span.setAttribute('class','okanjo-visually-hidden');
+
+                            if (useTextContent) {
+                                content.textContent = text.substr(0, text.length-3);
+                                span.textContent = replacedText;
+                            } else {
+                                content.innerText = text.substr(0, text.length-3);
+                                span.innerText = replacedText;
+                            }
+
+                            element.innerHTML = '';
+                            element.appendChild(content);
+                            element.appendChild(span);
+                        }
+
+                    },
+
+
+                    /**
                      * Return various browser detections
                      * @returns {Array}
                      */
@@ -3400,7 +3479,7 @@ if (typeof JSON !== 'object') {
     /**
      * Okanjo Product
      * @param element - DOM element to attach the output to
-     * @param {*} config - Optional base widget configuration object, element data attributes will override these
+     * @param {*} [config] - Optional base widget configuration object, element data attributes will override these
      * @constructor
      */
     function Product(element, config) {
@@ -3761,6 +3840,12 @@ if (typeof JSON !== 'object') {
             return true;
         });
 
+        // Show ellipses on title text that doesn't quite fit
+        okanjo.qwery('.okanjo-product-title', this.element).every(function(t) {
+            okanjo.util.ellipsify(t);
+            return true;
+        });
+
     };
 
     okanjo.Product = Product;
@@ -3773,7 +3858,7 @@ if (typeof JSON !== 'object') {
     /**
      * Okanjo Ad
      * @param element - DOM element to attach the output to
-     * @param {*} config - Optional base widget configuration object, element data attributes will override these
+     * @param {*} [config] - Optional base widget configuration object, element data attributes will override these
      * @constructor
      */
     function Ad(element, config) {
@@ -4115,7 +4200,8 @@ if (typeof JSON !== 'object') {
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
             expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true",
-            metrics_context: "aw" // Set the context of the click to the Ad widget please!
+            metrics_context: "aw", // Set the context of the click to the Ad widget please!
+            template_product_main: "product.single"
         };
 
         // Copy parameters through from the ad config, to the product config, if set
@@ -4191,19 +4277,62 @@ okanjo.mvc.registerCss("okanjo.modal", "html.okanjo-modal-active{overflow:hidden
 
 okanjo.mvc.registerTemplate("okanjo.error", "<span class=okanjo-error>{{ message }}</span> {{#code}} <span class=okanjo-error-code>Reference: {{ code }}</span> {{/code}}", { css: ['okanjo.core'] });
 
-    okanjo.mvc.registerCss("product.block", ".lt-ie8.okanjo-product-block .okanjo-product-title,.lt-ie8.okanjo-product-block .okanjo-product-title-container:before{zoom:1}.okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0}.okanjo-product-block .okanjo-product{width:150px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:.5em;display:inline-block;margin:0 .1em;box-shadow:1px 1px 1px 1px #eee;background-color:#fff}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:150px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-block .okanjo-product-title-container{margin:.5em;height:4em;overflow:auto;vertical-align:middle}.okanjo-product-block .okanjo-product-title-container:before{content:\"\";display:inline-block;height:100%;vertical-align:middle}.okanjo-product-block .okanjo-product-title{vertical-align:middle;display:inline-block}.okanjo-product-block .okanjo-product-meta{height:0;width:0;text-indent:-100%;overflow:hidden}.lt-ie7.okanjo-product-block .okanjo-product,.lt-ie8.okanjo-product-block .okanjo-product,.lt-ie9.okanjo-product-block .okanjo-product{margin-bottom:.2em}.lt-ie7.okanjo-product-block .okanjo-product-title-container:before,.lt-ie8.okanjo-product-block .okanjo-product-title-container:before,.lt-ie9.okanjo-product-block .okanjo-product-title-container:before{display:block;height:0}.lt-ie7.okanjo-product-block .okanjo-product-title,.lt-ie8.okanjo-product-block .okanjo-product-title,.lt-ie9.okanjo-product-block .okanjo-product-title{display:block}.okanjoModal.adModal{padding:0;overflow:hidden;top:50px;bottom:50px;max-width:900px;width:100%}.okanjoModal.adModal .okanjoModalContent{position:absolute;top:0;bottom:0;left:0;right:0;height:100%;width:100%}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-block' });
+    okanjo.mvc.registerCss("product.block", ".okanjo-product-block{font:14px Helvetica,Arial,sans-serif;line-height:1.2em}.okanjo-product-block a{display:block;text-decoration:none}.okanjo-product-block a:after,.okanjo-product-block a:before{content:\" \";display:table}.okanjo-product-block a:after{clear:both}.okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0}.okanjo-product-block .okanjo-product{width:130px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:7px;margin:0 4px 1px 0;display:inline-block;box-shadow:1px 1px 1px 1px #eee;background-color:#fff;box-sizing:content-box}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:130px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-block .okanjo-product-title-container{line-height:17px;overflow:hidden;height:51px;margin:10px 0 0}.okanjo-product-block .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-block .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-block .okanjo-ellipses:after{content:\"...\"}.okanjo-product-block .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-block .okanjo-product-price-container{line-height:21px;font-weight:700;color:#333;margin-top:5px;margin-bottom:5px;margin-right:5px}.okanjo-product-block .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px}.okanjo-product-block a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-block .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-block .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-block' });
 
-    okanjo.mvc.registerTemplate("product.block", "<div class=\"okanjo-product-block {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\" data-inline-buy-url-base=\"//{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&a=inline_click&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}\" data-inline-buy-url=\"{{ inline_buy_url }}\" data-expandable=\"{{#config}}{{ expandable }}{{/config}}\" data-id=\"{{ id }}\" target=_blank itemprop=url><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div class=okanjo-product-price-container itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price }}</span></div><div class=okanjo-product-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"> {{! Okanjo impression tracking URL }} {{#impression_url}}<img src={{impression_url}} alt=\"\">{{/impression_url}}{{#sold_by}}<span itemprop=brand>{{brand}}</span>{{/sold_by}} {{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul><div class=okanjo-product-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"></div></div>", function(data, options) {
+    var product_block = "<div class=\"{{template_name}} {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\" data-inline-buy-url-base=\"//{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&a=inline_click&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}\" data-inline-buy-url=\"{{ inline_buy_url }}\" data-expandable=\"{{#config}}{{ expandable }}{{/config}}\" data-id=\"{{ id }}\" target=_blank itemprop=url title=\"Buy now: {{ name }}\"><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><div class=okanjo-product-price-container><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price }}</span></div><div class=okanjo-product-button-container><div class=okanjo-product-buy-button>Buy Now</div><meta property=url itemprop=url content=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\"></div>{{#sold_by}}<div class=okanjo-product-seller-container itemprop=seller itemscope=\"\" itemtype=http://schema.org/Organization><span><span class=okanjo-product-seller-intro>From</span>&#32;<span class=okanjo-product-seller itemprop=name title=\"{{ sold_by }}\">{{ sold_by }}</span></span></div>{{/sold_by}}</div><div class=\"okanjo-product-meta okanjo-visually-hidden\"><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"> {{! Okanjo impression tracking URL }} {{#impression_url}}<img src={{impression_url}} alt=\"\">{{/impression_url}}{{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul><div class=\"okanjo-product-meta okanjo-visually-hidden\"><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"></div></div>";
+
+    okanjo.mvc.registerTemplate("product.block", product_block, function(data, options) {
         // Ensure params
         data = data || { products: [], config: {} };
         options = okanjo.util.clone(options);
 
         // Copy, format and return the config and products
+        options.template_name = 'okanjo-product-block';
         options.config = data.config;
         options.products = okanjo.mvc.formats.product(data.products);
         return options;
     }, {
         css: [ /*'okanjo.core',*/ 'product.block', 'okanjo.modal']
+    });
+
+
+
+
+okanjo.mvc.registerCss("product.sidebar", ".okanjo-product-sidebar{font:14px Helvetica,Arial,sans-serif;line-height:1.2em;border:1px solid #ccc;background-color:#fff;width:298px;height:auto}.okanjo-product-sidebar a{display:block;text-decoration:none}.okanjo-product-sidebar a:after,.okanjo-product-sidebar a:before{content:\" \";display:table}.okanjo-product-sidebar a:after{clear:both}.okanjo-product-sidebar .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-sidebar .okanjo-product{height:124px;width:298px;overflow:hidden;border-top:1px solid #eee}.okanjo-product-sidebar .okanjo-product:first-of-type{height:125px;border-top:none}.okanjo-product-sidebar .okanjo-product-image-container{height:105px;width:105px;margin:10px;float:left}.okanjo-product-sidebar .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-sidebar .okanjo-product-title-container{line-height:17px;overflow:hidden;height:51px;margin:10px 10px 0 0}.okanjo-product-sidebar .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-sidebar .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-ellipses:after{content:\"...\"}.okanjo-product-sidebar .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-sidebar .okanjo-product-price-container{display:inline-block;line-height:21px;font-weight:700;color:#333;margin-top:5px;margin-bottom:5px;margin-right:5px}.lt-ie8.okanjo-product-sidebar .okanjo-product-price-container{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-product-button-container{display:inline-block}.lt-ie8.okanjo-product-sidebar .okanjo-product-button-container{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px;display:inline-block;margin-top:5px}.lt-ie8.okanjo-product-sidebar .okanjo-product-buy-button{display:inline;zoom:1}.okanjo-product-sidebar a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-sidebar .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-sidebar .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-sidebar' });
+
+// Note: Requires product.block.js for product_block content
+okanjo.mvc.registerTemplate("product.sidebar", product_block, function(data, options) {
+    // Ensure params
+    data = data || { products: [], config: {} };
+    options = okanjo.util.clone(options);
+
+    // Copy, format and return the config and products
+    options.template_name = 'okanjo-product-sidebar';
+    options.config = data.config;
+    options.products = okanjo.mvc.formats.product(data.products);
+    return options;
+}, {
+    css: [ /*'okanjo.core',*/ 'product.sidebar', 'okanjo.modal']
+});
+    
+    
+
+
+    okanjo.mvc.registerCss("product.single", ".okanjo-product-single{font:14px Helvetica,Arial,sans-serif;line-height:1.2em}.okanjo-product-single a{display:block;text-decoration:none}.okanjo-product-single a:after,.okanjo-product-single a:before{content:\" \";display:table}.okanjo-product-single a:after{clear:both}.okanjo-product-single .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-single .okanjo-product{width:284px;height:234px;padding:7px;overflow:hidden;text-align:center;border:1px solid #ccc;display:inline-block;background-color:#fff}.lt-ie8.okanjo-product-single .okanjo-product{display:inline;zoom:1}.okanjo-product-single .okanjo-product-image-container{height:113px}.okanjo-product-single .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-single .okanjo-product-title-container{line-height:17px;overflow:hidden;height:34px;margin:10px 0 0}.okanjo-product-single .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-single .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-single .okanjo-ellipses:after{content:\"...\"}.okanjo-product-single .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-single .okanjo-product-price-container{line-height:21px;font-weight:700;color:#333;margin-top:3px;margin-bottom:5px;margin-right:5px}.okanjo-product-single .okanjo-product-button-container{display:inline-block}.lt-ie8.okanjo-product-single .okanjo-product-button-container{display:inline;zoom:1}.okanjo-product-single .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px;display:inline-block}.lt-ie8.okanjo-product-single .okanjo-product-buy-button{display:inline;zoom:1}.okanjo-product-single a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-single .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-single .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-single' });
+
+    // Note: Requires product.block.js for product_block content
+    okanjo.mvc.registerTemplate("product.single", product_block, function(data, options) {
+        // Ensure params
+        data = data || { products: [], config: {} };
+        options = okanjo.util.clone(options);
+
+        // Copy, format and return the config and products
+        options.template_name = 'okanjo-product-single';
+        options.config = data.config;
+        options.products = okanjo.mvc.formats.product(data.products);
+        return options;
+    }, {
+        css: [ /*'okanjo.core',*/ 'product.single', 'okanjo.modal']
     });
 
 

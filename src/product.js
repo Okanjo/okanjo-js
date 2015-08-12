@@ -5,7 +5,7 @@
     /**
      * Okanjo Product
      * @param element - DOM element to attach the output to
-     * @param {*} config - Optional base widget configuration object, element data attributes will override these
+     * @param {*} [config] - Optional base widget configuration object, element data attributes will override these
      * @constructor
      */
     function Product(element, config) {
@@ -363,6 +363,12 @@
                 });
             }
 
+            return true;
+        });
+
+        // Show ellipses on title text that doesn't quite fit
+        okanjo.qwery('.okanjo-product-title', this.element).every(function(t) {
+            okanjo.util.ellipsify(t);
             return true;
         });
 

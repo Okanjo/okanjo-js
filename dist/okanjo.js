@@ -288,6 +288,85 @@
 
 
                     /**
+                     * Cross browser way to get the height of an element
+                     * @param {HTMLElement} el – The DOM element to get the height of
+                     * @param {boolean} [includeMargin] – Whether to include the margins of the element in the size
+                     * @returns {number} – Height of the element
+                     */
+                    getOuterHeight: function(el, includeMargin) {
+                        if (includeMargin) {
+                            var height = el.offsetHeight;
+                            var style = el.currentStyle || getComputedStyle(el);
+
+                            height += parseInt(style.marginTop) + parseInt(style.marginBottom);
+                            return height;
+                        } else {
+                            return el.offsetHeight;
+                        }
+                    },
+
+
+                    /**
+                     * Splits the text in the element to fit within the visible height of its container, and separates with an ellipses
+                     * @param {HTMLElement} element – The DOM element containing the text to fit
+                     * @param {HTMLElement} [container] – Optional container to compute fit on. Defaults to the element's parent
+                     */
+                    ellipsify: function(element, container) {
+
+                        // It's a sad day when you have to resort to JS because CSS kludges are too hacky to work down to IE8, programmatically
+                        //noinspection JSValidateTypes
+                        var parent = container || element.parentNode,
+                            targetHeight = okanjo.util.getOuterHeight(parent),
+                            useTextContent = element.textContent !== undefined,
+                            text = useTextContent ? element.textContent : element.innerText,
+                            replacedText = "",
+                            safety = 5000, // Safety switch to bust out of the loop in the event something goes terribly wrong
+                            replacer = function(match) {
+                                replacedText = match.substr(0, match.length-3) + replacedText;
+                                return '...';
+                            };
+
+                        // Trim off characters until we can fit the text and ellipses
+                        // If the text already fits, this loop is ignored
+                        while (okanjo.util.getOuterHeight(element) > targetHeight && text.length > 0 && (safety-- > 0)) {
+                            text = useTextContent ? element.textContent : element.innerText;
+
+                            text = text.replace(/[\s\S](?:\.\.\.)?$/, replacer);
+
+                            if (useTextContent) {
+                                element.textContent = text;
+                            } else {
+                                element.innerText = text;
+                            }
+                        }
+
+                        // If there is work to do, split the content into two span tags
+                        // Like so: [content]...[hidden content]
+                        if (replacedText.length > 0) {
+
+                            var content = document.createElement('span'),
+                                span = document.createElement('span');
+
+                            content.setAttribute('class','okanjo-ellipses');
+                            span.setAttribute('class','okanjo-visually-hidden');
+
+                            if (useTextContent) {
+                                content.textContent = text.substr(0, text.length-3);
+                                span.textContent = replacedText;
+                            } else {
+                                content.innerText = text.substr(0, text.length-3);
+                                span.innerText = replacedText;
+                            }
+
+                            element.innerHTML = '';
+                            element.appendChild(content);
+                            element.appendChild(span);
+                        }
+
+                    },
+
+
+                    /**
                      * Return various browser detections
                      * @returns {Array}
                      */
@@ -3400,7 +3479,7 @@ if (typeof JSON !== 'object') {
     /**
      * Okanjo Product
      * @param element - DOM element to attach the output to
-     * @param {*} config - Optional base widget configuration object, element data attributes will override these
+     * @param {*} [config] - Optional base widget configuration object, element data attributes will override these
      * @constructor
      */
     function Product(element, config) {
@@ -3761,6 +3840,12 @@ if (typeof JSON !== 'object') {
             return true;
         });
 
+        // Show ellipses on title text that doesn't quite fit
+        okanjo.qwery('.okanjo-product-title', this.element).every(function(t) {
+            okanjo.util.ellipsify(t);
+            return true;
+        });
+
     };
 
     okanjo.Product = Product;
@@ -3773,7 +3858,7 @@ if (typeof JSON !== 'object') {
     /**
      * Okanjo Ad
      * @param element - DOM element to attach the output to
-     * @param {*} config - Optional base widget configuration object, element data attributes will override these
+     * @param {*} [config] - Optional base widget configuration object, element data attributes will override these
      * @constructor
      */
     function Ad(element, config) {
@@ -4115,7 +4200,8 @@ if (typeof JSON !== 'object') {
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
             expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true",
-            metrics_context: "aw" // Set the context of the click to the Ad widget please!
+            metrics_context: "aw", // Set the context of the click to the Ad widget please!
+            template_product_main: "product.single"
         };
 
         // Copy parameters through from the ad config, to the product config, if set
