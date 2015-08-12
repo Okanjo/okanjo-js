@@ -15,7 +15,7 @@ simplicity with flexibility to meet almost every imaginable use-case.
 
 # Documentation
 
-Full documentation on using Okanjo-JS can be found on [developer.okanjo.com](https://developer.okanjo.com/okanjo-js].
+Full documentation on using Okanjo-JS can be found on [developer.okanjo.com](https://developer.okanjo.com/okanjo-js).
 
 # Contributing
 We would love your pull-requests, and feedback in general. Please fork this repository, make a branch, make your 
