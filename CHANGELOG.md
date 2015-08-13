@@ -3,6 +3,19 @@
 
 When stuff changes, it's described here.
 
+## 2015-08-13
+
+Core
+ * Added util functions for detecting frames and mobile devices
+ * Replaced the getOuterHeight util function with getElementSize, so both width and height are accessible
+ 
+Product Widget
+ * Updated interaction handling to popup the inline buy experience in a new window for applicable mobile devices
+ * Added various contextual parameters to the inline_buy_url: popup, expandable, frame_height, frame_width, and ad_size
+ 
+Ad Widget
+ * Added the computed ad size to the template container and data model
+
 ## 2015-08-12
 
 Core
