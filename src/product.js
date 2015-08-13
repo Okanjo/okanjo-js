@@ -282,6 +282,29 @@
 
 
     /**
+     * Builds the final frame url to use, given the base, url, and params to tack on
+     * @param base – Metric tracking URL
+     * @param inline – Inline buy URL
+     * @param params – Additional params to tack on to the inline buy URL
+     * @returns {string} – Final frame url
+     */
+    function makeFrameUrl(base, inline, params) {
+
+        var pairs = [],
+            i,
+            joiner = (inline.indexOf('?') < 0 ? '?' : '&');
+
+        for (i in params) {
+            if (params.hasOwnProperty(i)) {
+                pairs.push(i+"="+encodeURIComponent(params[i]));
+            }
+        }
+
+        return base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline + joiner + pairs.join('&'));
+    }
+
+
+    /**
      * Handle user interaction with the product tile
      * @param e – User interaction DOM event
      * @param trigger – Whether to trigger the click event or not on the link
@@ -293,7 +316,8 @@
             expandable = this.getAttribute('data-expandable'),
             nativeBuy = !okanjo.util.empty(inline),
             doPopup = okanjo.util.isMobile() && nativeBuy,
-            url = nativeBuy ? base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline) : this.getAttribute('href'),
+            url = this.getAttribute('href'),
+            inlineParams = {},
             expanded = false;
 
         // Show a new window on applicable devices instead of a native buy experience
@@ -305,7 +329,10 @@
             // a positive user experience. Nobody likes bouncy form fields and really weird zooming.
             //
 
-            okanjo.active_frame = window.open(url + "&popup=1", "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
+            // Tell the buy experience that we're loading up in a popup, so they can render that nicely
+            url = makeFrameUrl(base, inline, { popup: 1 });
+
+            okanjo.active_frame = window.open(url, "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
             if (!okanjo.active_frame) {
 
                 console.error('Popup blocker prevented new inline-buy experience from being displayed');
@@ -345,8 +372,10 @@
                 }
             }
 
-            frame.src = url;
+            // By default, we assume we're going to modal, which is an expandable
+            inlineParams.expandable = 1;
 
+            // Now check if we should not actually be expanding
             if (expandable !== undefined && expandable.toLowerCase() === "false") {
 
                 //
@@ -356,19 +385,31 @@
 
                 // Locate the parent ad container and attempt to shove the frame in there
                 // If it fails to do so, then resort to a modal, since expandable was set not on an ad, derp.
-                frame.className += " okanjo-ad-in-unit";
-                frame.setAttribute('height', "100%");
-                frame.setAttribute('width', "100%");
                 var parent = this.parentNode;
-                while(parent && parent.className != 'okanjo-ad-container') {
+                while(parent && parent.className.indexOf('okanjo-ad-container') < 0) {
                     parent = parent.parentNode;
                 }
 
+                // If we have the parent ad unit container, then stick it in there, otherwise let it fallback to a modal
                 if (parent) {
+                    frame.className += " okanjo-ad-in-unit";
+                    frame.setAttribute('height', "100%");
+                    frame.setAttribute('width', "100%");
+
                     parent.appendChild(frame);
                     expanded = true;
+
+                    // Provide the buy experience some context information
+                    var size = okanjo.util.getElementSize(parent);
+                    inlineParams.expandable  = 0;
+                    inlineParams.frame_height = size.height;
+                    inlineParams.frame_width  = size.width;
+                    inlineParams.ad_size = parent.getAttribute('data-size') || "undefined";
                 }
             }
+
+            url = makeFrameUrl(base, inline, inlineParams);
+            frame.src = url;
 
             if (!expanded) {
                 okanjo.modal.show(frame);

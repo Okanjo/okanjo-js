@@ -289,27 +289,31 @@
 
 
                     /**
-                     * Cross browser way to get the height of an element
-                     * @param {HTMLElement} el – The DOM element to get the height of
+                     * Gets the height and width of the given element
+                     * @param {HTMLElement|Node} el – The DOM element to get the size of
                      * @param {boolean} [includeMargin] – Whether to include the margins of the element in the size
-                     * @returns {number} – Height of the element
+                     * @returns {{height: number, width: number}}
                      */
-                    getOuterHeight: function(el, includeMargin) {
-                        if (includeMargin) {
-                            var height = el.offsetHeight;
-                            var style = el.currentStyle || getComputedStyle(el);
+                    getElementSize: function(el, includeMargin) {
 
-                            height += parseInt(style.marginTop) + parseInt(style.marginBottom);
-                            return height;
-                        } else {
-                            return el.offsetHeight;
+                        var size = {
+                            height: el.offsetHeight,
+                            width : el.offsetWidth
+                        }, style;
+
+                        if (includeMargin) {
+                            style = el.currentStyle || getComputedStyle(el);
+                            size.height += parseInt(style.marginTop) + parseInt(style.marginBottom);
+                            size.width += parseInt(style.marginLeft) + parseInt(style.marginRight);
                         }
+
+                        return size;
                     },
 
 
                     /**
                      * Splits the text in the element to fit within the visible height of its container, and separates with an ellipses
-                     * @param {HTMLElement} element – The DOM element containing the text to fit
+                     * @param {HTMLElement|Node} element – The DOM element containing the text to fit
                      * @param {HTMLElement} [container] – Optional container to compute fit on. Defaults to the element's parent
                      */
                     ellipsify: function(element, container) {
@@ -317,7 +321,7 @@
                         // It's a sad day when you have to resort to JS because CSS kludges are too hacky to work down to IE8, programmatically
                         //noinspection JSValidateTypes
                         var parent = container || element.parentNode,
-                            targetHeight = okanjo.util.getOuterHeight(parent),
+                            targetHeight = okanjo.util.getElementSize(parent).height,
                             useTextContent = element.textContent !== undefined,
                             text = useTextContent ? element.textContent : element.innerText,
                             replacedText = "",
@@ -329,7 +333,7 @@
 
                         // Trim off characters until we can fit the text and ellipses
                         // If the text already fits, this loop is ignored
-                        while (okanjo.util.getOuterHeight(element) > targetHeight && text.length > 0 && (safety-- > 0)) {
+                        while (okanjo.util.getElementSize(element).height > targetHeight && text.length > 0 && (safety-- > 0)) {
                             text = useTextContent ? element.textContent : element.innerText;
 
                             text = text.replace(/[\s\S](?:\.\.\.)?$/, replacer);
@@ -391,7 +395,7 @@
                      * @returns {boolean}
                      */
                     isFramed: function() {
-                        return window.top !== window.self
+                        return window.top !== window.self;
                     },
 
                     /**
@@ -399,7 +403,7 @@
                      * @returns {boolean}
                      */
                     isiOS: function() {
-                        return /(iPhone|iPad|iPod)/i.test(agent)
+                        return /(iPhone|iPad|iPod)/i.test(agent);
                     },
 
 
@@ -408,7 +412,7 @@
                      * @returns {boolean}
                      */
                     isAndroid: function() {
-                        return /Android/.test(agent)
+                        return /Android/.test(agent);
                     },
 
 
@@ -417,7 +421,7 @@
                      * @returns {boolean}
                      */
                     isMobile: function() {
-                        return okanjo.util.isiOS() || okanjo.util.isAndroid()
+                        return okanjo.util.isiOS() || okanjo.util.isAndroid();
                     }
 
                 }
@@ -3792,6 +3796,29 @@ if (typeof JSON !== 'object') {
 
 
     /**
+     * Builds the final frame url to use, given the base, url, and params to tack on
+     * @param base – Metric tracking URL
+     * @param inline – Inline buy URL
+     * @param params – Additional params to tack on to the inline buy URL
+     * @returns {string} – Final frame url
+     */
+    function makeFrameUrl(base, inline, params) {
+
+        var pairs = [],
+            i,
+            joiner = (inline.indexOf('?') < 0 ? '?' : '&');
+
+        for (i in params) {
+            if (params.hasOwnProperty(i)) {
+                pairs.push(i+"="+encodeURIComponent(params[i]));
+            }
+        }
+
+        return base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline + joiner + pairs.join('&'));
+    }
+
+
+    /**
      * Handle user interaction with the product tile
      * @param e – User interaction DOM event
      * @param trigger – Whether to trigger the click event or not on the link
@@ -3803,7 +3830,8 @@ if (typeof JSON !== 'object') {
             expandable = this.getAttribute('data-expandable'),
             nativeBuy = !okanjo.util.empty(inline),
             doPopup = okanjo.util.isMobile() && nativeBuy,
-            url = nativeBuy ? base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline) : this.getAttribute('href'),
+            url = this.getAttribute('href'),
+            inlineParams = {},
             expanded = false;
 
         // Show a new window on applicable devices instead of a native buy experience
@@ -3815,7 +3843,10 @@ if (typeof JSON !== 'object') {
             // a positive user experience. Nobody likes bouncy form fields and really weird zooming.
             //
 
-            okanjo.active_frame = window.open(url + "&popup=1", "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
+            // Tell the buy experience that we're loading up in a popup, so they can render that nicely
+            url = makeFrameUrl(base, inline, { popup: 1 });
+
+            okanjo.active_frame = window.open(url, "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
             if (!okanjo.active_frame) {
 
                 console.error('Popup blocker prevented new inline-buy experience from being displayed');
@@ -3855,8 +3886,10 @@ if (typeof JSON !== 'object') {
                 }
             }
 
-            frame.src = url;
+            // By default, we assume we're going to modal, which is an expandable
+            inlineParams.expandable = 1;
 
+            // Now check if we should not actually be expanding
             if (expandable !== undefined && expandable.toLowerCase() === "false") {
 
                 //
@@ -3866,19 +3899,31 @@ if (typeof JSON !== 'object') {
 
                 // Locate the parent ad container and attempt to shove the frame in there
                 // If it fails to do so, then resort to a modal, since expandable was set not on an ad, derp.
-                frame.className += " okanjo-ad-in-unit";
-                frame.setAttribute('height', "100%");
-                frame.setAttribute('width', "100%");
                 var parent = this.parentNode;
-                while(parent && parent.className != 'okanjo-ad-container') {
+                while(parent && parent.className.indexOf('okanjo-ad-container') < 0) {
                     parent = parent.parentNode;
                 }
 
+                // If we have the parent ad unit container, then stick it in there, otherwise let it fallback to a modal
                 if (parent) {
+                    frame.className += " okanjo-ad-in-unit";
+                    frame.setAttribute('height', "100%");
+                    frame.setAttribute('width', "100%");
+
                     parent.appendChild(frame);
                     expanded = true;
+
+                    // Provide the buy experience some context information
+                    var size = okanjo.util.getElementSize(parent);
+                    inlineParams.expandable  = 0;
+                    inlineParams.frame_height = size.height;
+                    inlineParams.frame_width  = size.width;
+                    inlineParams.ad_size = parent.getAttribute('data-size') || "undefined";
                 }
             }
+
+            url = makeFrameUrl(base, inline, inlineParams);
+            frame.src = url;
 
             if (!expanded) {
                 okanjo.modal.show(frame);
@@ -4344,13 +4389,14 @@ return okanjo;
 /*! okanjo-js v0.4.4 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {okanjo.mvc.registerCss("ad.block", ".okanjo-ad-block{position:relative}.okanjo-ad-block .okanjo-ad-dynamic-product .okanjo-product-list{margin:0;width:100%}.okanjo-ad-block .okanjo-ad-container iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-ad-block.okanjo-ad-fit{width:100%;height:100%;position:relative}.okanjo-ad-block.okanjo-ad-fit .okanjo-ad-container,.okanjo-ad-block.okanjo-ad-fit .okanjo-ad-dynamic-product,.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block,.okanjo-ad-block.okanjo-ad-fit .okanjo-product-list{height:100%;width:100%}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product{height:100%;width:100%;padding:0;box-sizing:border-box;margin:0}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-image-container{margin:.5em}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-title-container{height:auto;margin:1em .5em}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-price-container{position:absolute;bottom:.5em;background:#fff;padding:.25em 0 0;margin:0 1px 0 0;left:1px;right:1px}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block.lt-ie9 .okanjo-product-title-container:before{display:none}", { id: 'okanjo-ad-block' });
 
-okanjo.mvc.registerTemplate("ad.block", "<div class=\"okanjo-ad-block {{classDetects}}\"><div class=okanjo-ad-container></div><div class=okanjo-ad-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c=aw&cm={{#config}}{{ content }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"></div></div>", function(data, options) {
+okanjo.mvc.registerTemplate("ad.block", "<div class=\"okanjo-ad-block {{classDetects}}\"><div class=okanjo-ad-container data-size={{size}}></div><div class=okanjo-ad-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c=aw&cm={{#config}}{{ content }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"></div></div>", function(data, options) {
     // Ensure params
     data = data || { config: {} };
     options = okanjo.util.clone(options);
 
     // Copy, format and return the config and products
     options.config = data.config;
+    options.size = data.config.size || "undefined";
     return options;
 }, {
     css: [ 'ad.block' ]

@@ -279,27 +279,31 @@
 
 
                     /**
-                     * Cross browser way to get the height of an element
-                     * @param {HTMLElement} el – The DOM element to get the height of
+                     * Gets the height and width of the given element
+                     * @param {HTMLElement|Node} el – The DOM element to get the size of
                      * @param {boolean} [includeMargin] – Whether to include the margins of the element in the size
-                     * @returns {number} – Height of the element
+                     * @returns {{height: number, width: number}}
                      */
-                    getOuterHeight: function(el, includeMargin) {
-                        if (includeMargin) {
-                            var height = el.offsetHeight;
-                            var style = el.currentStyle || getComputedStyle(el);
+                    getElementSize: function(el, includeMargin) {
 
-                            height += parseInt(style.marginTop) + parseInt(style.marginBottom);
-                            return height;
-                        } else {
-                            return el.offsetHeight;
+                        var size = {
+                            height: el.offsetHeight,
+                            width : el.offsetWidth
+                        }, style;
+
+                        if (includeMargin) {
+                            style = el.currentStyle || getComputedStyle(el);
+                            size.height += parseInt(style.marginTop) + parseInt(style.marginBottom);
+                            size.width += parseInt(style.marginLeft) + parseInt(style.marginRight);
                         }
+
+                        return size;
                     },
 
 
                     /**
                      * Splits the text in the element to fit within the visible height of its container, and separates with an ellipses
-                     * @param {HTMLElement} element – The DOM element containing the text to fit
+                     * @param {HTMLElement|Node} element – The DOM element containing the text to fit
                      * @param {HTMLElement} [container] – Optional container to compute fit on. Defaults to the element's parent
                      */
                     ellipsify: function(element, container) {
@@ -307,7 +311,7 @@
                         // It's a sad day when you have to resort to JS because CSS kludges are too hacky to work down to IE8, programmatically
                         //noinspection JSValidateTypes
                         var parent = container || element.parentNode,
-                            targetHeight = okanjo.util.getOuterHeight(parent),
+                            targetHeight = okanjo.util.getElementSize(parent).height,
                             useTextContent = element.textContent !== undefined,
                             text = useTextContent ? element.textContent : element.innerText,
                             replacedText = "",
@@ -319,7 +323,7 @@
 
                         // Trim off characters until we can fit the text and ellipses
                         // If the text already fits, this loop is ignored
-                        while (okanjo.util.getOuterHeight(element) > targetHeight && text.length > 0 && (safety-- > 0)) {
+                        while (okanjo.util.getElementSize(element).height > targetHeight && text.length > 0 && (safety-- > 0)) {
                             text = useTextContent ? element.textContent : element.innerText;
 
                             text = text.replace(/[\s\S](?:\.\.\.)?$/, replacer);
@@ -381,7 +385,7 @@
                      * @returns {boolean}
                      */
                     isFramed: function() {
-                        return window.top !== window.self
+                        return window.top !== window.self;
                     },
 
                     /**
@@ -389,7 +393,7 @@
                      * @returns {boolean}
                      */
                     isiOS: function() {
-                        return /(iPhone|iPad|iPod)/i.test(agent)
+                        return /(iPhone|iPad|iPod)/i.test(agent);
                     },
 
 
@@ -398,7 +402,7 @@
                      * @returns {boolean}
                      */
                     isAndroid: function() {
-                        return /Android/.test(agent)
+                        return /Android/.test(agent);
                     },
 
 
@@ -407,7 +411,7 @@
                      * @returns {boolean}
                      */
                     isMobile: function() {
-                        return okanjo.util.isiOS() || okanjo.util.isAndroid()
+                        return okanjo.util.isiOS() || okanjo.util.isAndroid();
                     }
 
                 }

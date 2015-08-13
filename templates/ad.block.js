@@ -7,6 +7,7 @@ okanjo.mvc.registerTemplate("ad.block", "@@include(jsStringEscape('ad.block.must
 
     // Copy, format and return the config and products
     options.config = data.config;
+    options.size = data.config.size || "undefined";
     return options;
 }, {
     css: [ 'ad.block' ]
