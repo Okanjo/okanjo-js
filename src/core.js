@@ -9,6 +9,7 @@
         //noinspection JSValidateTypes
         var supportPageOffset = window.pageXOffset !== undefined,
             isCSS1Compatible = ((document.compatMode || "") === "CSS1Compat"),
+            agent = window.navigator.userAgent,
             noop = function(){},
             okanjo = {
 
@@ -372,6 +373,41 @@
                             classDetects.push('lt-ie7');
                         }
                         return classDetects;
+                    },
+
+
+                    /**
+                     * Checks if we're executing this code inside a frame or not
+                     * @returns {boolean}
+                     */
+                    isFramed: function() {
+                        return window.top !== window.self
+                    },
+
+                    /**
+                     * Checks if the current user agent identifies as an iOS device
+                     * @returns {boolean}
+                     */
+                    isiOS: function() {
+                        return /(iPhone|iPad|iPod)/i.test(agent)
+                    },
+
+
+                    /**
+                     * Checks if the current user agent identifies as Android device
+                     * @returns {boolean}
+                     */
+                    isAndroid: function() {
+                        return /Android/.test(agent)
+                    },
+
+
+                    /**
+                     * Checks if the current user agent identifies as a mobile device
+                     * @returns {boolean}
+                     */
+                    isMobile: function() {
+                        return okanjo.util.isiOS() || okanjo.util.isAndroid()
                     }
 
                 }
