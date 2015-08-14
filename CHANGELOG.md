@@ -3,7 +3,7 @@
 
 When stuff changes, it's described here.
 
-## 2015-08-13
+## 2015-08-14
 
 Core
  * Added util functions for detecting frames and mobile devices
@@ -12,6 +12,7 @@ Core
 Product Widget
  * Updated interaction handling to popup the inline buy experience in a new window for applicable mobile devices
  * Added various contextual parameters to the inline_buy_url: popup, expandable, frame_height, frame_width, and ad_size
+ * Added break for long run on titles on product widgets
  
 Ad Widget
  * Added the computed ad size to the template container and data model
