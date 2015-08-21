@@ -3,7 +3,7 @@
 
 When stuff changes, it's described here.
 
-## 2015-08-21
+## 2015-08-21 – v0.4.5
  * Core: Added Array.filter IE polyfill
  * Ad: Fixed an issue when setting expandable to a boolean value instead of stringified boolean
  * Template: Added a context parameter to the render function, used to set the `this` context when calling a template's view closure
