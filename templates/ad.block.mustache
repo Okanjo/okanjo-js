@@ -1,8 +1,9 @@
 <div class="okanjo-ad-block {{classDetects}}">
-    <div class="okanjo-ad-container">
+    <div class="okanjo-ad-container" data-size="{{size}}">
         <!-- Stick the dynamic or creative in here -->
     </div>
     <div class="okanjo-ad-meta">
+        <!--suppress HtmlUnknownTarget -->
         <img src="{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c=aw&cm={{#config}}{{ content }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}" alt="">
     </div>
 </div>

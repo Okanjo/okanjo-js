@@ -3,6 +3,27 @@
 
 When stuff changes, it's described here.
 
+## 2015-08-21
+ * Core: Added Array.filter IE polyfill
+ * Ad: Fixed an issue when setting expandable to a boolean value instead of stringified boolean
+ * Template: Added a context parameter to the render function, used to set the `this` context when calling a template's view closure
+ * Widget: Fixed an issue generating the current page url
+ * Product: Added various CSS enhancements to for cross-site compatibility
+ 
+## 2015-08-14
+
+Core
+ * Added util functions for detecting frames and mobile devices
+ * Replaced the getOuterHeight util function with getElementSize, so both width and height are accessible
+ 
+Product Widget
+ * Updated interaction handling to popup the inline buy experience in a new window for applicable mobile devices
+ * Added various contextual parameters to the inline_buy_url: popup, expandable, frame_height, frame_width, and ad_size
+ * Added break for long run on titles on product widgets
+ 
+Ad Widget
+ * Added the computed ad size to the template container and data model
+
 ## 2015-08-12
 
 Core

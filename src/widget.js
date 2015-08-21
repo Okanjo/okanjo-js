@@ -90,7 +90,7 @@
 
             // Still no key?
             if(!okanjo.util.empty(this.key)) {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Missing Okanjo key.' });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.error, this, { message: 'Missing Okanjo key.' });
                 okanjo.report(this.widgetName, 'Missing key. Define one using okanjo.configure or pass the key parameter as an option in the '+this.widgetName+' constructor');
                 return false;
             } else {
@@ -227,7 +227,8 @@
 
             // On second thought, we're not so nice
             var href = window.location.href,
-                stopPos = Math.min(href.indexOf('?'), href.indexOf('#'));
+                candidatePos = [href.indexOf('?'), href.indexOf('#')].filter(function(pos) { return pos >= 0; }),
+                stopPos = candidatePos.length > 0 ? Math.min.apply(null, candidatePos) : -1;
 
             return stopPos > 0 ? href.substr(0, stopPos) : href;
         },

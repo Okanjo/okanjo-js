@@ -210,7 +210,7 @@
             if (err) {
                 // Can't show anything, just render a generic error message
                 console.error('[Okanjo.'+self.widgetName+'] Failed to retrieve products.', err);
-                self.element.innerHTML = okanjo.mvc.render(self.templates.product_error, { message: 'Could not retrieve products.' });
+                self.element.innerHTML = okanjo.mvc.render(self.templates.product_error, self, { message: 'Could not retrieve products.' });
             } else {
                 // Store the products array locally
                 self.items = res.data;
@@ -272,7 +272,7 @@
         this.handleInlineBuyOption();
 
         // Render the product content!
-        this.element.innerHTML = okanjo.mvc.render(this.templates.product_main, {
+        this.element.innerHTML = okanjo.mvc.render(this.templates.product_main, this, {
             products: data || this.items || [],
             config: this.config
         });
@@ -282,53 +282,143 @@
 
 
     /**
+     * Builds the final frame url to use, given the base, url, and params to tack on
+     * @param base – Metric tracking URL
+     * @param inline – Inline buy URL
+     * @param params – Additional params to tack on to the inline buy URL
+     * @returns {string} – Final frame url
+     */
+    function makeFrameUrl(base, inline, params) {
+
+        var pairs = [],
+            i,
+            joiner = (inline.indexOf('?') < 0 ? '?' : '&');
+
+        for (i in params) {
+            if (params.hasOwnProperty(i)) {
+                pairs.push(i+"="+encodeURIComponent(params[i]));
+            }
+        }
+
+        return base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline + joiner + pairs.join('&'));
+    }
+
+
+    /**
      * Handle user interaction with the product tile
      * @param e – User interaction DOM event
      * @param trigger – Whether to trigger the click event or not on the link
      */
     Product.interactTile = function(e, trigger) {
+
         var inline = this.getAttribute('data-inline-buy-url'),
             base = this.getAttribute('data-inline-buy-url-base'),
-            expandable = this.getAttribute('data-expandable');
+            expandable = this.getAttribute('data-expandable'),
+            nativeBuy = !okanjo.util.empty(inline),
+            doPopup = okanjo.util.isMobile() && nativeBuy,
+            url = this.getAttribute('href'),
+            inlineParams = {},
+            expanded = false;
 
-        if (!okanjo.util.empty(inline)) {
+        // Show a new window on applicable devices instead of a native buy experience
+        if (doPopup) {
 
-            if (e.preventDefault) {
-                e.preventDefault();
+            //
+            // Mobile devices (especially iOS) have real janky UX when interacting with iframes.
+            // So, we'll choose to popup a window with the native buy experience, so we can ensure
+            // a positive user experience. Nobody likes bouncy form fields and really weird zooming.
+            //
+
+            // Tell the buy experience that we're loading up in a popup, so they can render that nicely
+            url = makeFrameUrl(base, inline, { popup: 1 });
+
+            okanjo.active_frame = window.open(url, "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
+            if (!okanjo.active_frame) {
+
+                console.error('Popup blocker prevented new inline-buy experience from being displayed');
+
+                // fallback to an anchor click
+                if (trigger) { this.click(); }
+
             } else {
-                e.returnValue = false;
+                e.preventDefault();
             }
 
+        } else if (nativeBuy) {
 
-            var iframe = document.createElement('iframe');
-            iframe.setAttribute('class', 'okanjo-inline-buy-frame');
-            iframe.setAttribute('frameborder', '0');
-            iframe.setAttribute('vspace', '0');
-            iframe.setAttribute('hspace', '0');
-            iframe.setAttribute('webkitallowfullscreen', '');
-            iframe.setAttribute('mozallowfullscreen', '');
-            iframe.setAttribute('allowfullscreen', '');
-            iframe.setAttribute('scrolling', 'auto');
+            //
+            // Native/Inline Buy (buy on the page)
+            // All the conditions are right to embed the inline buy experience right here, right now.
+            // Whip up a new iframe with the target url and either show it as a modal or confine it to the widget space
+            //
 
-            iframe.src = base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline);
+            e.preventDefault();
 
-            if(expandable !== undefined && expandable.toLowerCase() === "false") {
-                iframe.className += " okanjo-ad-in-unit";
-                iframe.setAttribute('height', "100%");
-                iframe.setAttribute('width', "100%");
+            var frame = document.createElement('iframe'),
+                frameAttributes = {
+                    'class': 'okanjo-inline-buy-frame',
+                    frameborder: 0,
+                    vspace: 0,
+                    hspace: 0,
+                    webkitallowfullscreen: '',
+                    mozallowfullscreen: '',
+                    allowfullscreen: '',
+                    scrolling: 'auto'
+                };
+
+            for (var i in frameAttributes) {
+                if (frameAttributes.hasOwnProperty(i)) {
+                    frame.setAttribute(i, frameAttributes[i]);
+                }
+            }
+
+            // By default, we assume we're going to modal, which is an expandable
+            inlineParams.expandable = 1;
+
+            // Now check if we should not actually be expanding
+            if (expandable !== undefined && expandable.toLowerCase() === "false") {
+
+                //
+                // Non-expandable: Per IAB, we should not expand the ad content past the bounds of the ad unit
+                // So, confine the iframe to the bounds of the ad.
+                //
+
+                // Locate the parent ad container and attempt to shove the frame in there
+                // If it fails to do so, then resort to a modal, since expandable was set not on an ad, derp.
                 var parent = this.parentNode;
-                while(parent && parent.className != 'okanjo-ad-container') {
+                while(parent && parent.className.indexOf('okanjo-ad-container') < 0) {
                     parent = parent.parentNode;
                 }
-                if(parent) {
-                    parent.appendChild(iframe);
+
+                // If we have the parent ad unit container, then stick it in there, otherwise let it fallback to a modal
+                if (parent) {
+                    frame.className += " okanjo-ad-in-unit";
+                    frame.setAttribute('height', "100%");
+                    frame.setAttribute('width', "100%");
+
+                    parent.appendChild(frame);
+                    expanded = true;
+
+                    // Provide the buy experience some context information
+                    var size = okanjo.util.getElementSize(parent);
+                    inlineParams.expandable  = 0;
+                    inlineParams.frame_height = size.height;
+                    inlineParams.frame_width  = size.width;
+                    inlineParams.ad_size = parent.getAttribute('data-size') || "undefined";
                 }
-            } else {
-                okanjo.modal.show(iframe);
             }
+
+            url = makeFrameUrl(base, inline, inlineParams);
+            frame.src = url;
+
+            if (!expanded) {
+                okanjo.modal.show(frame);
+            }
+
         } else if (trigger) {
             this.click();
         }
+
     };
 
 
