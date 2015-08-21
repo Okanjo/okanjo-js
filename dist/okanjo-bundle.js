@@ -653,11 +653,12 @@
          * Renders a template with the given data
          *
          * @param {string} templateName – The template name to render
+         * @param {*} context – The context to execute the template under
          * @param {*} data – Data to pass into the controller
          * @param {*} [options] – Optional settings object to pass into the controller closure
          * @returns {*}
          */
-        render: function(templateName, data, options) {
+        render: function(templateName, context, data, options) {
 
             options = options || {};
             var template = this._templates[templateName],
@@ -665,7 +666,7 @@
 
             // If there's a data controller closure set, and if so, run the data through there
             if (template.viewClosure) {
-                view = template.viewClosure(data, options);
+                view = template.viewClosure.call(context, data, options);
             }
 
             // Attach globals
@@ -1119,6 +1120,43 @@ if (!Array.prototype.every) {
             k++;
         }
         return true;
+    };
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter
+if (!Array.prototype.filter) {
+    Array.prototype.filter = function(fun/*, thisArg*/) {
+        'use strict';
+
+        if (this === void 0 || this === null) {
+            throw new TypeError();
+        }
+
+        var t = Object(this),
+            len = t.length >>> 0;
+
+        if (typeof fun !== 'function') {
+            throw new TypeError();
+        }
+
+        var res = [],
+            thisArg = arguments.length >= 2 ? arguments[1] : void 0;
+        for (var i = 0; i < len; i++) {
+            if (i in t) {
+                var val = t[i];
+
+                // NOTE: Technically this should Object.defineProperty at
+                //       the next index, as push can be affected by
+                //       properties on Object.prototype and Array.prototype.
+                //       But that method's new, and collisions should be
+                //       rare, so use the more-compatible alternative.
+                if (fun.call(thisArg, val, i, t)) {
+                    res.push(val);
+                }
+            }
+        }
+
+        return res;
     };
 }
 
@@ -3036,7 +3074,7 @@ if (typeof JSON !== 'object') {
 
             // Still no key?
             if(!okanjo.util.empty(this.key)) {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Missing Okanjo key.' });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.error, this, { message: 'Missing Okanjo key.' });
                 okanjo.report(this.widgetName, 'Missing key. Define one using okanjo.configure or pass the key parameter as an option in the '+this.widgetName+' constructor');
                 return false;
             } else {
@@ -3173,7 +3211,8 @@ if (typeof JSON !== 'object') {
 
             // On second thought, we're not so nice
             var href = window.location.href,
-                stopPos = Math.min(href.indexOf('?'), href.indexOf('#'));
+                candidatePos = [href.indexOf('?'), href.indexOf('#')].filter(function(pos) { return pos >= 0; }),
+                stopPos = candidatePos.length > 0 ? Math.min.apply(null, candidatePos) : -1;
 
             return stopPos > 0 ? href.substr(0, stopPos) : href;
         },
@@ -3724,7 +3763,7 @@ if (typeof JSON !== 'object') {
             if (err) {
                 // Can't show anything, just render a generic error message
                 console.error('[Okanjo.'+self.widgetName+'] Failed to retrieve products.', err);
-                self.element.innerHTML = okanjo.mvc.render(self.templates.product_error, { message: 'Could not retrieve products.' });
+                self.element.innerHTML = okanjo.mvc.render(self.templates.product_error, self, { message: 'Could not retrieve products.' });
             } else {
                 // Store the products array locally
                 self.items = res.data;
@@ -3786,7 +3825,7 @@ if (typeof JSON !== 'object') {
         this.handleInlineBuyOption();
 
         // Render the product content!
-        this.element.innerHTML = okanjo.mvc.render(this.templates.product_main, {
+        this.element.innerHTML = okanjo.mvc.render(this.templates.product_main, this, {
             products: data || this.items || [],
             config: this.config
         });
@@ -4130,7 +4169,7 @@ if (typeof JSON !== 'object') {
         } else if (this.config.content === Ad.contentTypes.dynamic && this.hasCreativeContent()) {
             console.warn('[Okanjo.Ad] Ad content is dynamic, but ad placement contains markup. Markup will be clobbered!');
         } else if (!Ad.contentTypes.hasOwnProperty(this.config.content)){
-            this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Invalid ad content: ' + this.config.content });
+            this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, this, { message: 'Invalid ad content: ' + this.config.content });
             okanjo.report(this.widgetName, 'Invalid ad content: ' + this.config.content);
             return false;
         }
@@ -4177,7 +4216,7 @@ if (typeof JSON !== 'object') {
 
             // Make sure an ID is set
             if (okanjo.util.empty(this.config.id)) {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Missing ad product id' });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, this, { message: 'Missing ad product id' });
                 okanjo.report(this.widgetName, 'Missing ad product id');
                 return false;
             }
@@ -4190,7 +4229,7 @@ if (typeof JSON !== 'object') {
                 // If creative, don't mess with the markup, just bind up the click / modal
                 this.insertCreativeWidget();
             } else {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Cannot render ad in content: ' + this.config.content });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, this, { message: 'Cannot render ad in content: ' + this.config.content });
                 okanjo.report(this.widgetName, 'Cannot render ad in content: ' + this.config.content);
                 return false;
             }
@@ -4212,7 +4251,7 @@ if (typeof JSON !== 'object') {
             i,
             fit = this.config.content == Ad.contentTypes.dynamic && !okanjo.util.empty(this.config.size);
 
-        div.innerHTML = okanjo.mvc.render(this.templates.ad_main, {
+        div.innerHTML = okanjo.mvc.render(this.templates.ad_main, this, {
             //products: data || this.items || [],
             config: this.config
         }, {
@@ -4329,7 +4368,7 @@ if (typeof JSON !== 'object') {
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
-            expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true",
+            expandable: this.config.expandable === undefined || (typeof this.config.expandable === "boolean" ? this.config.expandable : (""+this.config.expandable).toLowerCase() === "true"),
             metrics_context: "aw", // Set the context of the click to the Ad widget please!
             template_product_main: "product.single"
         };
@@ -4408,7 +4447,7 @@ okanjo.mvc.registerCss("okanjo.modal", "html.okanjo-modal-active{overflow:hidden
 
 okanjo.mvc.registerTemplate("okanjo.error", "<span class=okanjo-error>{{ message }}</span> {{#code}} <span class=okanjo-error-code>Reference: {{ code }}</span> {{/code}}", { css: ['okanjo.core'] });
 
-    okanjo.mvc.registerCss("product.block", ".okanjo-product-block{font:14px Helvetica,Arial,sans-serif;line-height:1.2em}.okanjo-product-block a{display:block;text-decoration:none}.okanjo-product-block a:after,.okanjo-product-block a:before{content:\" \";display:table}.okanjo-product-block a:after{clear:both}.okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0}.okanjo-product-block .okanjo-product{width:130px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:7px;margin:0 4px 1px 0;display:inline-block;box-shadow:1px 1px 1px 1px #eee;background-color:#fff;box-sizing:content-box}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:130px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-block .okanjo-product-title-container{line-height:17px;overflow:hidden;height:51px;margin:10px 0 0;word-break:break-all}.okanjo-product-block .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-block .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-block .okanjo-ellipses:after{content:\"...\"}.okanjo-product-block .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-block .okanjo-product-price-container{line-height:21px;font-weight:700;color:#333;margin-top:5px;margin-bottom:5px;margin-right:5px}.okanjo-product-block .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px}.okanjo-product-block a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-block .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-block .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-block' });
+    okanjo.mvc.registerCss("product.block", ".okanjo-product-block{font:14px Helvetica,Arial,sans-serif;line-height:1.2em}.okanjo-product-block a{display:block;text-decoration:none}.okanjo-product-block a:after,.okanjo-product-block a:before{content:\" \";display:table}.okanjo-product-block a:after{clear:both}.okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-block .okanjo-product{width:130px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:7px;margin:0 4px 1px 0;display:inline-block;box-shadow:1px 1px 1px 1px #eee;background-color:#fff;box-sizing:content-box}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:130px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-block .okanjo-product-title-container{line-height:17px;overflow:hidden;height:51px;margin:10px 0 0;word-break:break-all}.okanjo-product-block .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-block .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-block .okanjo-ellipses:after{content:\"...\"}.okanjo-product-block .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-block .okanjo-product-price-container{line-height:21px;font-weight:700;color:#333;margin-top:5px;margin-bottom:5px;margin-right:5px}.okanjo-product-block .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px}.okanjo-product-block a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-block .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-block .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-block' });
 
     var product_block = "<div class=\"{{template_name}} {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\" data-inline-buy-url-base=\"//{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&a=inline_click&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}\" data-inline-buy-url=\"{{ inline_buy_url }}\" data-expandable=\"{{#config}}{{ expandable }}{{/config}}\" data-id=\"{{ id }}\" target=_blank itemprop=url title=\"Buy now: {{ name }}\"><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><div class=okanjo-product-price-container><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price }}</span></div><div class=okanjo-product-button-container><div class=okanjo-product-buy-button>Buy Now</div><meta property=url itemprop=url content=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\"></div>{{#sold_by}}<div class=okanjo-product-seller-container itemprop=seller itemscope=\"\" itemtype=http://schema.org/Organization><span><span class=okanjo-product-seller-intro>From</span>&#32;<span class=okanjo-product-seller itemprop=name title=\"{{ sold_by }}\">{{ sold_by }}</span></span></div>{{/sold_by}}</div><div class=\"okanjo-product-meta okanjo-visually-hidden\"><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"> {{! Okanjo impression tracking URL }} {{#impression_url}}<img src={{impression_url}} alt=\"\">{{/impression_url}}{{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul><div class=\"okanjo-product-meta okanjo-visually-hidden\"><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"></div></div>";
 
@@ -4429,7 +4468,7 @@ okanjo.mvc.registerTemplate("okanjo.error", "<span class=okanjo-error>{{ message
 
 
 
-okanjo.mvc.registerCss("product.sidebar", ".okanjo-product-sidebar{font:14px Helvetica,Arial,sans-serif;line-height:1.2em;border:1px solid #ccc;background-color:#fff;width:298px;height:auto}.okanjo-product-sidebar a{display:block;text-decoration:none}.okanjo-product-sidebar a:after,.okanjo-product-sidebar a:before{content:\" \";display:table}.okanjo-product-sidebar a:after{clear:both}.okanjo-product-sidebar .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-sidebar .okanjo-product{height:124px;width:298px;overflow:hidden;border-top:1px solid #eee}.okanjo-product-sidebar .okanjo-product:first-of-type{height:125px;border-top:none}.okanjo-product-sidebar .okanjo-product-image-container{height:105px;width:105px;margin:10px;float:left}.okanjo-product-sidebar .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-sidebar .okanjo-product-title-container{line-height:17px;overflow:hidden;height:51px;margin:10px 10px 0 0;word-break:break-all}.okanjo-product-sidebar .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-sidebar .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-ellipses:after{content:\"...\"}.okanjo-product-sidebar .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-sidebar .okanjo-product-price-container{display:inline-block;line-height:21px;font-weight:700;color:#333;margin-top:5px;margin-bottom:5px;margin-right:5px}.lt-ie8.okanjo-product-sidebar .okanjo-product-price-container{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-product-button-container{display:inline-block}.lt-ie8.okanjo-product-sidebar .okanjo-product-button-container{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px;display:inline-block;margin-top:5px}.lt-ie8.okanjo-product-sidebar .okanjo-product-buy-button{display:inline;zoom:1}.okanjo-product-sidebar a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-sidebar .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-sidebar .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-sidebar' });
+okanjo.mvc.registerCss("product.sidebar", ".okanjo-product-sidebar{font:14px Helvetica,Arial,sans-serif;line-height:1.2em;border:1px solid #ccc;background-color:#fff;width:298px;height:auto}.okanjo-product-sidebar a{display:block;text-decoration:none}.okanjo-product-sidebar a:after,.okanjo-product-sidebar a:before{content:\" \";display:table}.okanjo-product-sidebar a:after{clear:both}.okanjo-product-sidebar .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-sidebar .okanjo-product{height:123px;width:298px;overflow:hidden;border-top:1px solid #eee}.okanjo-product-sidebar .okanjo-product:first-of-type{height:124px;border-top:none}.okanjo-product-sidebar .okanjo-product-image-container{height:105px;width:105px;margin:10px;float:left}.okanjo-product-sidebar .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-sidebar .okanjo-product-title-container{line-height:17px;overflow:hidden;height:51px;margin:10px 10px 0 0;word-break:break-all}.okanjo-product-sidebar .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-sidebar .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-ellipses:after{content:\"...\"}.okanjo-product-sidebar .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-sidebar .okanjo-product-price-container{display:inline-block;line-height:21px;font-weight:700;color:#333;margin-top:5px;margin-bottom:5px;margin-right:5px}.lt-ie8.okanjo-product-sidebar .okanjo-product-price-container{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-product-button-container{display:inline-block}.lt-ie8.okanjo-product-sidebar .okanjo-product-button-container{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px;display:inline-block;margin-top:5px}.lt-ie8.okanjo-product-sidebar .okanjo-product-buy-button{display:inline;zoom:1}.okanjo-product-sidebar a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-sidebar .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-sidebar .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-sidebar' });
 
 // Note: Requires product.block.js for product_block content
 okanjo.mvc.registerTemplate("product.sidebar", product_block, function(data, options) {

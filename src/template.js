@@ -153,11 +153,12 @@
          * Renders a template with the given data
          *
          * @param {string} templateName – The template name to render
+         * @param {*} context – The context to execute the template under
          * @param {*} data – Data to pass into the controller
          * @param {*} [options] – Optional settings object to pass into the controller closure
          * @returns {*}
          */
-        render: function(templateName, data, options) {
+        render: function(templateName, context, data, options) {
 
             options = options || {};
             var template = this._templates[templateName],
@@ -165,7 +166,7 @@
 
             // If there's a data controller closure set, and if so, run the data through there
             if (template.viewClosure) {
-                view = template.viewClosure(data, options);
+                view = template.viewClosure.call(context, data, options);
             }
 
             // Attach globals

@@ -146,7 +146,7 @@
         } else if (this.config.content === Ad.contentTypes.dynamic && this.hasCreativeContent()) {
             console.warn('[Okanjo.Ad] Ad content is dynamic, but ad placement contains markup. Markup will be clobbered!');
         } else if (!Ad.contentTypes.hasOwnProperty(this.config.content)){
-            this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Invalid ad content: ' + this.config.content });
+            this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, this, { message: 'Invalid ad content: ' + this.config.content });
             okanjo.report(this.widgetName, 'Invalid ad content: ' + this.config.content);
             return false;
         }
@@ -193,7 +193,7 @@
 
             // Make sure an ID is set
             if (okanjo.util.empty(this.config.id)) {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Missing ad product id' });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, this, { message: 'Missing ad product id' });
                 okanjo.report(this.widgetName, 'Missing ad product id');
                 return false;
             }
@@ -206,7 +206,7 @@
                 // If creative, don't mess with the markup, just bind up the click / modal
                 this.insertCreativeWidget();
             } else {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Cannot render ad in content: ' + this.config.content });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, this, { message: 'Cannot render ad in content: ' + this.config.content });
                 okanjo.report(this.widgetName, 'Cannot render ad in content: ' + this.config.content);
                 return false;
             }
@@ -228,7 +228,7 @@
             i,
             fit = this.config.content == Ad.contentTypes.dynamic && !okanjo.util.empty(this.config.size);
 
-        div.innerHTML = okanjo.mvc.render(this.templates.ad_main, {
+        div.innerHTML = okanjo.mvc.render(this.templates.ad_main, this, {
             //products: data || this.items || [],
             config: this.config
         }, {
@@ -345,7 +345,7 @@
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
-            expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true",
+            expandable: this.config.expandable === undefined || (typeof this.config.expandable === "boolean" ? this.config.expandable : (""+this.config.expandable).toLowerCase() === "true"),
             metrics_context: "aw", // Set the context of the click to the Ad widget please!
             template_product_main: "product.single"
         };

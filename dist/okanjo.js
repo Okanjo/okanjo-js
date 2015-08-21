@@ -653,11 +653,12 @@
          * Renders a template with the given data
          *
          * @param {string} templateName – The template name to render
+         * @param {*} context – The context to execute the template under
          * @param {*} data – Data to pass into the controller
          * @param {*} [options] – Optional settings object to pass into the controller closure
          * @returns {*}
          */
-        render: function(templateName, data, options) {
+        render: function(templateName, context, data, options) {
 
             options = options || {};
             var template = this._templates[templateName],
@@ -665,7 +666,7 @@
 
             // If there's a data controller closure set, and if so, run the data through there
             if (template.viewClosure) {
-                view = template.viewClosure(data, options);
+                view = template.viewClosure.call(context, data, options);
             }
 
             // Attach globals
@@ -1119,6 +1120,43 @@ if (!Array.prototype.every) {
             k++;
         }
         return true;
+    };
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter
+if (!Array.prototype.filter) {
+    Array.prototype.filter = function(fun/*, thisArg*/) {
+        'use strict';
+
+        if (this === void 0 || this === null) {
+            throw new TypeError();
+        }
+
+        var t = Object(this),
+            len = t.length >>> 0;
+
+        if (typeof fun !== 'function') {
+            throw new TypeError();
+        }
+
+        var res = [],
+            thisArg = arguments.length >= 2 ? arguments[1] : void 0;
+        for (var i = 0; i < len; i++) {
+            if (i in t) {
+                var val = t[i];
+
+                // NOTE: Technically this should Object.defineProperty at
+                //       the next index, as push can be affected by
+                //       properties on Object.prototype and Array.prototype.
+                //       But that method's new, and collisions should be
+                //       rare, so use the more-compatible alternative.
+                if (fun.call(thisArg, val, i, t)) {
+                    res.push(val);
+                }
+            }
+        }
+
+        return res;
     };
 }
 
@@ -3036,7 +3074,7 @@ if (typeof JSON !== 'object') {
 
             // Still no key?
             if(!okanjo.util.empty(this.key)) {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.error, { message: 'Missing Okanjo key.' });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.error, this, { message: 'Missing Okanjo key.' });
                 okanjo.report(this.widgetName, 'Missing key. Define one using okanjo.configure or pass the key parameter as an option in the '+this.widgetName+' constructor');
                 return false;
             } else {
@@ -3173,7 +3211,8 @@ if (typeof JSON !== 'object') {
 
             // On second thought, we're not so nice
             var href = window.location.href,
-                stopPos = Math.min(href.indexOf('?'), href.indexOf('#'));
+                candidatePos = [href.indexOf('?'), href.indexOf('#')].filter(function(pos) { return pos >= 0; }),
+                stopPos = candidatePos.length > 0 ? Math.min.apply(null, candidatePos) : -1;
 
             return stopPos > 0 ? href.substr(0, stopPos) : href;
         },
@@ -3724,7 +3763,7 @@ if (typeof JSON !== 'object') {
             if (err) {
                 // Can't show anything, just render a generic error message
                 console.error('[Okanjo.'+self.widgetName+'] Failed to retrieve products.', err);
-                self.element.innerHTML = okanjo.mvc.render(self.templates.product_error, { message: 'Could not retrieve products.' });
+                self.element.innerHTML = okanjo.mvc.render(self.templates.product_error, self, { message: 'Could not retrieve products.' });
             } else {
                 // Store the products array locally
                 self.items = res.data;
@@ -3786,7 +3825,7 @@ if (typeof JSON !== 'object') {
         this.handleInlineBuyOption();
 
         // Render the product content!
-        this.element.innerHTML = okanjo.mvc.render(this.templates.product_main, {
+        this.element.innerHTML = okanjo.mvc.render(this.templates.product_main, this, {
             products: data || this.items || [],
             config: this.config
         });
@@ -4130,7 +4169,7 @@ if (typeof JSON !== 'object') {
         } else if (this.config.content === Ad.contentTypes.dynamic && this.hasCreativeContent()) {
             console.warn('[Okanjo.Ad] Ad content is dynamic, but ad placement contains markup. Markup will be clobbered!');
         } else if (!Ad.contentTypes.hasOwnProperty(this.config.content)){
-            this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Invalid ad content: ' + this.config.content });
+            this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, this, { message: 'Invalid ad content: ' + this.config.content });
             okanjo.report(this.widgetName, 'Invalid ad content: ' + this.config.content);
             return false;
         }
@@ -4177,7 +4216,7 @@ if (typeof JSON !== 'object') {
 
             // Make sure an ID is set
             if (okanjo.util.empty(this.config.id)) {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Missing ad product id' });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, this, { message: 'Missing ad product id' });
                 okanjo.report(this.widgetName, 'Missing ad product id');
                 return false;
             }
@@ -4190,7 +4229,7 @@ if (typeof JSON !== 'object') {
                 // If creative, don't mess with the markup, just bind up the click / modal
                 this.insertCreativeWidget();
             } else {
-                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, { message: 'Cannot render ad in content: ' + this.config.content });
+                this.element.innerHTML = okanjo.mvc.render(this.templates.ad_error, this, { message: 'Cannot render ad in content: ' + this.config.content });
                 okanjo.report(this.widgetName, 'Cannot render ad in content: ' + this.config.content);
                 return false;
             }
@@ -4212,7 +4251,7 @@ if (typeof JSON !== 'object') {
             i,
             fit = this.config.content == Ad.contentTypes.dynamic && !okanjo.util.empty(this.config.size);
 
-        div.innerHTML = okanjo.mvc.render(this.templates.ad_main, {
+        div.innerHTML = okanjo.mvc.render(this.templates.ad_main, this, {
             //products: data || this.items || [],
             config: this.config
         }, {
@@ -4329,7 +4368,7 @@ if (typeof JSON !== 'object') {
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
-            expandable: this.config.expandable === undefined || this.config.expandable.toLowerCase() === "true",
+            expandable: this.config.expandable === undefined || (typeof this.config.expandable === "boolean" ? this.config.expandable : (""+this.config.expandable).toLowerCase() === "true"),
             metrics_context: "aw", // Set the context of the click to the Ad widget please!
             template_product_main: "product.single"
         };
