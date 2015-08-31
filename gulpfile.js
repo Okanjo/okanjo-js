@@ -263,7 +263,8 @@ gulp.task('min-css-templates', function() {
             plugins: [autoprefix],
             paths: [ path.join(__dirname, 'templates' ) ]
         }))
-        .pipe(minifyCSS())
+        .pipe(gulp.dest('./build/templates/unminified'))
+        .pipe(minifyCSS({ compatibility: 'ie8,-units.pt' }))
         .pipe(gulp.dest('./build/templates/'))
 });
 

@@ -3,6 +3,15 @@
 
 When stuff changes, it's described here.
 
+## 2015-08-31 – v0.4.6
+
+General
+ * Updated minifyCSS compatibility to _not_ convert to points. https://github.com/jakubpawlowicz/clean-css/issues/654
+ * Added unminified dump of css for debugging to build directory
+ 
+Product Widget
+ * Changed word-break:break-all to word-wrap:brake-word for better text handling
+
 ## 2015-08-21 – v0.4.5
  * Core: Added Array.filter IE polyfill
  * Ad: Fixed an issue when setting expandable to a boolean value instead of stringified boolean
