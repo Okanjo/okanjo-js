@@ -3,6 +3,11 @@
 
 When stuff changes, it's described here.
 
+## 2015-09-01 - v0.4.7
+
+Product Widget
+ * Fixed clobbering of price on formatted product, causing duplicate currency formatting and ultimately showing as $0.00
+
 ## 2015-08-31 – v0.4.6
 
 General

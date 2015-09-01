@@ -738,7 +738,7 @@
                     //noinspection JSUnresolvedVariable
                     mixed.escaped_buy_url = encodeURIComponent(mixed.buy_url);
                     mixed.escaped_inline_buy_url = okanjo.util.empty(mixed.inline_buy_url) ? '' : encodeURIComponent(mixed.inline_buy_url);
-                    mixed.price = this.currency(mixed.price);
+                    mixed.price_formatted = this.currency(mixed.price);
                     return mixed;
                 } else { // Unknown value
                     return null;
