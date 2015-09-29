@@ -59,6 +59,13 @@
                     for( ; i < value.length; i++ ) {
                         data.push(encode(key) + '[]=' + encode(value[i]));
                     }
+                } else if (typeof value === "object") {
+                    // SINGLE DEPTH OBJECTS - no recursion
+                    for (var k in value) {
+                        if (value.hasOwnProperty(k)) {
+                            data.push(encode(key) + '['+encode(k)+']=' + encode(value[k]));
+                        }
+                    }
                 } else {
                     data.push(encode(key) + '=' + encode(value));
                 }
@@ -150,6 +157,7 @@
     };
 
     JSONP.requestCounter = 0;
+    JSONP.makeUrl = computedUrl;
 
     if ((typeof define !== "undefined" && define !== null) && define.amd) {
         define(function() {

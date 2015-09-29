@@ -29,6 +29,7 @@
         };
 
 
+    //noinspection JSUnusedGlobalSymbols
     WidgetBase.prototype = {
 
         widgetName: "BaseWidget",
@@ -60,9 +61,6 @@
 
             // Run the widget's main init logic, and  bail if needed
             if (!this.load()) return;
-
-            // Track the widget load
-            this.trackLoad();
 
             // Async clean the cache, if needed
             this.autoCleanCache();
@@ -171,16 +169,6 @@
             // TODO - override this on the actual wideget implementation
 
             return true;
-        },
-
-
-        /**
-         * Tracks the widget load metric
-         */
-        trackLoad: function() {
-            // If metrics doesn't exist in the Okanjo context for some reason, don't get bent out of shape about it
-            var loc = window.location;
-            okanjo.metrics.trackEvent('Okanjo '+this.widgetName+' Widget', 'Loaded', loc.protocol + '//' + loc.hostname + (loc.port ? (':' + loc.port) : '') + loc.pathname);
         },
 
 

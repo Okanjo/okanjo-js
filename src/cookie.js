@@ -9,7 +9,7 @@
             set: function(cookieName, value, expireDays) {
                 var expireDate = new Date();
                 expireDate.setDate(expireDate.getDate() + expireDays);
-                var cookieValue = encodeURI(value) + ((!expireDays) ? "" : "; expires=" + expireDate.toUTCString() + "; path=/");
+                var cookieValue = encodeURI(value) + ((!expireDays) ? "" : "; Expires=" + expireDate.toUTCString() + "; Path=/");
                 document.cookie = cookieName + "=" + cookieValue;
             },
             get: function(cookieName) {

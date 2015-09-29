@@ -1,10 +1,11 @@
-<div class="{{template_name}} {{classDetects}}">
+<div class="{{template_name}} okanjo-expansion-root {{classDetects}}">
     <ul class="okanjo-product-list" itemscope itemtype="http://schema.org/ItemList">
     {{#products}}
         <li class="okanjo-product" itemscope itemtype="http://schema.org/Product">
-            <a href="http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}"
-               data-inline-buy-url-base="//{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&a=inline_click&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}"
+            <a href="//{{okanjoMetricUrl}}/metrics/pr/int?ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}"
                data-inline-buy-url="{{ inline_buy_url }}"
+               data-buy-url="{{ buy_url }}"
+               data-metric-url="//{{okanjoMetricUrl}}/metrics/pr/int?id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}"
                data-expandable="{{#config}}{{ expandable }}{{/config}}"
                data-id="{{ id }}"
                target="_blank"
@@ -31,7 +32,6 @@
                     {{/sold_by}}
                 </div>
                 <div class="okanjo-product-meta okanjo-visually-hidden">
-                    <img src="{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}" alt=""> {{! Okanjo impression tracking URL }}
                     {{#impression_url}}<img src="{{impression_url}}" alt="">{{/impression_url}} <!-- Vendor impression tracking URL -->
                     {{#upc}}<span itemprop="productID">upc:{{upc}}</span>{{/upc}}
                     {{#manufacturer}}<span itemprop="manufacturer">{{manufacturer}}</span>{{/manufacturer}}
@@ -42,6 +42,5 @@
     </ul>
     <div class="okanjo-product-meta okanjo-visually-hidden">
         <!--suppress HtmlUnknownTarget -->
-        <img src="{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}" alt="">
     </div>
 </div>

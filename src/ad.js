@@ -213,6 +213,13 @@
 
         }
 
+        // Track ad widget load
+        okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
+            ch: okanjo.metrics.channel.ad_widget,
+            cx: this.config.content,
+            meta: this.config
+        });
+
         return true;
 
     };
@@ -266,12 +273,20 @@
             element: container,
             levels: [
                 this.config.key,
-                'aw',
+                okanjo.metrics.channel.ad_widget,
                 this.config.id
             ],
             slicers: [
                 window.location.hostname + window.location.pathname
             ]
+        });
+
+        // Track product impression
+        okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
+            id: this.config.id,
+            ch: okanjo.metrics.channel.ad_widget, // pw or aw
+            cx: this.config.content, // single, browse, sense | creative, dynamic
+            meta: this.config
         });
 
     };
@@ -346,7 +361,8 @@
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
             expandable: this.config.expandable === undefined || (typeof this.config.expandable === "boolean" ? this.config.expandable : (""+this.config.expandable).toLowerCase() === "true"),
-            metrics_context: "aw", // Set the context of the click to the Ad widget please!
+            metrics_context: okanjo.metrics.channel.ad_widget, // Set the context of the click to the Ad widget please!
+            metrics_channel_context: this.config.content, // Set the channel context to this widget's mode of operation (creative, dynamic)
             template_product_main: "product.single"
         };
 

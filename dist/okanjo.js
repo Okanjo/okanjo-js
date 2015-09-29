@@ -9,6 +9,7 @@
   }
 }(this, function() {
 
+//noinspection JSUnusedAssignment
 /**
  * index.js
  * @type {okanjo|*}
@@ -16,7 +17,7 @@
     var okanjo = okanjo || window.okanjo || (function(ok) {
 
 
-        //noinspection JSValidateTypes
+        //noinspection JSValidateTypes,JSUnusedGlobalSymbols
         var supportPageOffset = window.pageXOffset !== undefined,
             isCSS1Compatible = ((document.compatMode || "") === "CSS1Compat"),
             agent = window.navigator.userAgent,
@@ -46,7 +47,8 @@
                 routes: {
                     products: '/products',
                     products_id: '/products/:product_id',
-                    products_sense: '/products/sense'
+                    products_sense: '/products/sense',
+                    metrics: '/metrics/:object_type/:event_type'
                 },
 
 
@@ -422,11 +424,55 @@
                      */
                     isMobile: function() {
                         return okanjo.util.isiOS() || okanjo.util.isAndroid();
+                    },
+
+
+                    /**
+                     * Returns an object hashmap of query and hash parameters
+                     * @param {boolean} includeHashArguments - Whether to include the hash arguments, if any
+                     * @return {*}
+                     */
+                    getPageArguments: function(includeHashArguments) {
+
+                        var queryArgs = splitArguments(window.location.search.substring(window.location.search.indexOf('?') + 1));
+
+                        if (includeHashArguments) {
+                            var hashArgs = splitArguments(window.location.hash.substring(Math.max(window.location.hash.indexOf('#') + 1, window.location.hash.indexOf('#!') + 2)));
+                            for (var k in hashArgs) {
+                                if (hashArgs.hasOwnProperty(k)) {
+                                    queryArgs[k] = hashArgs[k];
+                                }
+                            }
+                        }
+
+                        return queryArgs;
                     }
 
                 }
 
             };
+
+        function splitArguments(query) {
+            var params = {},
+                ampSplit = query.split('&'),
+                i = 0,
+                temp, key, value, eqIndex;
+            for ( ; i < ampSplit.length; i++) {
+                temp = ampSplit[i];
+                eqIndex = temp.indexOf('=');
+                if (eqIndex < 0) {
+                    key = decodeURIComponent(temp);
+                    value = null;
+                } else {
+                    key = decodeURIComponent(temp.substring(0, eqIndex));
+                    value = decodeURIComponent(temp.substring(eqIndex + 1));
+                }
+                if (key) {
+                    params[key] = value;
+                }
+            }
+            return params;
+        }
 
         // Merge properties on existing okanjo object if exists
         if (ok) {
@@ -453,9 +499,6 @@
 
         // okanjo-ads api key
         key: undefined,
-
-        // Okanjo default UA code
-        analyticsId: 'UA-36849843-6',
 
         // Marketplace config
         marketplace: {
@@ -815,6 +858,13 @@
                     for( ; i < value.length; i++ ) {
                         data.push(encode(key) + '[]=' + encode(value[i]));
                     }
+                } else if (typeof value === "object") {
+                    // SINGLE DEPTH OBJECTS - no recursion
+                    for (var k in value) {
+                        if (value.hasOwnProperty(k)) {
+                            data.push(encode(key) + '['+encode(k)+']=' + encode(value[k]));
+                        }
+                    }
                 } else {
                     data.push(encode(key) + '=' + encode(value));
                 }
@@ -906,6 +956,7 @@
     };
 
     JSONP.requestCounter = 0;
+    JSONP.makeUrl = computedUrl;
 
     if ((typeof define !== "undefined" && define !== null) && define.amd) {
         define(function() {
@@ -1312,7 +1363,7 @@ if (!Array.prototype.filter) {
             set: function(cookieName, value, expireDays) {
                 var expireDate = new Date();
                 expireDate.setDate(expireDate.getDate() + expireDays);
-                var cookieValue = encodeURI(value) + ((!expireDays) ? "" : "; expires=" + expireDate.toUTCString() + "; path=/");
+                var cookieValue = encodeURI(value) + ((!expireDays) ? "" : "; Expires=" + expireDate.toUTCString() + "; Path=/");
                 document.cookie = cookieName + "=" + cookieValue;
             },
             get: function(cookieName) {
@@ -2825,93 +2876,263 @@ if (typeof JSON !== 'object') {
 //noinspection ThisExpressionReferencesGlobalObjectJS
 (function(okanjo, window) {
 
-    var metrics = okanjo.metrics = {
 
-        _trackers: {},
+    function OkanjoMetrics() {
 
-        events: {},
+        this.default_channel = this.channel.external;
 
-        addGoogleTracker: function(id, prefix) {
+        this._queue = [];
 
-            window._gaq = window._gaq || [];
+        var urlSid = okanjo.util.getPageArguments(true)[this.msid_key],
+            cookieSid = okanjo.Cookie.get(this.msid_key);
 
-            var _gaq = window._gaq;
+        // If for some reason, both are set, replace the cookie with the uri value (# CORRELATION)
+        if (urlSid && cookieSid && urlSid != cookieSid) {
+            this.trackEvent(this.object_type.metric_session, this.event_type.correlation, {
+                id: urlSid+"_"+cookieSid,
+                ch: this.default_channel,
+                _noProcess: true
+            });
+            okanjo.Cookie.set(this.msid_key, urlSid, this.msid_ttl);
+        }
 
-            if (!prefix) {
-                prefix = 'tracker_' + Object.keys(metrics._trackers).length;
+        this.sid = urlSid || cookieSid || null;
+
+        this._lastKey = undefined;
+
+        // Track the page view, but don't send it right away.
+        // Send it in one full second unless something else pushes an event
+        // This way, we have a chance that the api key get set globally
+        if (!window._NoOkanjoPageView) {
+            this.trackPageView({_noProcess:true});
+            var self = this;
+            setTimeout(function() {
+                self._processQueue();
+            }, 1000);
+        }
+    }
+
+    OkanjoMetrics.prototype = {
+
+        msid_key: "ok_msid",
+        msid_ttl: 1460,
+
+        strip_meta: ['key','callback','metrics_channel_context','metrics_context','mode'],
+
+        constructor: OkanjoMetrics,
+
+        event_type: {
+            view: 'vw',
+            impression: 'imp',
+            interaction: 'int',
+            correlation: 'cor'
+        },
+
+
+        action: {
+            click: "click",
+            inline_click: "inline_click"
+        },
+
+
+        object_type: {
+            page: 'pg',
+            widget: 'wg',
+            product: 'pr',
+            store: 'st',
+            cause: 'ca',
+            marketplace: 'mp',
+            order: 'or',
+            order_item: 'oi',
+            user: 'ur',
+            metric_session: 'mt'
+        },
+
+
+        channel: {
+            product_widget: 'pw',
+            ad_widget: 'aw',
+            store_widget: 'sw',
+            marketplace: 'mp',
+            external: 'ex'
+        },
+
+
+        environment: {
+            live: "live",
+            testing: "testing"
+        },
+
+
+        /**
+         * Reports an event
+         * @param {string} object_type
+         * @param {string} event_type
+         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, meta: object }} data
+         * @param callback
+         */
+        trackEvent: function(object_type, event_type, data, callback) {
+
+            data = data || {};
+            data.object_type = object_type;
+            data.event_type = event_type;
+
+            // Queue the event for publishing
+            this.push(data, callback);
+        },
+
+
+        /**
+         * Reports a page view
+         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, meta: object }} [data]
+         * @param callback
+         */
+        trackPageView: function(data, callback) {
+
+            data = data || {};
+
+            // Set the current page URL as the object id
+            data.id = window.location.href;
+
+            // Set the context to external unless instructed otherwise
+            data.ch = data.ch || this.default_channel;
+
+            // Track the event
+            this.trackEvent(this.object_type.page, this.event_type.view, data, callback);
+        },
+
+
+        /**
+         * Sends an event
+         * @param event
+         * @param callback
+         */
+        track: function(event, callback) {
+
+            if (!event || typeof event !== "object") { console.warn('[Okanjo.Metrics] event object data required'); return; }
+            if (!event.object_type) { console.warn('[Okanjo.Metrics] object_type required'); return; }
+            if (!event.event_type) { console.warn('[Okanjo.Metrics] event_type required'); return; }
+
+            var object_type = event.object_type,
+                event_type = event.event_type;
+
+            delete event.object_type;
+            delete event.event_type;
+
+            // Stick the key in there, if not already set
+            event.key = event.key || (event.meta && event.meta.key) || okanjo.key || this._lastKey || undefined;
+
+            // Stick the publisher session token in there too, if present
+            if (this.sid) {
+                event.sid = this.sid;
             }
 
-            _gaq.push(function() {
-                //noinspection JSUnresolvedVariable,JSUnresolvedFunction
-                window._gat._createTracker(id, prefix);
-            });
-
-            _gaq.push([prefix + '._setDomainName', window.location.host]);
-            _gaq.push([prefix+'._setAllowLinker', true]);
-        },
-
-
-        addDefaultTracker: function(prefix) {
-            metrics.addTracker(prefix, function(event_data) {
-
-                // Ensure event type
-                if(typeof event_data.type === 'undefined') {
-                    event_data.type = 'event';
+            // Clone the metadata, since it might be a direct reference to a widget property
+            // Deleting properties on the meta object could be very destructive
+            if (event.meta) {
+                var meta = {};
+                for(var i in event.meta) {
+                    if (event.meta.hasOwnProperty(i) && this.strip_meta.indexOf(i) < 0) {
+                        meta[i] = event.meta[i];
+                    }
                 }
+                event.meta = meta;
+            }
 
-                // Push the tracker
-                window._gaq.push([prefix+'.'+(event_data.type == 'pageview' ? '_trackPageview' : '_trackEvent')].concat(event_data.args));
+            // Make that key stick in case future events don't have an API key, we can get a fuzzy idea who's responsible for the event
+            // This is also useful for auto page load events, were there is no key defined at time the event was created
+            this._lastKey = event.key || this._lastKey || undefined;
+
+            okanjo.exec(okanjo.getRoute(okanjo.routes.metrics, { object_type: object_type, event_type: event_type }), event, function(err, res) {
+                if (err) { console.warn('[Okanjo.Metrics] Reporting failed', err, res); }
+
+                /*jslint -W030 */
+                callback && (callback(err, res));
             });
+
         },
 
 
-        addTracker: function(name, tracker) {
-            metrics._trackers[name] = tracker;
+        ///**
+        // * Generates the full URL to execute to track the metric. Useful for page redirection instead of straight tracking
+        // * @param object_type
+        // * @param event_type
+        // * @param data
+        // * @return {*}
+        // */
+        //getMetricUrl: function(object_type, event_type, data) {
+        //    return okanjo.JSONP.makeUrl({
+        //        url: okanjo.getRoute(okanjo.routes.metrics, { object_type: object_type, event_type: event_type }),
+        //        data: data
+        //    });
+        //},
+
+
+        /**
+         * Update the metric sid to live for 4 years if not present
+         * @param sid
+         */
+        updateSid: function(sid) {
+            if (!this.sid && sid) {
+                this.sid = sid;
+                okanjo.Cookie.set(this.msid_key, sid, this.msid_ttl);
+            }
         },
 
 
-        trackEvent: function() {
-            metrics.track({
-                'type' : 'event',
-                'args' : arguments
-            });
+        /**
+         * Queues an event for publishing
+         * @param event
+         * @param callback
+         */
+        push: function(event, callback) {
+            this._queue.push({ event: event, callback: callback });
+
+            // Start burning down the queue, unless the event says not to
+            if (event._noProcess) {
+                delete event._noProcess;
+            } else {
+                this._processQueue();
+            }
         },
 
 
-        trackPageView: function() {
-            this.track({
-                'type' : 'pageview',
-                'args' : arguments
-            });
-        },
+        /**
+         * Processes the event queue
+         * @private
+         */
+        _processQueue: function() {
+            // If the queue is not already being processed, and there's stuff to process, continue sending them
+            if (!this._processTimeout && this._queue.length > 0) {
+                var self = this;
+                this._processTimeout = setTimeout(function() {
 
+                    var item = self._queue.shift();
+                    if (item === undefined) {
+                        // Nothing in the queue, get outta here
+                        self._processTimeout = null;
+                    } else {
+                        // Track the item
+                        self.track(item.event, function(err, res) {
 
-        track: function(event_data) {
-            for(var prefix in metrics._trackers) {
-                if(metrics._trackers.hasOwnProperty(prefix)) {
-                    metrics._trackers[prefix](event_data);
-                }
+                            // Update / Set the metric sid on the publisher
+                            if (res && res.data && res.data.sid) self.updateSid(res.data.sid);
+
+                            // When the item is done being tracked, iterate to the next metric then fire it's callback if set
+                            self._processTimeout = null;
+                            self._processQueue();
+                            /*jslint -W030 */
+                            item.callback && item.callback(err, res);
+                        });
+                    }
+
+                }, 0);
             }
         }
 
     };
 
-    (function configure() {
-        okanjo.onDomReady(function() {
-            if (!document.getElementById('#okanjo-metrics')) {
-                var ga = document.createElement('script');
-                ga.type = 'text/javascript';
-                ga.async = true;
-                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-                ga.id = 'okanjo-metrics';
-
-                okanjo.qwery('body')[0].appendChild(ga);
-                metrics.addGoogleTracker(okanjo.config.analyticsId, 'okanjo');
-            }
-
-            metrics.addDefaultTracker('okanjo');
-        });
-    })();
+    okanjo.metrics = new OkanjoMetrics();
 
 })(okanjo, this);
 //noinspection JSUnusedLocalSymbols,ThisExpressionReferencesGlobalObjectJS
@@ -3013,6 +3234,7 @@ if (typeof JSON !== 'object') {
         };
 
 
+    //noinspection JSUnusedGlobalSymbols
     WidgetBase.prototype = {
 
         widgetName: "BaseWidget",
@@ -3044,9 +3266,6 @@ if (typeof JSON !== 'object') {
 
             // Run the widget's main init logic, and  bail if needed
             if (!this.load()) return;
-
-            // Track the widget load
-            this.trackLoad();
 
             // Async clean the cache, if needed
             this.autoCleanCache();
@@ -3155,16 +3374,6 @@ if (typeof JSON !== 'object') {
             // TODO - override this on the actual wideget implementation
 
             return true;
-        },
-
-
-        /**
-         * Tracks the widget load metric
-         */
-        trackLoad: function() {
-            // If metrics doesn't exist in the Okanjo context for some reason, don't get bent out of shape about it
-            var loc = window.location;
-            okanjo.metrics.trackEvent('Okanjo '+this.widgetName+' Widget', 'Loaded', loc.protocol + '//' + loc.hostname + (loc.port ? (':' + loc.port) : '') + loc.pathname);
         },
 
 
@@ -3582,6 +3791,7 @@ if (typeof JSON !== 'object') {
 
         // Allow changing the metrics context, e.g. embedded in an Ad widget
         this.config.metrics_context = config.metrics_context === undefined ? "pw" : config.metrics_context;
+        this.config.metrics_channel_context = config.metrics_channel_context === undefined ? null : config.metrics_channel_context;
 
         // Option to ignore inline buy functionality
         this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
@@ -3718,6 +3928,11 @@ if (typeof JSON !== 'object') {
                 }
             }
         }).call(this, ['pools','tags','category']);
+
+        // Set the metric context to the product mode, if not already set
+        if (this.config.metrics_channel_context === null) {
+            this.config.metrics_channel_context = this.config.mode;
+        }
         
         // Immediately show products from the local browser cache, if present, for immediate visual feedback
         if (this.config.use_cache && this.loadProductsFromCache()) {
@@ -3729,6 +3944,15 @@ if (typeof JSON !== 'object') {
         // Verify the disable param is not a string
         if (this.config.disable_inline_buy && typeof this.config.disable_inline_buy === "string") {
             this.disable_inline_buy = this.config.disable_inline_buy.toLowerCase() === "true";
+        }
+
+        // Track widget impression
+        if (this.config.metrics_context == okanjo.metrics.channel.product_widget) {
+            okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
+                ch: this.config.metrics_context, // pw or aw
+                cx: this.config.metrics_channel_context || this.config.mode, // single, browse, sense | creative, dynamic
+                meta: this.config
+            });
         }
 
         return true;
@@ -3853,7 +4077,7 @@ if (typeof JSON !== 'object') {
             }
         }
 
-        return base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline + joiner + pairs.join('&'));
+        return base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline + (pairs.length > 0 ? (joiner + pairs.join('&')) : ""));
     }
 
 
@@ -3865,13 +4089,19 @@ if (typeof JSON !== 'object') {
     Product.interactTile = function(e, trigger) {
 
         var inline = this.getAttribute('data-inline-buy-url'),
-            base = this.getAttribute('data-inline-buy-url-base'),
             expandable = this.getAttribute('data-expandable'),
             nativeBuy = !okanjo.util.empty(inline),
             doPopup = okanjo.util.isMobile() && nativeBuy,
             url = this.getAttribute('href'),
             inlineParams = {},
             expanded = false;
+
+        var id = this.getAttribute('id'),
+            buyUrl = this.getAttribute('data-buy-url'),
+            metricUrl = this.getAttribute('data-metric-url'),
+            modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid,
+            modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid;
+
 
         // Show a new window on applicable devices instead of a native buy experience
         if (doPopup) {
@@ -3883,15 +4113,16 @@ if (typeof JSON !== 'object') {
             //
 
             // Tell the buy experience that we're loading up in a popup, so they can render that nicely
-            url = makeFrameUrl(base, inline, { popup: 1 });
+            metricUrl += '&ea='+okanjo.metrics.action.inline_click;
+            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, { popup: 1 });
 
             okanjo.active_frame = window.open(url, "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
             if (!okanjo.active_frame) {
 
                 console.error('Popup blocker prevented new inline-buy experience from being displayed');
 
-                // fallback to an anchor click
-                if (trigger) { this.click(); }
+                // fallback to an anchor click using the inline buy url
+                this.href = url;
 
             } else {
                 e.preventDefault();
@@ -3938,9 +4169,12 @@ if (typeof JSON !== 'object') {
 
                 // Locate the parent ad container and attempt to shove the frame in there
                 // If it fails to do so, then resort to a modal, since expandable was set not on an ad, derp.
-                var parent = this.parentNode;
-                while(parent && parent.className.indexOf('okanjo-ad-container') < 0) {
-                    parent = parent.parentNode;
+                var candidate = this, parent = null;
+                while(candidate) {
+                    candidate = candidate.parentNode;
+                    if (candidate && candidate.className && candidate.className.indexOf('okanjo-expansion-root') >= 0) {
+                        parent = candidate;
+                    }
                 }
 
                 // If we have the parent ad unit container, then stick it in there, otherwise let it fallback to a modal
@@ -3961,7 +4195,9 @@ if (typeof JSON !== 'object') {
                 }
             }
 
-            url = makeFrameUrl(base, inline, inlineParams);
+            metricUrl += '&ea='+okanjo.metrics.action.inline_click;
+            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, inlineParams);
+
             frame.src = url;
 
             if (!expanded) {
@@ -3969,7 +4205,12 @@ if (typeof JSON !== 'object') {
             }
 
         } else if (trigger) {
+            metricUrl += '&ea='+okanjo.metrics.action.click;
+            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
             this.click();
+        } else {
+            metricUrl += '&ea='+okanjo.metrics.action.click;
+            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
         }
 
     };
@@ -3992,7 +4233,16 @@ if (typeof JSON !== 'object') {
             }
 
             // Only stick moat on the product widget if *not* embedded in another widget
-            if (self.config.metrics_context == "pw") {
+            if (self.config.metrics_context == okanjo.metrics.channel.product_widget) {
+
+                // Track product impression
+                okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
+                    id: a.getAttribute('data-id'),
+                    ch: self.config.metrics_context, // pw or aw
+                    cx: self.config.metrics_channel_context || self.config.mode, // single, browse, sense | creative, dynamic
+                    meta: self.config
+                });
+
                 self.trackMoat({
                     element: a,
                     levels: [
@@ -4236,6 +4486,13 @@ if (typeof JSON !== 'object') {
 
         }
 
+        // Track ad widget load
+        okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
+            ch: okanjo.metrics.channel.ad_widget,
+            cx: this.config.content,
+            meta: this.config
+        });
+
         return true;
 
     };
@@ -4289,12 +4546,20 @@ if (typeof JSON !== 'object') {
             element: container,
             levels: [
                 this.config.key,
-                'aw',
+                okanjo.metrics.channel.ad_widget,
                 this.config.id
             ],
             slicers: [
                 window.location.hostname + window.location.pathname
             ]
+        });
+
+        // Track product impression
+        okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
+            id: this.config.id,
+            ch: okanjo.metrics.channel.ad_widget, // pw or aw
+            cx: this.config.content, // single, browse, sense | creative, dynamic
+            meta: this.config
         });
 
     };
@@ -4369,7 +4634,8 @@ if (typeof JSON !== 'object') {
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
             expandable: this.config.expandable === undefined || (typeof this.config.expandable === "boolean" ? this.config.expandable : (""+this.config.expandable).toLowerCase() === "true"),
-            metrics_context: "aw", // Set the context of the click to the Ad widget please!
+            metrics_context: okanjo.metrics.channel.ad_widget, // Set the context of the click to the Ad widget please!
+            metrics_channel_context: this.config.content, // Set the channel context to this widget's mode of operation (creative, dynamic)
             template_product_main: "product.single"
         };
 

@@ -29,6 +29,7 @@
 
         // Allow changing the metrics context, e.g. embedded in an Ad widget
         this.config.metrics_context = config.metrics_context === undefined ? "pw" : config.metrics_context;
+        this.config.metrics_channel_context = config.metrics_channel_context === undefined ? null : config.metrics_channel_context;
 
         // Option to ignore inline buy functionality
         this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
@@ -165,6 +166,11 @@
                 }
             }
         }).call(this, ['pools','tags','category']);
+
+        // Set the metric context to the product mode, if not already set
+        if (this.config.metrics_channel_context === null) {
+            this.config.metrics_channel_context = this.config.mode;
+        }
         
         // Immediately show products from the local browser cache, if present, for immediate visual feedback
         if (this.config.use_cache && this.loadProductsFromCache()) {
@@ -176,6 +182,15 @@
         // Verify the disable param is not a string
         if (this.config.disable_inline_buy && typeof this.config.disable_inline_buy === "string") {
             this.disable_inline_buy = this.config.disable_inline_buy.toLowerCase() === "true";
+        }
+
+        // Track widget impression
+        if (this.config.metrics_context == okanjo.metrics.channel.product_widget) {
+            okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
+                ch: this.config.metrics_context, // pw or aw
+                cx: this.config.metrics_channel_context || this.config.mode, // single, browse, sense | creative, dynamic
+                meta: this.config
+            });
         }
 
         return true;
@@ -300,7 +315,7 @@
             }
         }
 
-        return base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline + joiner + pairs.join('&'));
+        return base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline + (pairs.length > 0 ? (joiner + pairs.join('&')) : ""));
     }
 
 
@@ -312,13 +327,19 @@
     Product.interactTile = function(e, trigger) {
 
         var inline = this.getAttribute('data-inline-buy-url'),
-            base = this.getAttribute('data-inline-buy-url-base'),
             expandable = this.getAttribute('data-expandable'),
             nativeBuy = !okanjo.util.empty(inline),
             doPopup = okanjo.util.isMobile() && nativeBuy,
             url = this.getAttribute('href'),
             inlineParams = {},
             expanded = false;
+
+        var id = this.getAttribute('id'),
+            buyUrl = this.getAttribute('data-buy-url'),
+            metricUrl = this.getAttribute('data-metric-url'),
+            modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid,
+            modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid;
+
 
         // Show a new window on applicable devices instead of a native buy experience
         if (doPopup) {
@@ -330,15 +351,16 @@
             //
 
             // Tell the buy experience that we're loading up in a popup, so they can render that nicely
-            url = makeFrameUrl(base, inline, { popup: 1 });
+            metricUrl += '&ea='+okanjo.metrics.action.inline_click;
+            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, { popup: 1 });
 
             okanjo.active_frame = window.open(url, "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
             if (!okanjo.active_frame) {
 
                 console.error('Popup blocker prevented new inline-buy experience from being displayed');
 
-                // fallback to an anchor click
-                if (trigger) { this.click(); }
+                // fallback to an anchor click using the inline buy url
+                this.href = url;
 
             } else {
                 e.preventDefault();
@@ -385,9 +407,12 @@
 
                 // Locate the parent ad container and attempt to shove the frame in there
                 // If it fails to do so, then resort to a modal, since expandable was set not on an ad, derp.
-                var parent = this.parentNode;
-                while(parent && parent.className.indexOf('okanjo-ad-container') < 0) {
-                    parent = parent.parentNode;
+                var candidate = this, parent = null;
+                while(candidate) {
+                    candidate = candidate.parentNode;
+                    if (candidate && candidate.className && candidate.className.indexOf('okanjo-expansion-root') >= 0) {
+                        parent = candidate;
+                    }
                 }
 
                 // If we have the parent ad unit container, then stick it in there, otherwise let it fallback to a modal
@@ -408,7 +433,9 @@
                 }
             }
 
-            url = makeFrameUrl(base, inline, inlineParams);
+            metricUrl += '&ea='+okanjo.metrics.action.inline_click;
+            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, inlineParams);
+
             frame.src = url;
 
             if (!expanded) {
@@ -416,7 +443,12 @@
             }
 
         } else if (trigger) {
+            metricUrl += '&ea='+okanjo.metrics.action.click;
+            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
             this.click();
+        } else {
+            metricUrl += '&ea='+okanjo.metrics.action.click;
+            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
         }
 
     };
@@ -439,7 +471,16 @@
             }
 
             // Only stick moat on the product widget if *not* embedded in another widget
-            if (self.config.metrics_context == "pw") {
+            if (self.config.metrics_context == okanjo.metrics.channel.product_widget) {
+
+                // Track product impression
+                okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
+                    id: a.getAttribute('data-id'),
+                    ch: self.config.metrics_context, // pw or aw
+                    cx: self.config.metrics_channel_context || self.config.mode, // single, browse, sense | creative, dynamic
+                    meta: self.config
+                });
+
                 self.trackMoat({
                     element: a,
                     levels: [

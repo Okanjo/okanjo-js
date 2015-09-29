@@ -9,6 +9,7 @@
   }
 }(this, function() {
 
+//noinspection JSUnusedAssignment
 /**
  * index.js
  * @type {okanjo|*}
@@ -16,7 +17,7 @@
     var okanjo = okanjo || window.okanjo || (function(ok) {
 
 
-        //noinspection JSValidateTypes
+        //noinspection JSValidateTypes,JSUnusedGlobalSymbols
         var supportPageOffset = window.pageXOffset !== undefined,
             isCSS1Compatible = ((document.compatMode || "") === "CSS1Compat"),
             agent = window.navigator.userAgent,
@@ -46,7 +47,8 @@
                 routes: {
                     products: '/products',
                     products_id: '/products/:product_id',
-                    products_sense: '/products/sense'
+                    products_sense: '/products/sense',
+                    metrics: '/metrics/:object_type/:event_type'
                 },
 
 
@@ -422,11 +424,55 @@
                      */
                     isMobile: function() {
                         return okanjo.util.isiOS() || okanjo.util.isAndroid();
+                    },
+
+
+                    /**
+                     * Returns an object hashmap of query and hash parameters
+                     * @param {boolean} includeHashArguments - Whether to include the hash arguments, if any
+                     * @return {*}
+                     */
+                    getPageArguments: function(includeHashArguments) {
+
+                        var queryArgs = splitArguments(window.location.search.substring(window.location.search.indexOf('?') + 1));
+
+                        if (includeHashArguments) {
+                            var hashArgs = splitArguments(window.location.hash.substring(Math.max(window.location.hash.indexOf('#') + 1, window.location.hash.indexOf('#!') + 2)));
+                            for (var k in hashArgs) {
+                                if (hashArgs.hasOwnProperty(k)) {
+                                    queryArgs[k] = hashArgs[k];
+                                }
+                            }
+                        }
+
+                        return queryArgs;
                     }
 
                 }
 
             };
+
+        function splitArguments(query) {
+            var params = {},
+                ampSplit = query.split('&'),
+                i = 0,
+                temp, key, value, eqIndex;
+            for ( ; i < ampSplit.length; i++) {
+                temp = ampSplit[i];
+                eqIndex = temp.indexOf('=');
+                if (eqIndex < 0) {
+                    key = decodeURIComponent(temp);
+                    value = null;
+                } else {
+                    key = decodeURIComponent(temp.substring(0, eqIndex));
+                    value = decodeURIComponent(temp.substring(eqIndex + 1));
+                }
+                if (key) {
+                    params[key] = value;
+                }
+            }
+            return params;
+        }
 
         // Merge properties on existing okanjo object if exists
         if (ok) {
@@ -453,9 +499,6 @@
 
         // okanjo-ads api key
         key: undefined,
-
-        // Okanjo default UA code
-        analyticsId: 'UA-36849843-6',
 
         // Marketplace config
         marketplace: {
@@ -815,6 +858,13 @@
                     for( ; i < value.length; i++ ) {
                         data.push(encode(key) + '[]=' + encode(value[i]));
                     }
+                } else if (typeof value === "object") {
+                    // SINGLE DEPTH OBJECTS - no recursion
+                    for (var k in value) {
+                        if (value.hasOwnProperty(k)) {
+                            data.push(encode(key) + '['+encode(k)+']=' + encode(value[k]));
+                        }
+                    }
                 } else {
                     data.push(encode(key) + '=' + encode(value));
                 }
@@ -906,6 +956,7 @@
     };
 
     JSONP.requestCounter = 0;
+    JSONP.makeUrl = computedUrl;
 
     if ((typeof define !== "undefined" && define !== null) && define.amd) {
         define(function() {
@@ -1312,7 +1363,7 @@ if (!Array.prototype.filter) {
             set: function(cookieName, value, expireDays) {
                 var expireDate = new Date();
                 expireDate.setDate(expireDate.getDate() + expireDays);
-                var cookieValue = encodeURI(value) + ((!expireDays) ? "" : "; expires=" + expireDate.toUTCString() + "; path=/");
+                var cookieValue = encodeURI(value) + ((!expireDays) ? "" : "; Expires=" + expireDate.toUTCString() + "; Path=/");
                 document.cookie = cookieName + "=" + cookieValue;
             },
             get: function(cookieName) {
@@ -2825,93 +2876,263 @@ if (typeof JSON !== 'object') {
 //noinspection ThisExpressionReferencesGlobalObjectJS
 (function(okanjo, window) {
 
-    var metrics = okanjo.metrics = {
 
-        _trackers: {},
+    function OkanjoMetrics() {
 
-        events: {},
+        this.default_channel = this.channel.external;
 
-        addGoogleTracker: function(id, prefix) {
+        this._queue = [];
 
-            window._gaq = window._gaq || [];
+        var urlSid = okanjo.util.getPageArguments(true)[this.msid_key],
+            cookieSid = okanjo.Cookie.get(this.msid_key);
 
-            var _gaq = window._gaq;
+        // If for some reason, both are set, replace the cookie with the uri value (# CORRELATION)
+        if (urlSid && cookieSid && urlSid != cookieSid) {
+            this.trackEvent(this.object_type.metric_session, this.event_type.correlation, {
+                id: urlSid+"_"+cookieSid,
+                ch: this.default_channel,
+                _noProcess: true
+            });
+            okanjo.Cookie.set(this.msid_key, urlSid, this.msid_ttl);
+        }
 
-            if (!prefix) {
-                prefix = 'tracker_' + Object.keys(metrics._trackers).length;
+        this.sid = urlSid || cookieSid || null;
+
+        this._lastKey = undefined;
+
+        // Track the page view, but don't send it right away.
+        // Send it in one full second unless something else pushes an event
+        // This way, we have a chance that the api key get set globally
+        if (!window._NoOkanjoPageView) {
+            this.trackPageView({_noProcess:true});
+            var self = this;
+            setTimeout(function() {
+                self._processQueue();
+            }, 1000);
+        }
+    }
+
+    OkanjoMetrics.prototype = {
+
+        msid_key: "ok_msid",
+        msid_ttl: 1460,
+
+        strip_meta: ['key','callback','metrics_channel_context','metrics_context','mode'],
+
+        constructor: OkanjoMetrics,
+
+        event_type: {
+            view: 'vw',
+            impression: 'imp',
+            interaction: 'int',
+            correlation: 'cor'
+        },
+
+
+        action: {
+            click: "click",
+            inline_click: "inline_click"
+        },
+
+
+        object_type: {
+            page: 'pg',
+            widget: 'wg',
+            product: 'pr',
+            store: 'st',
+            cause: 'ca',
+            marketplace: 'mp',
+            order: 'or',
+            order_item: 'oi',
+            user: 'ur',
+            metric_session: 'mt'
+        },
+
+
+        channel: {
+            product_widget: 'pw',
+            ad_widget: 'aw',
+            store_widget: 'sw',
+            marketplace: 'mp',
+            external: 'ex'
+        },
+
+
+        environment: {
+            live: "live",
+            testing: "testing"
+        },
+
+
+        /**
+         * Reports an event
+         * @param {string} object_type
+         * @param {string} event_type
+         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, meta: object }} data
+         * @param callback
+         */
+        trackEvent: function(object_type, event_type, data, callback) {
+
+            data = data || {};
+            data.object_type = object_type;
+            data.event_type = event_type;
+
+            // Queue the event for publishing
+            this.push(data, callback);
+        },
+
+
+        /**
+         * Reports a page view
+         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, meta: object }} [data]
+         * @param callback
+         */
+        trackPageView: function(data, callback) {
+
+            data = data || {};
+
+            // Set the current page URL as the object id
+            data.id = window.location.href;
+
+            // Set the context to external unless instructed otherwise
+            data.ch = data.ch || this.default_channel;
+
+            // Track the event
+            this.trackEvent(this.object_type.page, this.event_type.view, data, callback);
+        },
+
+
+        /**
+         * Sends an event
+         * @param event
+         * @param callback
+         */
+        track: function(event, callback) {
+
+            if (!event || typeof event !== "object") { console.warn('[Okanjo.Metrics] event object data required'); return; }
+            if (!event.object_type) { console.warn('[Okanjo.Metrics] object_type required'); return; }
+            if (!event.event_type) { console.warn('[Okanjo.Metrics] event_type required'); return; }
+
+            var object_type = event.object_type,
+                event_type = event.event_type;
+
+            delete event.object_type;
+            delete event.event_type;
+
+            // Stick the key in there, if not already set
+            event.key = event.key || (event.meta && event.meta.key) || okanjo.key || this._lastKey || undefined;
+
+            // Stick the publisher session token in there too, if present
+            if (this.sid) {
+                event.sid = this.sid;
             }
 
-            _gaq.push(function() {
-                //noinspection JSUnresolvedVariable,JSUnresolvedFunction
-                window._gat._createTracker(id, prefix);
-            });
-
-            _gaq.push([prefix + '._setDomainName', window.location.host]);
-            _gaq.push([prefix+'._setAllowLinker', true]);
-        },
-
-
-        addDefaultTracker: function(prefix) {
-            metrics.addTracker(prefix, function(event_data) {
-
-                // Ensure event type
-                if(typeof event_data.type === 'undefined') {
-                    event_data.type = 'event';
+            // Clone the metadata, since it might be a direct reference to a widget property
+            // Deleting properties on the meta object could be very destructive
+            if (event.meta) {
+                var meta = {};
+                for(var i in event.meta) {
+                    if (event.meta.hasOwnProperty(i) && this.strip_meta.indexOf(i) < 0) {
+                        meta[i] = event.meta[i];
+                    }
                 }
+                event.meta = meta;
+            }
 
-                // Push the tracker
-                window._gaq.push([prefix+'.'+(event_data.type == 'pageview' ? '_trackPageview' : '_trackEvent')].concat(event_data.args));
+            // Make that key stick in case future events don't have an API key, we can get a fuzzy idea who's responsible for the event
+            // This is also useful for auto page load events, were there is no key defined at time the event was created
+            this._lastKey = event.key || this._lastKey || undefined;
+
+            okanjo.exec(okanjo.getRoute(okanjo.routes.metrics, { object_type: object_type, event_type: event_type }), event, function(err, res) {
+                if (err) { console.warn('[Okanjo.Metrics] Reporting failed', err, res); }
+
+                /*jslint -W030 */
+                callback && (callback(err, res));
             });
+
         },
 
 
-        addTracker: function(name, tracker) {
-            metrics._trackers[name] = tracker;
+        ///**
+        // * Generates the full URL to execute to track the metric. Useful for page redirection instead of straight tracking
+        // * @param object_type
+        // * @param event_type
+        // * @param data
+        // * @return {*}
+        // */
+        //getMetricUrl: function(object_type, event_type, data) {
+        //    return okanjo.JSONP.makeUrl({
+        //        url: okanjo.getRoute(okanjo.routes.metrics, { object_type: object_type, event_type: event_type }),
+        //        data: data
+        //    });
+        //},
+
+
+        /**
+         * Update the metric sid to live for 4 years if not present
+         * @param sid
+         */
+        updateSid: function(sid) {
+            if (!this.sid && sid) {
+                this.sid = sid;
+                okanjo.Cookie.set(this.msid_key, sid, this.msid_ttl);
+            }
         },
 
 
-        trackEvent: function() {
-            metrics.track({
-                'type' : 'event',
-                'args' : arguments
-            });
+        /**
+         * Queues an event for publishing
+         * @param event
+         * @param callback
+         */
+        push: function(event, callback) {
+            this._queue.push({ event: event, callback: callback });
+
+            // Start burning down the queue, unless the event says not to
+            if (event._noProcess) {
+                delete event._noProcess;
+            } else {
+                this._processQueue();
+            }
         },
 
 
-        trackPageView: function() {
-            this.track({
-                'type' : 'pageview',
-                'args' : arguments
-            });
-        },
+        /**
+         * Processes the event queue
+         * @private
+         */
+        _processQueue: function() {
+            // If the queue is not already being processed, and there's stuff to process, continue sending them
+            if (!this._processTimeout && this._queue.length > 0) {
+                var self = this;
+                this._processTimeout = setTimeout(function() {
 
+                    var item = self._queue.shift();
+                    if (item === undefined) {
+                        // Nothing in the queue, get outta here
+                        self._processTimeout = null;
+                    } else {
+                        // Track the item
+                        self.track(item.event, function(err, res) {
 
-        track: function(event_data) {
-            for(var prefix in metrics._trackers) {
-                if(metrics._trackers.hasOwnProperty(prefix)) {
-                    metrics._trackers[prefix](event_data);
-                }
+                            // Update / Set the metric sid on the publisher
+                            if (res && res.data && res.data.sid) self.updateSid(res.data.sid);
+
+                            // When the item is done being tracked, iterate to the next metric then fire it's callback if set
+                            self._processTimeout = null;
+                            self._processQueue();
+                            /*jslint -W030 */
+                            item.callback && item.callback(err, res);
+                        });
+                    }
+
+                }, 0);
             }
         }
 
     };
 
-    (function configure() {
-        okanjo.onDomReady(function() {
-            if (!document.getElementById('#okanjo-metrics')) {
-                var ga = document.createElement('script');
-                ga.type = 'text/javascript';
-                ga.async = true;
-                ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-                ga.id = 'okanjo-metrics';
-
-                okanjo.qwery('body')[0].appendChild(ga);
-                metrics.addGoogleTracker(okanjo.config.analyticsId, 'okanjo');
-            }
-
-            metrics.addDefaultTracker('okanjo');
-        });
-    })();
+    okanjo.metrics = new OkanjoMetrics();
 
 })(okanjo, this);
 //noinspection JSUnusedLocalSymbols,ThisExpressionReferencesGlobalObjectJS
@@ -3013,6 +3234,7 @@ if (typeof JSON !== 'object') {
         };
 
 
+    //noinspection JSUnusedGlobalSymbols
     WidgetBase.prototype = {
 
         widgetName: "BaseWidget",
@@ -3044,9 +3266,6 @@ if (typeof JSON !== 'object') {
 
             // Run the widget's main init logic, and  bail if needed
             if (!this.load()) return;
-
-            // Track the widget load
-            this.trackLoad();
 
             // Async clean the cache, if needed
             this.autoCleanCache();
@@ -3155,16 +3374,6 @@ if (typeof JSON !== 'object') {
             // TODO - override this on the actual wideget implementation
 
             return true;
-        },
-
-
-        /**
-         * Tracks the widget load metric
-         */
-        trackLoad: function() {
-            // If metrics doesn't exist in the Okanjo context for some reason, don't get bent out of shape about it
-            var loc = window.location;
-            okanjo.metrics.trackEvent('Okanjo '+this.widgetName+' Widget', 'Loaded', loc.protocol + '//' + loc.hostname + (loc.port ? (':' + loc.port) : '') + loc.pathname);
         },
 
 
@@ -3582,6 +3791,7 @@ if (typeof JSON !== 'object') {
 
         // Allow changing the metrics context, e.g. embedded in an Ad widget
         this.config.metrics_context = config.metrics_context === undefined ? "pw" : config.metrics_context;
+        this.config.metrics_channel_context = config.metrics_channel_context === undefined ? null : config.metrics_channel_context;
 
         // Option to ignore inline buy functionality
         this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
@@ -3718,6 +3928,11 @@ if (typeof JSON !== 'object') {
                 }
             }
         }).call(this, ['pools','tags','category']);
+
+        // Set the metric context to the product mode, if not already set
+        if (this.config.metrics_channel_context === null) {
+            this.config.metrics_channel_context = this.config.mode;
+        }
         
         // Immediately show products from the local browser cache, if present, for immediate visual feedback
         if (this.config.use_cache && this.loadProductsFromCache()) {
@@ -3729,6 +3944,15 @@ if (typeof JSON !== 'object') {
         // Verify the disable param is not a string
         if (this.config.disable_inline_buy && typeof this.config.disable_inline_buy === "string") {
             this.disable_inline_buy = this.config.disable_inline_buy.toLowerCase() === "true";
+        }
+
+        // Track widget impression
+        if (this.config.metrics_context == okanjo.metrics.channel.product_widget) {
+            okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
+                ch: this.config.metrics_context, // pw or aw
+                cx: this.config.metrics_channel_context || this.config.mode, // single, browse, sense | creative, dynamic
+                meta: this.config
+            });
         }
 
         return true;
@@ -3853,7 +4077,7 @@ if (typeof JSON !== 'object') {
             }
         }
 
-        return base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline + joiner + pairs.join('&'));
+        return base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline + (pairs.length > 0 ? (joiner + pairs.join('&')) : ""));
     }
 
 
@@ -3865,13 +4089,19 @@ if (typeof JSON !== 'object') {
     Product.interactTile = function(e, trigger) {
 
         var inline = this.getAttribute('data-inline-buy-url'),
-            base = this.getAttribute('data-inline-buy-url-base'),
             expandable = this.getAttribute('data-expandable'),
             nativeBuy = !okanjo.util.empty(inline),
             doPopup = okanjo.util.isMobile() && nativeBuy,
             url = this.getAttribute('href'),
             inlineParams = {},
             expanded = false;
+
+        var id = this.getAttribute('id'),
+            buyUrl = this.getAttribute('data-buy-url'),
+            metricUrl = this.getAttribute('data-metric-url'),
+            modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid,
+            modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid;
+
 
         // Show a new window on applicable devices instead of a native buy experience
         if (doPopup) {
@@ -3883,15 +4113,16 @@ if (typeof JSON !== 'object') {
             //
 
             // Tell the buy experience that we're loading up in a popup, so they can render that nicely
-            url = makeFrameUrl(base, inline, { popup: 1 });
+            metricUrl += '&ea='+okanjo.metrics.action.inline_click;
+            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, { popup: 1 });
 
             okanjo.active_frame = window.open(url, "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
             if (!okanjo.active_frame) {
 
                 console.error('Popup blocker prevented new inline-buy experience from being displayed');
 
-                // fallback to an anchor click
-                if (trigger) { this.click(); }
+                // fallback to an anchor click using the inline buy url
+                this.href = url;
 
             } else {
                 e.preventDefault();
@@ -3938,9 +4169,12 @@ if (typeof JSON !== 'object') {
 
                 // Locate the parent ad container and attempt to shove the frame in there
                 // If it fails to do so, then resort to a modal, since expandable was set not on an ad, derp.
-                var parent = this.parentNode;
-                while(parent && parent.className.indexOf('okanjo-ad-container') < 0) {
-                    parent = parent.parentNode;
+                var candidate = this, parent = null;
+                while(candidate) {
+                    candidate = candidate.parentNode;
+                    if (candidate && candidate.className && candidate.className.indexOf('okanjo-expansion-root') >= 0) {
+                        parent = candidate;
+                    }
                 }
 
                 // If we have the parent ad unit container, then stick it in there, otherwise let it fallback to a modal
@@ -3961,7 +4195,9 @@ if (typeof JSON !== 'object') {
                 }
             }
 
-            url = makeFrameUrl(base, inline, inlineParams);
+            metricUrl += '&ea='+okanjo.metrics.action.inline_click;
+            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, inlineParams);
+
             frame.src = url;
 
             if (!expanded) {
@@ -3969,7 +4205,12 @@ if (typeof JSON !== 'object') {
             }
 
         } else if (trigger) {
+            metricUrl += '&ea='+okanjo.metrics.action.click;
+            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
             this.click();
+        } else {
+            metricUrl += '&ea='+okanjo.metrics.action.click;
+            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
         }
 
     };
@@ -3992,7 +4233,16 @@ if (typeof JSON !== 'object') {
             }
 
             // Only stick moat on the product widget if *not* embedded in another widget
-            if (self.config.metrics_context == "pw") {
+            if (self.config.metrics_context == okanjo.metrics.channel.product_widget) {
+
+                // Track product impression
+                okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
+                    id: a.getAttribute('data-id'),
+                    ch: self.config.metrics_context, // pw or aw
+                    cx: self.config.metrics_channel_context || self.config.mode, // single, browse, sense | creative, dynamic
+                    meta: self.config
+                });
+
                 self.trackMoat({
                     element: a,
                     levels: [
@@ -4236,6 +4486,13 @@ if (typeof JSON !== 'object') {
 
         }
 
+        // Track ad widget load
+        okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
+            ch: okanjo.metrics.channel.ad_widget,
+            cx: this.config.content,
+            meta: this.config
+        });
+
         return true;
 
     };
@@ -4289,12 +4546,20 @@ if (typeof JSON !== 'object') {
             element: container,
             levels: [
                 this.config.key,
-                'aw',
+                okanjo.metrics.channel.ad_widget,
                 this.config.id
             ],
             slicers: [
                 window.location.hostname + window.location.pathname
             ]
+        });
+
+        // Track product impression
+        okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
+            id: this.config.id,
+            ch: okanjo.metrics.channel.ad_widget, // pw or aw
+            cx: this.config.content, // single, browse, sense | creative, dynamic
+            meta: this.config
         });
 
     };
@@ -4369,7 +4634,8 @@ if (typeof JSON !== 'object') {
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
             expandable: this.config.expandable === undefined || (typeof this.config.expandable === "boolean" ? this.config.expandable : (""+this.config.expandable).toLowerCase() === "true"),
-            metrics_context: "aw", // Set the context of the click to the Ad widget please!
+            metrics_context: okanjo.metrics.channel.ad_widget, // Set the context of the click to the Ad widget please!
+            metrics_channel_context: this.config.content, // Set the channel context to this widget's mode of operation (creative, dynamic)
             template_product_main: "product.single"
         };
 
@@ -4426,9 +4692,9 @@ return okanjo;
 }));
 
 /*! okanjo-js v0.4.7 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
-(function(okanjo) {okanjo.mvc.registerCss("ad.block", ".okanjo-ad-block{position:relative}.okanjo-ad-block .okanjo-ad-dynamic-product .okanjo-product-list{margin:0;width:100%}.okanjo-ad-block .okanjo-ad-container iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-ad-block.okanjo-ad-fit{width:100%;height:100%;position:relative}.okanjo-ad-block.okanjo-ad-fit .okanjo-ad-container,.okanjo-ad-block.okanjo-ad-fit .okanjo-ad-dynamic-product,.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block,.okanjo-ad-block.okanjo-ad-fit .okanjo-product-list{height:100%;width:100%}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product{height:100%;width:100%;padding:0;box-sizing:border-box;margin:0}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-image-container{margin:.5em}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-title-container{height:auto;margin:1em .5em}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-price-container{position:absolute;bottom:.5em;background:#fff;padding:.25em 0 0;margin:0 1px 0 0;left:1px;right:1px}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block.lt-ie9 .okanjo-product-title-container:before{display:none}", { id: 'okanjo-ad-block' });
+(function(okanjo) {okanjo.mvc.registerCss("ad.block", ".okanjo-ad-block{position:relative}.okanjo-ad-block .okanjo-ad-dynamic-product .okanjo-product-list{margin:0;width:100%}.okanjo-ad-block.okanjo-ad-fit{width:100%;height:100%;position:relative}.okanjo-ad-block.okanjo-ad-fit .okanjo-ad-container,.okanjo-ad-block.okanjo-ad-fit .okanjo-ad-dynamic-product,.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block,.okanjo-ad-block.okanjo-ad-fit .okanjo-product-list{height:100%;width:100%}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product{height:100%;width:100%;padding:0;box-sizing:border-box;margin:0}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-image-container{margin:.5em}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-title-container{height:auto;margin:1em .5em}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-price-container{position:absolute;bottom:.5em;background:#fff;padding:.25em 0 0;margin:0 1px 0 0;left:1px;right:1px}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block.lt-ie9 .okanjo-product-title-container:before{display:none}", { id: 'okanjo-ad-block' });
 
-okanjo.mvc.registerTemplate("ad.block", "<div class=\"okanjo-ad-block {{classDetects}}\"><div class=okanjo-ad-container data-size={{size}}></div><div class=okanjo-ad-meta><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c=aw&cm={{#config}}{{ content }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"></div></div>", function(data, options) {
+okanjo.mvc.registerTemplate("ad.block", "<div class=\"okanjo-ad-block {{classDetects}}\"><div class=\"okanjo-ad-container okanjo-expansion-root\" data-size={{size}}></div><div class=okanjo-ad-meta></div></div>", function(data, options) {
     // Ensure params
     data = data || { config: {} };
     options = okanjo.util.clone(options);
@@ -4443,13 +4709,13 @@ okanjo.mvc.registerTemplate("ad.block", "<div class=\"okanjo-ad-block {{classDet
 
 
 okanjo.mvc.registerCss("okanjo.core", "", { id: 'okanjo-core' });
-okanjo.mvc.registerCss("okanjo.modal", "html.okanjo-modal-active{overflow:hidden!important}html.okanjo-modal-active body{overflow:hidden!important;margin:0}.okanjo-modal-margin-fix{margin-right:15px!important}.okanjo-modal-container{position:fixed;top:0;right:0;left:0;bottom:0;z-index:2147483647;background-color:rgba(0,0,0,.65);-webkit-transition-duration:210ms;transition-duration:210ms;-webkit-transition-property:background-color;transition-property:background-color}.okanjo-modal-container.lt-ie9{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNiWAoAAK4AqL41IDIAAAAASUVORK5CYII=)}.okanjo-modal-container.okanjo-modal-fade-out{background-color:rgba(0,0,0,0)}.okanjo-modal-container.okanjo-modal-fade-out .okanjo-modal-window{opacity:0;-webkit-transform:scale(.95,.95) translateY(50px);transform:scale(.95,.95) translateY(50px)}.okanjo-modal-container.okanjo-modal-hidden{display:none!important}.okanjo-modal-container .okanjo-modal-window{position:relative;max-width:900px;width:90%;background:0 0;margin:56px auto 40px;opacity:1;-webkit-transform:scale(1,1) translateY(0);transform:scale(1,1) translateY(0);-webkit-transition-duration:210ms;transition-duration:210ms;-webkit-transition-timing-function:cubic-bezier(.13,.025,.15,1.15);transition-timing-function:cubic-bezier(.13,.025,.15,1.15);-webkit-transition-property:-webkit-transform,opacity;transition-property:-webkit-transform,opacity}.okanjo-modal-container .okanjo-modal-window:after,.okanjo-modal-container .okanjo-modal-window:before{content:\" \";display:table}.okanjo-modal-container .okanjo-modal-window:after{clear:both}.okanjo-modal-container .okanjo-modal-window .okanjo-modal-header{padding-top:5px;padding-bottom:5px;border-bottom:1px solid #d7d7d7}.okanjo-modal-container .okanjo-modal-window .okanjo-modal-header img{height:50px;width:auto}.okanjo-modal-container .okanjo-modal-window-skin{width:auto;height:auto;box-shadow:0 10px 25px rgba(0,0,0,.5);position:absolute;background:#fff;border-radius:4px;top:0;bottom:0;left:0;right:0}.okanjo-modal-container .okanjo-modal-window-outer{position:absolute;top:15px;left:15px;bottom:15px;right:15px;vertical-align:top}.okanjo-modal-container .okanjo-modal-window-inner{position:relative;width:100%;height:100%;-webkit-overflow-scrolling:touch;overflow:auto}.okanjo-modal-container .okanjo-modal-window-inner iframe{height:100%;width:100%;margin-right:-15px}.okanjo-modal-container .okanjo-modal-close-button{color:#fff;cursor:pointer;position:absolute;right:0;top:-3pc;text-align:right;font-size:40px;line-height:1em;overflow:visible;width:40px;height:40px}", { id: 'okanjo-modal' });
+okanjo.mvc.registerCss("okanjo.modal", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}html.okanjo-modal-active{overflow:hidden!important}html.okanjo-modal-active body{overflow:hidden!important;margin:0}.okanjo-modal-margin-fix{margin-right:15px!important}.okanjo-modal-container{position:fixed;top:0;right:0;left:0;bottom:0;z-index:2147483647;background-color:rgba(0,0,0,.65);-webkit-transition-duration:210ms;transition-duration:210ms;-webkit-transition-property:background-color;transition-property:background-color}.okanjo-modal-container.lt-ie9{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNiWAoAAK4AqL41IDIAAAAASUVORK5CYII=)}.okanjo-modal-container.okanjo-modal-fade-out{background-color:rgba(0,0,0,0)}.okanjo-modal-container.okanjo-modal-fade-out .okanjo-modal-window{opacity:0;-webkit-transform:scale(.95,.95) translateY(50px);transform:scale(.95,.95) translateY(50px)}.okanjo-modal-container.okanjo-modal-hidden{display:none!important}.okanjo-modal-container .okanjo-modal-window{position:relative;max-width:900px;width:90%;background:0 0;margin:56px auto 40px;opacity:1;-webkit-transform:scale(1,1) translateY(0);transform:scale(1,1) translateY(0);-webkit-transition-duration:210ms;transition-duration:210ms;-webkit-transition-timing-function:cubic-bezier(.13,.025,.15,1.15);transition-timing-function:cubic-bezier(.13,.025,.15,1.15);-webkit-transition-property:-webkit-transform,opacity;transition-property:-webkit-transform,opacity}.okanjo-modal-container .okanjo-modal-window:after,.okanjo-modal-container .okanjo-modal-window:before{content:\" \";display:table}.okanjo-modal-container .okanjo-modal-window:after{clear:both}.okanjo-modal-container .okanjo-modal-window .okanjo-modal-header{padding-top:5px;padding-bottom:5px;border-bottom:1px solid #d7d7d7}.okanjo-modal-container .okanjo-modal-window .okanjo-modal-header img{height:50px;width:auto}.okanjo-modal-container .okanjo-modal-window-skin{width:auto;height:auto;box-shadow:0 10px 25px rgba(0,0,0,.5);position:absolute;background:#fff;border-radius:4px;top:0;bottom:0;left:0;right:0}.okanjo-modal-container .okanjo-modal-window-outer{position:absolute;top:15px;left:15px;bottom:15px;right:15px;vertical-align:top}.okanjo-modal-container .okanjo-modal-window-inner{position:relative;width:100%;height:100%;-webkit-overflow-scrolling:touch;overflow:auto}.okanjo-modal-container .okanjo-modal-window-inner iframe{height:100%;width:100%;margin-right:-15px}.okanjo-modal-container .okanjo-modal-close-button{color:#fff;cursor:pointer;position:absolute;right:0;top:-3pc;text-align:right;font-size:40px;line-height:1em;overflow:visible;width:40px;height:40px}", { id: 'okanjo-modal' });
 
 okanjo.mvc.registerTemplate("okanjo.error", "<span class=okanjo-error>{{ message }}</span> {{#code}} <span class=okanjo-error-code>Reference: {{ code }}</span> {{/code}}", { css: ['okanjo.core'] });
 
-    okanjo.mvc.registerCss("product.block", ".okanjo-product-block{font:14px Helvetica,Arial,sans-serif;line-height:1.2em}.okanjo-product-block a{display:block;text-decoration:none}.okanjo-product-block a:after,.okanjo-product-block a:before{content:\" \";display:table}.okanjo-product-block a:after{clear:both}.okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-block .okanjo-product{width:130px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:7px;margin:0 4px 1px 0;display:inline-block;box-shadow:1px 1px 1px 1px #eee;background-color:#fff;box-sizing:content-box}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:130px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-block .okanjo-product-title-container{line-height:17px;overflow:hidden;height:51px;margin:10px 0 0;word-wrap:break-word}.okanjo-product-block .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-block .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-block .okanjo-ellipses:after{content:\"...\"}.okanjo-product-block .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-block .okanjo-product-price-container{line-height:21px;font-weight:700;color:#333;margin-top:5px;margin-bottom:5px;margin-right:5px}.okanjo-product-block .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:-webkit-linear-gradient(top,#fff,#eee);background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);-webkit-transition:.1s;transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px}.okanjo-product-block a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-block .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-block .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-block' });
+    okanjo.mvc.registerCss("product.block", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-product-block{font:14px Helvetica,Arial,sans-serif;line-height:1.2em}.okanjo-product-block a{display:block;text-decoration:none}.okanjo-product-block a:after,.okanjo-product-block a:before{content:\" \";display:table}.okanjo-product-block a:after{clear:both}.okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-block .okanjo-product{width:130px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:7px;margin:0 4px 1px 0;display:inline-block;box-shadow:1px 1px 1px 1px #eee;background-color:#fff;box-sizing:content-box}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:130px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-block .okanjo-product-title-container{line-height:17px;overflow:hidden;height:51px;margin:10px 0 0;word-wrap:break-word}.okanjo-product-block .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-block .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-block .okanjo-ellipses:after{content:\"...\"}.okanjo-product-block .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-block .okanjo-product-price-container{line-height:21px;font-weight:700;color:#333;margin-top:5px;margin-bottom:5px;margin-right:5px}.okanjo-product-block .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:-webkit-linear-gradient(top,#fff,#eee);background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);-webkit-transition:.1s;transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px}.okanjo-product-block a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-block .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-block .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-block' });
 
-    var product_block = "<div class=\"{{template_name}} {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\" data-inline-buy-url-base=\"//{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&a=inline_click&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}\" data-inline-buy-url=\"{{ inline_buy_url }}\" data-expandable=\"{{#config}}{{ expandable }}{{/config}}\" data-id=\"{{ id }}\" target=_blank itemprop=url title=\"Buy now: {{ name }}\"><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><div class=okanjo-product-price-container><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price_formatted }}</span></div><div class=okanjo-product-button-container><div class=okanjo-product-buy-button>Buy Now</div><meta property=url itemprop=url content=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\"></div>{{#sold_by}}<div class=okanjo-product-seller-container itemprop=seller itemscope=\"\" itemtype=http://schema.org/Organization><span><span class=okanjo-product-seller-intro>From</span>&#32;<span class=okanjo-product-seller itemprop=name title=\"{{ sold_by }}\">{{ sold_by }}</span></span></div>{{/sold_by}}</div><div class=\"okanjo-product-meta okanjo-visually-hidden\"><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"> {{! Okanjo impression tracking URL }} {{#impression_url}}<img src={{impression_url}} alt=\"\">{{/impression_url}}{{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul><div class=\"okanjo-product-meta okanjo-visually-hidden\"><img src=\"{{#okanjoConfig}}{{#ads}}{{apiUri}}{{/ads}}{{/okanjoConfig}}/metrics/widgets?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{now}}\" alt=\"\"></div></div>";
+    var product_block = "<div class=\"{{template_name}} okanjo-expansion-root {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"//{{okanjoMetricUrl}}/metrics/pr/int?ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\" data-inline-buy-url=\"{{ inline_buy_url }}\" data-buy-url=\"{{ buy_url }}\" data-metric-url=\"//{{okanjoMetricUrl}}/metrics/pr/int?id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}\" data-expandable=\"{{#config}}{{ expandable }}{{/config}}\" data-id=\"{{ id }}\" target=_blank itemprop=url title=\"Buy now: {{ name }}\"><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><div class=okanjo-product-price-container><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price_formatted }}</span></div><div class=okanjo-product-button-container><div class=okanjo-product-buy-button>Buy Now</div><meta property=url itemprop=url content=\"http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\"></div>{{#sold_by}}<div class=okanjo-product-seller-container itemprop=seller itemscope=\"\" itemtype=http://schema.org/Organization><span><span class=okanjo-product-seller-intro>From</span>&#32;<span class=okanjo-product-seller itemprop=name title=\"{{ sold_by }}\">{{ sold_by }}</span></span></div>{{/sold_by}}</div><div class=\"okanjo-product-meta okanjo-visually-hidden\">{{#impression_url}}<img src={{impression_url}} alt=\"\">{{/impression_url}}{{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul><div class=\"okanjo-product-meta okanjo-visually-hidden\"></div></div>";
 
     okanjo.mvc.registerTemplate("product.block", product_block, function(data, options) {
         // Ensure params
@@ -4468,7 +4734,7 @@ okanjo.mvc.registerTemplate("okanjo.error", "<span class=okanjo-error>{{ message
 
 
 
-okanjo.mvc.registerCss("product.sidebar", ".okanjo-product-sidebar{font:14px Helvetica,Arial,sans-serif;line-height:1.2em;border:1px solid #ccc;background-color:#fff;width:298px;height:auto}.okanjo-product-sidebar a{display:block;text-decoration:none}.okanjo-product-sidebar a:after,.okanjo-product-sidebar a:before{content:\" \";display:table}.okanjo-product-sidebar a:after{clear:both}.okanjo-product-sidebar .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-sidebar .okanjo-product{height:123px;width:298px;overflow:hidden;border-top:1px solid #eee}.okanjo-product-sidebar .okanjo-product:first-of-type{height:124px;border-top:none}.okanjo-product-sidebar .okanjo-product-image-container{height:105px;width:105px;margin:10px;float:left}.okanjo-product-sidebar .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-sidebar .okanjo-product-title-container{line-height:17px;overflow:hidden;height:51px;margin:10px 10px 0 0;word-wrap:break-word}.okanjo-product-sidebar .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-sidebar .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-ellipses:after{content:\"...\"}.okanjo-product-sidebar .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-sidebar .okanjo-product-price-container{display:inline-block;line-height:21px;font-weight:700;color:#333;margin-top:5px;margin-bottom:5px;margin-right:5px}.lt-ie8.okanjo-product-sidebar .okanjo-product-price-container{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-product-button-container{display:inline-block}.lt-ie8.okanjo-product-sidebar .okanjo-product-button-container{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:-webkit-linear-gradient(top,#fff,#eee);background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);-webkit-transition:.1s;transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px;display:inline-block;margin-top:5px}.lt-ie8.okanjo-product-sidebar .okanjo-product-buy-button{display:inline;zoom:1}.okanjo-product-sidebar a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-sidebar .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-sidebar .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-sidebar' });
+okanjo.mvc.registerCss("product.sidebar", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-product-sidebar{font:14px Helvetica,Arial,sans-serif;line-height:1.2em;border:1px solid #ccc;background-color:#fff;width:298px;height:auto}.okanjo-product-sidebar a{display:block;text-decoration:none}.okanjo-product-sidebar a:after,.okanjo-product-sidebar a:before{content:\" \";display:table}.okanjo-product-sidebar a:after{clear:both}.okanjo-product-sidebar .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-sidebar .okanjo-product{height:123px;width:298px;overflow:hidden;border-top:1px solid #eee}.okanjo-product-sidebar .okanjo-product:first-of-type{height:124px;border-top:none}.okanjo-product-sidebar .okanjo-product-image-container{height:105px;width:105px;margin:10px;float:left}.okanjo-product-sidebar .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-sidebar .okanjo-product-title-container{line-height:17px;overflow:hidden;height:51px;margin:10px 10px 0 0;word-wrap:break-word}.okanjo-product-sidebar .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-sidebar .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-ellipses:after{content:\"...\"}.okanjo-product-sidebar .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-sidebar .okanjo-product-price-container{display:inline-block;line-height:21px;font-weight:700;color:#333;margin-top:5px;margin-bottom:5px;margin-right:5px}.lt-ie8.okanjo-product-sidebar .okanjo-product-price-container{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-product-button-container{display:inline-block}.lt-ie8.okanjo-product-sidebar .okanjo-product-button-container{display:inline;zoom:1}.okanjo-product-sidebar .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:-webkit-linear-gradient(top,#fff,#eee);background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);-webkit-transition:.1s;transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px;display:inline-block;margin-top:5px}.lt-ie8.okanjo-product-sidebar .okanjo-product-buy-button{display:inline;zoom:1}.okanjo-product-sidebar a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-sidebar .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-sidebar .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-sidebar' });
 
 // Note: Requires product.block.js for product_block content
 okanjo.mvc.registerTemplate("product.sidebar", product_block, function(data, options) {
@@ -4488,7 +4754,7 @@ okanjo.mvc.registerTemplate("product.sidebar", product_block, function(data, opt
     
 
 
-    okanjo.mvc.registerCss("product.single", ".okanjo-product-single{font:14px Helvetica,Arial,sans-serif;line-height:1.2em}.okanjo-product-single a{display:block;text-decoration:none}.okanjo-product-single a:after,.okanjo-product-single a:before{content:\" \";display:table}.okanjo-product-single a:after{clear:both}.okanjo-product-single .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-single .okanjo-product{width:284px;height:234px;padding:7px;overflow:hidden;text-align:center;border:1px solid #ccc;display:inline-block;background-color:#fff}.lt-ie8.okanjo-product-single .okanjo-product{display:inline;zoom:1}.okanjo-product-single .okanjo-product-image-container{height:113px}.okanjo-product-single .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-single .okanjo-product-title-container{line-height:17px;overflow:hidden;height:34px;margin:10px 0 0;word-wrap:break-word}.okanjo-product-single .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-single .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-single .okanjo-ellipses:after{content:\"...\"}.okanjo-product-single .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-single .okanjo-product-price-container{line-height:21px;font-weight:700;color:#333;margin-top:3px;margin-bottom:5px;margin-right:5px}.okanjo-product-single .okanjo-product-button-container{display:inline-block}.lt-ie8.okanjo-product-single .okanjo-product-button-container{display:inline;zoom:1}.okanjo-product-single .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:-webkit-linear-gradient(top,#fff,#eee);background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);-webkit-transition:.1s;transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px;display:inline-block}.lt-ie8.okanjo-product-single .okanjo-product-buy-button{display:inline;zoom:1}.okanjo-product-single a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-single .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-single .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-single' });
+    okanjo.mvc.registerCss("product.single", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-product-single{font:14px Helvetica,Arial,sans-serif;line-height:1.2em}.okanjo-product-single a{display:block;text-decoration:none}.okanjo-product-single a:after,.okanjo-product-single a:before{content:\" \";display:table}.okanjo-product-single a:after{clear:both}.okanjo-product-single .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-single .okanjo-product{width:284px;height:234px;padding:7px;overflow:hidden;text-align:center;border:1px solid #ccc;display:inline-block;background-color:#fff}.lt-ie8.okanjo-product-single .okanjo-product{display:inline;zoom:1}.okanjo-product-single .okanjo-product-image-container{height:113px}.okanjo-product-single .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-single .okanjo-product-title-container{line-height:17px;overflow:hidden;height:34px;margin:10px 0 0;word-wrap:break-word}.okanjo-product-single .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-single .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-single .okanjo-ellipses:after{content:\"...\"}.okanjo-product-single .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-single .okanjo-product-price-container{line-height:21px;font-weight:700;color:#333;margin-top:3px;margin-bottom:5px;margin-right:5px}.okanjo-product-single .okanjo-product-button-container{display:inline-block}.lt-ie8.okanjo-product-single .okanjo-product-button-container{display:inline;zoom:1}.okanjo-product-single .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:-webkit-linear-gradient(top,#fff,#eee);background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);-webkit-transition:.1s;transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px;display:inline-block}.lt-ie8.okanjo-product-single .okanjo-product-buy-button{display:inline;zoom:1}.okanjo-product-single a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-single .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-single .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-single' });
 
     // Note: Requires product.block.js for product_block content
     okanjo.mvc.registerTemplate("product.single", product_block, function(data, options) {

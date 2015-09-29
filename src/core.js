@@ -1,4 +1,5 @@
 
+//noinspection JSUnusedAssignment
 /**
  * index.js
  * @type {okanjo|*}
@@ -6,7 +7,7 @@
     var okanjo = okanjo || window.okanjo || (function(ok) {
 
 
-        //noinspection JSValidateTypes
+        //noinspection JSValidateTypes,JSUnusedGlobalSymbols
         var supportPageOffset = window.pageXOffset !== undefined,
             isCSS1Compatible = ((document.compatMode || "") === "CSS1Compat"),
             agent = window.navigator.userAgent,
@@ -36,7 +37,8 @@
                 routes: {
                     products: '/products',
                     products_id: '/products/:product_id',
-                    products_sense: '/products/sense'
+                    products_sense: '/products/sense',
+                    metrics: '/metrics/:object_type/:event_type'
                 },
 
 
@@ -412,11 +414,55 @@
                      */
                     isMobile: function() {
                         return okanjo.util.isiOS() || okanjo.util.isAndroid();
+                    },
+
+
+                    /**
+                     * Returns an object hashmap of query and hash parameters
+                     * @param {boolean} includeHashArguments - Whether to include the hash arguments, if any
+                     * @return {*}
+                     */
+                    getPageArguments: function(includeHashArguments) {
+
+                        var queryArgs = splitArguments(window.location.search.substring(window.location.search.indexOf('?') + 1));
+
+                        if (includeHashArguments) {
+                            var hashArgs = splitArguments(window.location.hash.substring(Math.max(window.location.hash.indexOf('#') + 1, window.location.hash.indexOf('#!') + 2)));
+                            for (var k in hashArgs) {
+                                if (hashArgs.hasOwnProperty(k)) {
+                                    queryArgs[k] = hashArgs[k];
+                                }
+                            }
+                        }
+
+                        return queryArgs;
                     }
 
                 }
 
             };
+
+        function splitArguments(query) {
+            var params = {},
+                ampSplit = query.split('&'),
+                i = 0,
+                temp, key, value, eqIndex;
+            for ( ; i < ampSplit.length; i++) {
+                temp = ampSplit[i];
+                eqIndex = temp.indexOf('=');
+                if (eqIndex < 0) {
+                    key = decodeURIComponent(temp);
+                    value = null;
+                } else {
+                    key = decodeURIComponent(temp.substring(0, eqIndex));
+                    value = decodeURIComponent(temp.substring(eqIndex + 1));
+                }
+                if (key) {
+                    params[key] = value;
+                }
+            }
+            return params;
+        }
 
         // Merge properties on existing okanjo object if exists
         if (ok) {

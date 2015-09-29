@@ -5,9 +5,6 @@
         // okanjo-ads api key
         key: undefined,
 
-        // Okanjo default UA code
-        analyticsId: 'UA-36849843-6',
-
         // Marketplace config
         marketplace: {
             uri: 'https://shop.okanjo.com',
