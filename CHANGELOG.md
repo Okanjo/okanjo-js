@@ -3,6 +3,35 @@
 
 When stuff changes, it's described here.
 
+## 2015-09-29 - v0.5.1
+
+Metrics
+ * Replaced janky GA metrics with new v2 library to report better quality events
+ * Added positioning information to widget and product impressions
+ 
+Ad Widget
+ * Added metrics v2 integration for widget load and product load
+ * Removed hardcoded channel references and used metrics constant
+ * Now sends the channel_context to the underlying product widget in addition to the channel
+ 
+Product Widget
+ * Added channel_context as something that can be set during initialization. Defaults do the product widget's mode if not set
+ * Added metrics v2 integration for widget load, product load, and product interaction
+ * Added support for non-expandable functionality in product widgets
+ * Removed hardcodded channel references and used metrics constant
+
+Base Widget
+ * Removed load tracking from the widget init process
+
+Core
+ * Added new route for reporting metrics without pixels
+ * Added util function to get the page query and hash arguments as an object
+ * Cookie: Capitalized the param names, looks nicer
+ * JSONP: Added better shallow serialization of objects and arrays
+ * JSONP: Exposed the url builder as `JSONP.makeUrl`
+ * Added util functions for getting an element's position and the page size
+ * Added util function for deep cloning an object with the option to merge properties into an existing array/object
+
 ## 2015-09-01 - v0.4.7
 
 Product Widget
