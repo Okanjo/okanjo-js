@@ -3,6 +3,19 @@
 
 When stuff changes, it's described here.
 
+## 2015-09-30 - v0.5.2
+
+Core
+ * Added util function to get the viewport size
+ * Exposed the objectToUri function in JSONP
+ 
+Product
+ * Added positional data and inline metrics to interactions
+ * Added missing sid passing to the metric url for interactions
+
+Metrics
+ * Added includeViewportInfo helper to return the viewport rectangle coordinates relative to the page
+
 ## 2015-09-29 - v0.5.1
 
 Metrics
