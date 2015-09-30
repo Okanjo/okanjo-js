@@ -276,6 +276,27 @@
             data.y2 = size.y2;
 
             return data;
+        },
+
+
+        /**
+         * Injects the viewport rectangle coordinates into the given data object
+         * @param data
+         * @return {*|{}}
+         */
+        includeViewportInfo: function(data) {
+
+            var vp = okanjo.util.getViewportSize(),
+                pos = okanjo.util.getScrollPosition();
+
+            data = data || {};
+
+            data.vx1 = pos.x;
+            data.vy1 = pos.y;
+            data.vx2 = data.vx1+vp.vw;
+            data.vy2 = data.vy1+vp.vh;
+
+            return data;
         }
 
     };

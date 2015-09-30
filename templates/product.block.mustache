@@ -2,7 +2,7 @@
     <ul class="okanjo-product-list" itemscope itemtype="http://schema.org/ItemList">
     {{#products}}
         <li class="okanjo-product" itemscope itemtype="http://schema.org/Product">
-            <a href="//{{okanjoMetricUrl}}/metrics/pr/int?ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}"
+            <a href="//{{okanjoMetricUrl}}/metrics/pr/int?m[bot]=true&id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}"
                data-inline-buy-url="{{ inline_buy_url }}"
                data-buy-url="{{ buy_url }}"
                data-metric-url="//{{okanjoMetricUrl}}/metrics/pr/int?id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}"
@@ -23,7 +23,7 @@
                     </div>
                     <div class="okanjo-product-button-container">
                         <div class="okanjo-product-buy-button">Buy Now</div>
-                        <meta property="url" itemprop="url" content="http://{{okanjoMetricUrl}}/metrics/{{ id }}?c={{#config}}{{ metrics_context }}{{/config}}&cm={{#config}}{{ mode }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}">
+                        <meta property="url" itemprop="url" content="//{{okanjoMetricUrl}}/metrics/pr/int?m[bot]=true&m[microdata]=true&id={{id}}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}">
                     </div>
                     {{#sold_by}}
                         <div class="okanjo-product-seller-container" itemprop="seller" itemscope itemtype="http://schema.org/Organization">

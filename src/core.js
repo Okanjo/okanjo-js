@@ -323,7 +323,7 @@
 
                     /**
                      * Gets the current page size
-                     * @return {{x: (Number|number), y: (Number|number)}}
+                     * @return {{w: number, h: number}}
                      */
                     getPageSize: function() {
                         var body = okanjo.qwery('body')[0],
@@ -335,6 +335,18 @@
 
                             h: Math.max( body.scrollHeight, body.offsetHeight,
                                 html.clientHeight, html.scrollHeight, html.offsetHeight )
+                        };
+                    },
+
+
+                    /**
+                     * Gets the current viewport size
+                     * @return {{vw: number, vh: number}}
+                     */
+                    getViewportSize: function() {
+                        return {
+                            vw: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
+                            vh: Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
                         };
                     },
 

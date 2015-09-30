@@ -332,11 +332,13 @@
             doPopup = okanjo.util.isMobile() && nativeBuy,
             url = this.getAttribute('href'),
             inlineParams = {},
-            expanded = false;
+            expanded = false,
 
-        var id = this.getAttribute('id'),
+            // Get positional data
+            meta = { m: okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(this))},
+            id = this.getAttribute('id'),
             buyUrl = this.getAttribute('data-buy-url'),
-            metricUrl = this.getAttribute('data-metric-url'),
+            metricUrl = this.getAttribute('data-metric-url') + '&sid=' + okanjo.metrics.sid + '&' + okanjo.JSONP.objectToURI(meta),
             modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid,
             modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid;
 
@@ -351,7 +353,7 @@
             //
 
             // Tell the buy experience that we're loading up in a popup, so they can render that nicely
-            metricUrl += '&ea='+okanjo.metrics.action.inline_click;
+            metricUrl += '&ea='+okanjo.metrics.action.inline_click + "&m[popup]=true";
             url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, { popup: 1 });
 
             okanjo.active_frame = window.open(url, "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
@@ -433,7 +435,7 @@
                 }
             }
 
-            metricUrl += '&ea='+okanjo.metrics.action.inline_click;
+            metricUrl += '&ea='+okanjo.metrics.action.inline_click + '&m[expandable]=' + (inlineParams.expandable === 1 ? 'true' : 'false');
             url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, inlineParams);
 
             frame.src = url;
@@ -450,7 +452,6 @@
             metricUrl += '&ea='+okanjo.metrics.action.click;
             this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
         }
-
     };
 
 

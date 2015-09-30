@@ -158,6 +158,7 @@
 
     JSONP.requestCounter = 0;
     JSONP.makeUrl = computedUrl;
+    JSONP.objectToURI = objectToURI;
 
     if ((typeof define !== "undefined" && define !== null) && define.amd) {
         define(function() {

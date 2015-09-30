@@ -333,7 +333,7 @@
 
                     /**
                      * Gets the current page size
-                     * @return {{x: (Number|number), y: (Number|number)}}
+                     * @return {{w: number, h: number}}
                      */
                     getPageSize: function() {
                         var body = okanjo.qwery('body')[0],
@@ -345,6 +345,18 @@
 
                             h: Math.max( body.scrollHeight, body.offsetHeight,
                                 html.clientHeight, html.scrollHeight, html.offsetHeight )
+                        };
+                    },
+
+
+                    /**
+                     * Gets the current viewport size
+                     * @return {{vw: number, vh: number}}
+                     */
+                    getViewportSize: function() {
+                        return {
+                            vw: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
+                            vh: Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
                         };
                     },
 
@@ -1020,6 +1032,7 @@
 
     JSONP.requestCounter = 0;
     JSONP.makeUrl = computedUrl;
+    JSONP.objectToURI = objectToURI;
 
     if ((typeof define !== "undefined" && define !== null) && define.amd) {
         define(function() {
@@ -3214,6 +3227,27 @@ if (typeof JSON !== 'object') {
             data.y2 = size.y2;
 
             return data;
+        },
+
+
+        /**
+         * Injects the viewport rectangle coordinates into the given data object
+         * @param data
+         * @return {*|{}}
+         */
+        includeViewportInfo: function(data) {
+
+            var vp = okanjo.util.getViewportSize(),
+                pos = okanjo.util.getScrollPosition();
+
+            data = data || {};
+
+            data.vx1 = pos.x;
+            data.vy1 = pos.y;
+            data.vx2 = data.vx1+vp.vw;
+            data.vy2 = data.vy1+vp.vh;
+
+            return data;
         }
 
     };
@@ -4180,11 +4214,13 @@ if (typeof JSON !== 'object') {
             doPopup = okanjo.util.isMobile() && nativeBuy,
             url = this.getAttribute('href'),
             inlineParams = {},
-            expanded = false;
+            expanded = false,
 
-        var id = this.getAttribute('id'),
+            // Get positional data
+            meta = { m: okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(this))},
+            id = this.getAttribute('id'),
             buyUrl = this.getAttribute('data-buy-url'),
-            metricUrl = this.getAttribute('data-metric-url'),
+            metricUrl = this.getAttribute('data-metric-url') + '&sid=' + okanjo.metrics.sid + '&' + okanjo.JSONP.objectToURI(meta),
             modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid,
             modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid;
 
@@ -4199,7 +4235,7 @@ if (typeof JSON !== 'object') {
             //
 
             // Tell the buy experience that we're loading up in a popup, so they can render that nicely
-            metricUrl += '&ea='+okanjo.metrics.action.inline_click;
+            metricUrl += '&ea='+okanjo.metrics.action.inline_click + "&m[popup]=true";
             url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, { popup: 1 });
 
             okanjo.active_frame = window.open(url, "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
@@ -4281,7 +4317,7 @@ if (typeof JSON !== 'object') {
                 }
             }
 
-            metricUrl += '&ea='+okanjo.metrics.action.inline_click;
+            metricUrl += '&ea='+okanjo.metrics.action.inline_click + '&m[expandable]=' + (inlineParams.expandable === 1 ? 'true' : 'false');
             url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, inlineParams);
 
             frame.src = url;
@@ -4298,7 +4334,6 @@ if (typeof JSON !== 'object') {
             metricUrl += '&ea='+okanjo.metrics.action.click;
             this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
         }
-
     };
 
 
