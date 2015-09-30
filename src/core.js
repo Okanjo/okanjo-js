@@ -304,6 +304,42 @@
 
 
                     /**
+                     * Gets the elements rectangle coordinates on the page
+                     * @param el - DOM Element
+                     * @return {{x1: *, y1: *, x2: *, y2: *}}
+                     */
+                    getElementPosition: function(el) {
+                        var rect = el.getBoundingClientRect(),
+                            pos = okanjo.util.getScrollPosition();
+
+                        return {
+                            x1: rect.left + pos.x,
+                            y1: rect.top + pos.y,
+                            x2: rect.right + pos.x,
+                            y2: rect.bottom + pos.y
+                        };
+                    },
+
+
+                    /**
+                     * Gets the current page size
+                     * @return {{x: (Number|number), y: (Number|number)}}
+                     */
+                    getPageSize: function() {
+                        var body = okanjo.qwery('body')[0],
+                            html = document.documentElement;
+
+                        return {
+                            w: Math.max( body.scrollWidth, body.offsetWidth,
+                                html.clientWidth, html.scrollWidth, html.offsetWidth ),
+
+                            h: Math.max( body.scrollHeight, body.offsetHeight,
+                                html.clientHeight, html.scrollHeight, html.offsetHeight )
+                        };
+                    },
+
+
+                    /**
                      * Splits the text in the element to fit within the visible height of its container, and separates with an ellipses
                      * @param {HTMLElement|Node} element – The DOM element containing the text to fit
                      * @param {HTMLElement} [container] – Optional container to compute fit on. Defaults to the element's parent
@@ -436,6 +472,33 @@
                         }
 
                         return queryArgs;
+                    },
+
+
+                    /**
+                     * Deep clones a thing
+                     * @param mixed Something to clone
+                     * @param [out] Optional object/array receiver if clone-merge is desirable. Just make sure the type matches the source
+                     * @return {*}
+                     */
+                    deepClone: function(mixed, out) {
+                        var i = 0, k;
+                        if (Array.isArray(mixed)) {
+                            out = out || [];
+                            for ( ; i < mixed.length; i++) {
+                                out.push(okanjo.util.deepClone(mixed[i]));
+                            }
+                        } else if (typeof mixed === "object") {
+                            out = out || {};
+                            for (k in mixed) {
+                                if (mixed.hasOwnProperty(k)) {
+                                    out[k] = okanjo.util.deepClone(mixed[k]);
+                                }
+                            }
+                        } else {
+                            out = mixed;
+                        }
+                        return out;
                     }
 
                 }

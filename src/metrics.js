@@ -93,7 +93,7 @@
          * Reports an event
          * @param {string} object_type
          * @param {string} event_type
-         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, meta: object }} data
+         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, m: object }} data
          * @param callback
          */
         trackEvent: function(object_type, event_type, data, callback) {
@@ -109,7 +109,7 @@
 
         /**
          * Reports a page view
-         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, meta: object }} [data]
+         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, m: object }} [data]
          * @param callback
          */
         trackPageView: function(data, callback) {
@@ -145,7 +145,7 @@
             delete event.event_type;
 
             // Stick the key in there, if not already set
-            event.key = event.key || (event.meta && event.meta.key) || okanjo.key || this._lastKey || undefined;
+            event.key = event.key || (event.m && event.m.key) || okanjo.key || this._lastKey || undefined;
 
             // Stick the publisher session token in there too, if present
             if (this.sid) {
@@ -154,14 +154,14 @@
 
             // Clone the metadata, since it might be a direct reference to a widget property
             // Deleting properties on the meta object could be very destructive
-            if (event.meta) {
+            if (event.m) {
                 var meta = {};
-                for(var i in event.meta) {
-                    if (event.meta.hasOwnProperty(i) && this.strip_meta.indexOf(i) < 0) {
-                        meta[i] = event.meta[i];
+                for(var i in event.m) {
+                    if (event.m.hasOwnProperty(i) && this.strip_meta.indexOf(i) < 0) {
+                        meta[i] = event.m[i];
                     }
                 }
-                event.meta = meta;
+                event.m = meta;
             }
 
             // Make that key stick in case future events don't have an API key, we can get a fuzzy idea who's responsible for the event
@@ -253,6 +253,29 @@
 
                 }, 0);
             }
+        },
+
+
+        /**
+         * Injects the elements box rectangle coordinates and page size into the given data object
+         * @param element
+         * @param [data]
+         * @return {*|{}}
+         */
+        includeElementInfo: function(element, data) {
+
+            var page = okanjo.util.getPageSize(),
+                size = okanjo.util.getElementPosition(element);
+
+            data = data || {};
+            data.pw = page.w;
+            data.ph = page.h;
+            data.x1 = size.x1;
+            data.y1 = size.y1;
+            data.x2 = size.x2;
+            data.y2 = size.y2;
+
+            return data;
         }
 
     };

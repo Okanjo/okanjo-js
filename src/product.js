@@ -189,7 +189,7 @@
             okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
                 ch: this.config.metrics_context, // pw or aw
                 cx: this.config.metrics_channel_context || this.config.mode, // single, browse, sense | creative, dynamic
-                meta: this.config
+                m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
             });
         }
 
@@ -478,7 +478,7 @@
                     id: a.getAttribute('data-id'),
                     ch: self.config.metrics_context, // pw or aw
                     cx: self.config.metrics_channel_context || self.config.mode, // single, browse, sense | creative, dynamic
-                    meta: self.config
+                    m: okanjo.util.deepClone(self.config, okanjo.metrics.includeElementInfo(a.parentNode))
                 });
 
                 self.trackMoat({

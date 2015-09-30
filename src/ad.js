@@ -217,7 +217,7 @@
         okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
             ch: okanjo.metrics.channel.ad_widget,
             cx: this.config.content,
-            meta: this.config
+            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
         });
 
         return true;
@@ -286,7 +286,7 @@
             id: this.config.id,
             ch: okanjo.metrics.channel.ad_widget, // pw or aw
             cx: this.config.content, // single, browse, sense | creative, dynamic
-            meta: this.config
+            me: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
         });
 
     };

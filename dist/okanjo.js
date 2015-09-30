@@ -1,4 +1,4 @@
-/*! okanjo-js v0.4.7 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.5.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -314,6 +314,42 @@
 
 
                     /**
+                     * Gets the elements rectangle coordinates on the page
+                     * @param el - DOM Element
+                     * @return {{x1: *, y1: *, x2: *, y2: *}}
+                     */
+                    getElementPosition: function(el) {
+                        var rect = el.getBoundingClientRect(),
+                            pos = okanjo.util.getScrollPosition();
+
+                        return {
+                            x1: rect.left + pos.x,
+                            y1: rect.top + pos.y,
+                            x2: rect.right + pos.x,
+                            y2: rect.bottom + pos.y
+                        };
+                    },
+
+
+                    /**
+                     * Gets the current page size
+                     * @return {{x: (Number|number), y: (Number|number)}}
+                     */
+                    getPageSize: function() {
+                        var body = okanjo.qwery('body')[0],
+                            html = document.documentElement;
+
+                        return {
+                            w: Math.max( body.scrollWidth, body.offsetWidth,
+                                html.clientWidth, html.scrollWidth, html.offsetWidth ),
+
+                            h: Math.max( body.scrollHeight, body.offsetHeight,
+                                html.clientHeight, html.scrollHeight, html.offsetHeight )
+                        };
+                    },
+
+
+                    /**
                      * Splits the text in the element to fit within the visible height of its container, and separates with an ellipses
                      * @param {HTMLElement|Node} element – The DOM element containing the text to fit
                      * @param {HTMLElement} [container] – Optional container to compute fit on. Defaults to the element's parent
@@ -446,6 +482,33 @@
                         }
 
                         return queryArgs;
+                    },
+
+
+                    /**
+                     * Deep clones a thing
+                     * @param mixed Something to clone
+                     * @param [out] Optional object/array receiver if clone-merge is desirable. Just make sure the type matches the source
+                     * @return {*}
+                     */
+                    deepClone: function(mixed, out) {
+                        var i = 0, k;
+                        if (Array.isArray(mixed)) {
+                            out = out || [];
+                            for ( ; i < mixed.length; i++) {
+                                out.push(okanjo.util.deepClone(mixed[i]));
+                            }
+                        } else if (typeof mixed === "object") {
+                            out = out || {};
+                            for (k in mixed) {
+                                if (mixed.hasOwnProperty(k)) {
+                                    out[k] = okanjo.util.deepClone(mixed[k]);
+                                }
+                            }
+                        } else {
+                            out = mixed;
+                        }
+                        return out;
                     }
 
                 }
@@ -2968,7 +3031,7 @@ if (typeof JSON !== 'object') {
          * Reports an event
          * @param {string} object_type
          * @param {string} event_type
-         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, meta: object }} data
+         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, m: object }} data
          * @param callback
          */
         trackEvent: function(object_type, event_type, data, callback) {
@@ -2984,7 +3047,7 @@ if (typeof JSON !== 'object') {
 
         /**
          * Reports a page view
-         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, meta: object }} [data]
+         * @param {{key: string, ea: string, id: string, ch: string, cx: string, url: string, env: string, m: object }} [data]
          * @param callback
          */
         trackPageView: function(data, callback) {
@@ -3020,7 +3083,7 @@ if (typeof JSON !== 'object') {
             delete event.event_type;
 
             // Stick the key in there, if not already set
-            event.key = event.key || (event.meta && event.meta.key) || okanjo.key || this._lastKey || undefined;
+            event.key = event.key || (event.m && event.m.key) || okanjo.key || this._lastKey || undefined;
 
             // Stick the publisher session token in there too, if present
             if (this.sid) {
@@ -3029,14 +3092,14 @@ if (typeof JSON !== 'object') {
 
             // Clone the metadata, since it might be a direct reference to a widget property
             // Deleting properties on the meta object could be very destructive
-            if (event.meta) {
+            if (event.m) {
                 var meta = {};
-                for(var i in event.meta) {
-                    if (event.meta.hasOwnProperty(i) && this.strip_meta.indexOf(i) < 0) {
-                        meta[i] = event.meta[i];
+                for(var i in event.m) {
+                    if (event.m.hasOwnProperty(i) && this.strip_meta.indexOf(i) < 0) {
+                        meta[i] = event.m[i];
                     }
                 }
-                event.meta = meta;
+                event.m = meta;
             }
 
             // Make that key stick in case future events don't have an API key, we can get a fuzzy idea who's responsible for the event
@@ -3128,6 +3191,29 @@ if (typeof JSON !== 'object') {
 
                 }, 0);
             }
+        },
+
+
+        /**
+         * Injects the elements box rectangle coordinates and page size into the given data object
+         * @param element
+         * @param [data]
+         * @return {*|{}}
+         */
+        includeElementInfo: function(element, data) {
+
+            var page = okanjo.util.getPageSize(),
+                size = okanjo.util.getElementPosition(element);
+
+            data = data || {};
+            data.pw = page.w;
+            data.ph = page.h;
+            data.x1 = size.x1;
+            data.y1 = size.y1;
+            data.x2 = size.x2;
+            data.y2 = size.y2;
+
+            return data;
         }
 
     };
@@ -3951,7 +4037,7 @@ if (typeof JSON !== 'object') {
             okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
                 ch: this.config.metrics_context, // pw or aw
                 cx: this.config.metrics_channel_context || this.config.mode, // single, browse, sense | creative, dynamic
-                meta: this.config
+                m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
             });
         }
 
@@ -4240,7 +4326,7 @@ if (typeof JSON !== 'object') {
                     id: a.getAttribute('data-id'),
                     ch: self.config.metrics_context, // pw or aw
                     cx: self.config.metrics_channel_context || self.config.mode, // single, browse, sense | creative, dynamic
-                    meta: self.config
+                    m: okanjo.util.deepClone(self.config, okanjo.metrics.includeElementInfo(a.parentNode))
                 });
 
                 self.trackMoat({
@@ -4490,7 +4576,7 @@ if (typeof JSON !== 'object') {
         okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
             ch: okanjo.metrics.channel.ad_widget,
             cx: this.config.content,
-            meta: this.config
+            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
         });
 
         return true;
@@ -4559,7 +4645,7 @@ if (typeof JSON !== 'object') {
             id: this.config.id,
             ch: okanjo.metrics.channel.ad_widget, // pw or aw
             cx: this.config.content, // single, browse, sense | creative, dynamic
-            meta: this.config
+            me: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
         });
 
     };
