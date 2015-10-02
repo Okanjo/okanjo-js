@@ -3,6 +3,15 @@
 
 When stuff changes, it's described here.
 
+## 2015-10-01 - v0.6.1
+
+Core
+ * Refactored core to set properties on global okanjo object instead of set and replace. Easier conflict resolution.
+ 
+Metrics
+ * Extracted automatic page view functionality to separate module for optional inclusion
+ * Added isolated build for metrics-only library, okanjo-metrics.js
+
 ## 2015-09-30 - v0.5.2
 
 Core

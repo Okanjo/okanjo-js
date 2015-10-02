@@ -25,16 +25,16 @@
 
         this._lastKey = undefined;
 
-        // Track the page view, but don't send it right away.
-        // Send it in one full second unless something else pushes an event
-        // This way, we have a chance that the api key get set globally
-        if (!window._NoOkanjoPageView) {
-            this.trackPageView({_noProcess:true});
-            var self = this;
-            setTimeout(function() {
-                self._processQueue();
-            }, 1000);
-        }
+        //// Track the page view, but don't send it right away.
+        //// Send it in one full second unless something else pushes an event
+        //// This way, we have a chance that the api key get set globally
+        //if (!window._NoOkanjoPageView) {
+        //    this.trackPageView({_noProcess:true});
+        //    var self = this;
+        //    setTimeout(function() {
+        //        self._processQueue();
+        //    }, 1000);
+        //}
     }
 
     OkanjoMetrics.prototype = {

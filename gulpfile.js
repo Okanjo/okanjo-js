@@ -67,9 +67,9 @@ var gulp = require('gulp'),
     autoprefix= new LessPluginAutoPrefix({ browsers: ["> 5%"] }),
 
     // Header
-    getHeader = function() {
+    getHeader = function(name) {
         var metadata = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-        return '/*! ' + metadata.name + ' v' + metadata.version + ' | (c) 2013 Okanjo Partners Inc | ' + metadata.homepage + ' */\n';
+        return '/*! ' + (name || metadata.name) + ' v' + metadata.version + ' | (c) 2013 Okanjo Partners Inc | ' + metadata.homepage + ' */\n';
     },
 
     // Version bump + dist update message
@@ -99,6 +99,7 @@ var gulp = require('gulp'),
 
         // Apps & Widgets
         'src/metrics.js',
+        'src/pageview.js',
         'src/moat.js',
         'src/widget.js',
         'src/modal.js',
@@ -135,13 +136,89 @@ var gulp = require('gulp'),
 
         'dist/okanjo-templates.js',
         'dist/okanjo-templates.min.js',
-        'dist/okanjo-templates.min.js.map'
+        'dist/okanjo-templates.min.js.map',
 
-    ]; //,
-    //
-    //modalFiles = [
-    //    'lib/modal/*.js'
-    //];
+        'dist/okanjo-metrics.js',
+        'dist/okanjo-metrics.min.js',
+        'dist/okanjo-metrics.min.js.map'
+
+    ],
+
+    metricsOnlyVendorFiles = [
+        'lib/qwery/qwery.js',
+        'lib/polyfill/domready.js'
+    ],
+
+    metricsOnlyBuildFiles = [
+
+        'src/core.js',
+        'src/config.js',
+        'src/jsonp.js',
+
+        // Internal dependencies & polyfills
+        'lib/polyfill/ie.js',
+        'lib/polyfill/console.js',
+        'src/cache.js',
+        'src/cookie.js',
+        'lib/polyfill/json2.js',
+
+        // External  dependencies & polyfills
+        'build/vendor-metrics.js',
+
+        // Apps & Widgets
+        'src/metrics.js'
+    ];
+
+//
+// OKANJO-METRICS.JS ===========================================================================================================
+//
+
+
+gulp.task('vendor-metrics', ['deps'], function() {
+    return gulp.src(metricsOnlyVendorFiles)
+        .pipe(concat('vendor-metrics.js'))
+        .pipe(wrap({ src: 'lib/vendor.js.tpl' }))
+        .pipe(gulp.dest('build'))
+});
+
+gulp.task('min-metrics', ['vendor-metrics'], function() {
+    var s1 = size(), s2 = size();
+    //noinspection JSUnusedGlobalSymbols
+    return gulp.src(metricsOnlyBuildFiles)
+        .pipe(sourcemaps.init())
+        .pipe(concat('okanjo-metrics.js'))
+        .pipe(umd({
+            exports: function() {
+                return 'okanjo';
+            },
+            namespace: function() {
+                return 'okanjo';
+            }
+        }))
+        .pipe(s1)
+        .pipe(insert.prepend(getHeader('okanjo-metrics.js')))
+        .pipe(gulp.dest('dist'))
+        .pipe(uglify({
+            preserveComments: 'some'
+        }))
+        .pipe(rename('okanjo-metrics.min.js'))
+        .pipe(s2)
+        .pipe(sourcemaps.write('../dist', { sourceRoot: './' }))
+        .pipe(gulp.dest('dist'))
+        .pipe(notify({
+            onLast: true,
+            message: function () {
+                //noinspection JSUnresolvedVariable
+                return 'Okanjo-Metrics.js – size: ' + s1.prettySize + ', minified: ' + s2.prettySize;
+            }
+        }));
+});
+
+gulp.task('fix-maps-metrics', ['min-metrics'], function() {
+    return gulp.src('dist/okanjo-metrics.min.js')
+        .pipe(replace(/sourceMappingURL=\.\.\/dist\//, 'sourceMappingURL='))
+        .pipe(gulp.dest('dist'));
+});
 
 //
 // OKANJO.JS ===========================================================================================================
@@ -483,5 +560,6 @@ gulp.task('deploy-preview', ['deploy-s3-preview', 'deploy-s3-preview-gz']);
 
 gulp.task('deploy', ['pre-deploy-bump', 'deploy-s3']);
 
+gulp.task('metrics', ['lint', 'min-metrics']);
 
 gulp.task('default', ['full-build', 'watch', 'watch-templates']);
