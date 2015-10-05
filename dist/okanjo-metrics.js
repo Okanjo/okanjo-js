@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v0.6.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v0.6.3 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -559,7 +559,7 @@
     var config = okanjo.config = okanjo.config || {};
 
     // okanjo-ads api key
-    config.key = undefined;
+    config.key = config.key || undefined;
 
         // Marketplace config
     config.marketplace = {
