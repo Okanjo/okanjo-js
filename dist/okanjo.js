@@ -556,30 +556,28 @@
 
 
 
+    var config = okanjo.config = okanjo.config || {};
 
-    okanjo.config = {
-
-        // okanjo-ads api key
-        key: undefined,
+    // okanjo-ads api key
+    config.key = undefined;
 
         // Marketplace config
-        marketplace: {
-            uri: 'https://shop.okanjo.com',
-            apiUri: 'https://api.okanjo.com',
-            routerUri: 'https://shop.okanjo.com/widgets/router/',
-            balancedMarketplacePath: '/v1/marketplaces/MP6vnNdXY7izEEVPs1gl7jSy',
-            socketIOUri: 'https://mke-rt.okanjo.com:13443'
-        },
+    config.marketplace = {
+        uri: 'https://shop.okanjo.com',
+        apiUri: 'https://api.okanjo.com',
+        routerUri: 'https://shop.okanjo.com/widgets/router/',
+        balancedMarketplacePath: '/v1/marketplaces/MP6vnNdXY7izEEVPs1gl7jSy',
+        socketIOUri: 'https://mke-rt.okanjo.com:13443'
+    };
 
         // Ads config
-        ads: {
-            apiUri: 'https://ads-api.okanjo.com'
-        },
+    config.ads = {
+        apiUri: 'https://ads-api.okanjo.com'
+    };
 
         // Moat Analytics config
-        moat: {
-            tag: 'okanjo969422799577'
-        }
+    config.moat = {
+        tag: 'okanjo969422799577'
     };
 
     /**
@@ -590,13 +588,13 @@
 
         // Merge keys
         Object.keys(options).every(function(root) {
-            if (okanjo.config[root] && typeof okanjo.config[root] === "object" && typeof options[root] === "object") {
+            if (config[root] && typeof config[root] === "object" && typeof options[root] === "object") {
                 Object.keys(options[root]).every(function(key) {
-                    okanjo.config[root][key] = options[root][options[key]];
+                    config[root][key] = options[root][options[key]];
                     return true;
                 });
             } else {
-                okanjo.config[root] = options[root];
+                config[root] = options[root];
             }
             return true;
         });

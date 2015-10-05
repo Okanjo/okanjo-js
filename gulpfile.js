@@ -552,6 +552,10 @@ gulp.task('watch-templates', function() {
     gulp.watch(['templates/*.js', 'templates/*.mustache', 'templates/*.less'], ['templatesjs', 'fix-maps']);
 });
 
+gulp.task('watch-metrics', function() {
+    gulp.watch(metricsOnlyBuildFiles, ['metrics']);
+});
+
 gulp.task('full-build', ['lint', 'min', 'templatesjs', 'bundle', 'fix-maps']);
 
 gulp.task('deploy-s3', ['deploy-s3-latest', 'deploy-s3-version', 'deploy-s3-latest-gz', 'deploy-s3-version-gz', 'deploy-s3-preview', 'deploy-s3-preview-gz']);
@@ -562,4 +566,4 @@ gulp.task('deploy', ['pre-deploy-bump', 'deploy-s3']);
 
 gulp.task('metrics', ['lint', 'min-metrics']);
 
-gulp.task('default', ['full-build', 'watch', 'watch-templates']);
+gulp.task('default', ['full-build', 'metrics', 'watch', 'watch-templates','watch-metrics']);
