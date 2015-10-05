@@ -2,7 +2,7 @@
     var config = okanjo.config = okanjo.config || {};
 
     // okanjo-ads api key
-    config.key = undefined;
+    config.key = config.key || undefined;
 
         // Marketplace config
     config.marketplace = {
