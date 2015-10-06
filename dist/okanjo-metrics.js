@@ -2211,7 +2211,7 @@ if (typeof JSON !== 'object') {
             data = data || {};
 
             // Set the current page URL as the object id
-            data.id = window.location.href;
+            data.id = data.id || window.location.href;
 
             // Set the context to external unless instructed otherwise
             data.ch = data.ch || this.default_channel;

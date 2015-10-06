@@ -3,9 +3,12 @@
 
 When stuff changes, it's described here.
 
+## 2015-10-06 - v0.6.4
+
+ * Allow overriding the page url in metrics trackPageView
+
 ## 2015-10-05 - v0.6.3
 
-Core
  * Refactored config to not clobber if it already exists, and merge properties instead.
  * Added metrics build into the default build pipeline
  * Allow the key to be set globally prior to loading okanjo-js
