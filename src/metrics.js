@@ -164,6 +164,11 @@
                 event.m = meta;
             }
 
+            // Pass the page's source reference
+            if (document.referrer) {
+                event.ref = document.referrer;
+            }
+
             // Make that key stick in case future events don't have an API key, we can get a fuzzy idea who's responsible for the event
             // This is also useful for auto page load events, were there is no key defined at time the event was created
             this._lastKey = event.key || this._lastKey || undefined;

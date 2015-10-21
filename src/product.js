@@ -175,6 +175,8 @@
         // Immediately show products from the local browser cache, if present, for immediate visual feedback
         if (this.config.use_cache && this.loadProductsFromCache()) {
             // Loaded from cache successfully!
+            // Notify integrations that the widget loaded
+            this.emit('load', { fromCache: true });
         } else {
             this.getProducts();
         }
@@ -226,9 +228,14 @@
                 // Can't show anything, just render a generic error message
                 console.error('[Okanjo.'+self.widgetName+'] Failed to retrieve products.', err);
                 self.element.innerHTML = okanjo.mvc.render(self.templates.product_error, self, { message: 'Could not retrieve products.' });
+                self.emit('error', err);
             } else {
                 // Store the products array locally
                 self.items = res.data;
+                self.numFound = res.numFound;
+
+                // Allow hooks when the response returns from the server
+                self.emit('data', res);
 
                 // Render the products
                 self.showProducts(self.items);
@@ -239,6 +246,8 @@
                     self.saveInCache(key, self.items);
                 }
 
+                // Allow hooks when the product widget finishes initialization
+                self.emit('load', { fromCache: false });
             }
         });
     };

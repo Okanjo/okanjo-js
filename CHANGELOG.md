@@ -3,6 +3,17 @@
 
 When stuff changes, it's described here.
 
+## 2015-10-21 - v0.6.5
+
+ * Added a new, super simple event emitter class, allowing objects to emit events and developers to hookup integrations to the widgets
+ * The base widget class now extends from event emitter. Refactored the base widget away from prototype = { ... }
+ * The product widget will emit the `data` event when the browse/sense/id call completes. The raw response will the only event parameter.
+ * The product widget will emit the `load` event when the widget completes initialization and products are rendered. The only event parameter is an object with property `fromCache` to indicate whether the widget used cached content or not.
+ * The product widget will emit the `error` event if the product data failed to be received. The error will be returned as the only event parameter.
+ * Added `numFound` property to the product widget
+ * Added referrer to metrics, when available
+ * Fixed an issue with IE being picky about getting positional rectangles of elements not attached to the DOM. Will now nag if this is the case.
+
 ## 2015-10-06 - v0.6.4
 
  * Allow overriding the page url in metrics trackPageView

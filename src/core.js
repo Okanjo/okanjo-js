@@ -311,15 +311,38 @@
          * @return {{x1: *, y1: *, x2: *, y2: *}}
          */
         util.getElementPosition = function(el) {
-            var rect = el.getBoundingClientRect(),
+
+            // Wrapped in try-catch because IE is super strict about the
+            // element being on the DOM before you call this. Other browsers
+            // let it slide, but oh well.
+            var rect, pos, errMsg = '[Okanjo Core] Could not get position of element. Did you attach the element to the DOM before initializing?';
+            try {
+                rect = el.getBoundingClientRect();
                 pos = util.getScrollPosition();
 
-            return {
-                x1: rect.left + pos.x,
-                y1: rect.top + pos.y,
-                x2: rect.right + pos.x,
-                y2: rect.bottom + pos.y
-            };
+                if (rect.left === 0 &&
+                    rect.top === 0 &&
+                    rect.right === 0 &&
+                    rect.bottom === 0) {
+                    console.warn(errMsg);
+                }
+
+                return {
+                    x1: rect.left + pos.x,
+                    y1: rect.top + pos.y,
+                    x2: rect.right + pos.x,
+                    y2: rect.bottom + pos.y
+                };
+            } catch (e) {
+                console.warn(errMsg, e);
+                return {
+                    x1: 0,
+                    y1: 0,
+                    x2: 0,
+                    y2: 0
+                };
+            }
+
         };
 
 
