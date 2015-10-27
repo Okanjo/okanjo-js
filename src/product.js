@@ -348,8 +348,9 @@
             id = this.getAttribute('id'),
             buyUrl = this.getAttribute('data-buy-url'),
             metricUrl = this.getAttribute('data-metric-url') + '&sid=' + okanjo.metrics.sid + '&' + okanjo.JSONP.objectToURI(meta),
-            modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid,
-            modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + "ok_msid=" + okanjo.metrics.sid;
+            passThroughParams = "ok_msid=" + okanjo.metrics.sid + '&ok_ch=' + this.getAttribute('data-channel') + '&ok_cx=' + this.getAttribute('data-context'),
+            modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + passThroughParams,
+            modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + passThroughParams;
 
 
         // Show a new window on applicable devices instead of a native buy experience

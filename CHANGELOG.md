@@ -3,6 +3,11 @@
 
 When stuff changes, it's described here.
 
+## 2015-10-27 - v0.6.6
+
+ * Metrics: Automatically passes the source channel and context if provided in the page's url on events emitted by the page
+ * Product Widget: Pass through the widget channel and context when loading the buy_url or inline_buy_url so events can be properly attributed to the original source.
+
 ## 2015-10-21 - v0.6.5
 
  * Added a new, super simple event emitter class, allowing objects to emit events and developers to hookup integrations to the widgets

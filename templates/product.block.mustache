@@ -7,6 +7,8 @@
                data-buy-url="{{ buy_url }}"
                data-metric-url="//{{okanjoMetricUrl}}/metrics/pr/int?id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}"
                data-expandable="{{#config}}{{ expandable }}{{/config}}"
+               data-channel="{{#config}}{{ metrics_context }}{{/config}}"
+               data-context="{{#config}}{{ metrics_channel_context }}{{/config}}"
                data-id="{{ id }}"
                target="_blank"
                itemprop="url"

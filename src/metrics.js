@@ -8,8 +8,11 @@
 
         this._queue = [];
 
-        var urlSid = okanjo.util.getPageArguments(true)[this.msid_key],
-            cookieSid = okanjo.Cookie.get(this.msid_key);
+        var pageArgs = okanjo.util.getPageArguments(true),
+            urlSid = pageArgs[this.msid_key],
+            cookieSid = okanjo.Cookie.get(this.msid_key),
+            sourceContext = pageArgs[this.source_cx],
+            sourceChannel = pageArgs[this.source_ch];
 
         // If for some reason, both are set, replace the cookie with the uri value (# CORRELATION)
         if (urlSid && cookieSid && urlSid != cookieSid) {
@@ -22,6 +25,8 @@
         }
 
         this.sid = urlSid || cookieSid || null;
+        this.sourceCh = sourceChannel || null;
+        this.sourceCx = sourceContext || null;
 
         this._lastKey = undefined;
 
@@ -40,6 +45,8 @@
     OkanjoMetrics.prototype = {
 
         msid_key: "ok_msid",
+        source_cx: "ok_cx",
+        source_ch: "ok_ch",
         msid_ttl: 1460,
 
         strip_meta: ['key','callback','metrics_channel_context','metrics_context','mode'],
@@ -162,6 +169,16 @@
                     }
                 }
                 event.m = meta;
+            }
+
+            // If we were referred through a particular channel/context, then hold on to that for events emitted by this page
+            if (this.sourceCh || this.sourceCx) {
+                if (!event.m) {
+                    event.m = {};
+                }
+
+                if (this.sourceCh) { event.m.ref_ch = this.sourceCh; }
+                if (this.sourceCx) { event.m.ref_cx = this.sourceCx; }
             }
 
             // Pass the page's source reference
