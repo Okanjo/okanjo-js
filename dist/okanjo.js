@@ -330,10 +330,7 @@
                 rect = el.getBoundingClientRect();
                 pos = util.getScrollPosition();
 
-                if (rect.left === 0 &&
-                    rect.top === 0 &&
-                    rect.right === 0 &&
-                    rect.bottom === 0) {
+                if (!document.contains(el)) {
                     console.warn(errMsg);
                 }
 
@@ -2988,17 +2985,6 @@ if (typeof JSON !== 'object') {
         this.sourceCx = sourceContext || null;
 
         this._lastKey = undefined;
-
-        //// Track the page view, but don't send it right away.
-        //// Send it in one full second unless something else pushes an event
-        //// This way, we have a chance that the api key get set globally
-        //if (!window._NoOkanjoPageView) {
-        //    this.trackPageView({_noProcess:true});
-        //    var self = this;
-        //    setTimeout(function() {
-        //        self._processQueue();
-        //    }, 1000);
-        //}
     }
 
     OkanjoMetrics.prototype = {
@@ -3067,6 +3053,10 @@ if (typeof JSON !== 'object') {
             data = data || {};
             data.object_type = object_type;
             data.event_type = event_type;
+
+            // Make the key stick in case future events don't have an API key, we can get a fuzzy idea who's responsible for the event
+            // This is also useful for auto page load events, were there is no key defined at time the event was created
+            this._lastKey = data.key || data.key || (data.m && data.m.key) || okanjo.key || this._lastKey || undefined;
 
             // Queue the event for publishing
             this.push(data, callback);
@@ -3144,10 +3134,6 @@ if (typeof JSON !== 'object') {
             if (document.referrer) {
                 event.ref = document.referrer;
             }
-
-            // Make that key stick in case future events don't have an API key, we can get a fuzzy idea who's responsible for the event
-            // This is also useful for auto page load events, were there is no key defined at time the event was created
-            this._lastKey = event.key || this._lastKey || undefined;
 
             okanjo.exec(okanjo.getRoute(okanjo.routes.metrics, { object_type: object_type, event_type: event_type }), event, function(err, res) {
                 if (err) { console.warn('[Okanjo.Metrics] Reporting failed', err, res); }
@@ -4685,6 +4671,13 @@ if (typeof JSON !== 'object') {
             this.disable_inline_buy = this.config.disable_inline_buy.toLowerCase() === "true";
         }
 
+        // Track ad widget load
+        okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
+            ch: okanjo.metrics.channel.ad_widget,
+            cx: this.config.content,
+            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
+        });
+
         //
         // Ensure target id, and RENDER IT!
         //
@@ -4712,13 +4705,6 @@ if (typeof JSON !== 'object') {
             }
 
         }
-
-        // Track ad widget load
-        okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
-            ch: okanjo.metrics.channel.ad_widget,
-            cx: this.config.content,
-            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
-        });
 
         return true;
 
@@ -4786,7 +4772,7 @@ if (typeof JSON !== 'object') {
             id: this.config.id,
             ch: okanjo.metrics.channel.ad_widget, // pw or aw
             cx: this.config.content, // single, browse, sense | creative, dynamic
-            me: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
+            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
         });
 
     };

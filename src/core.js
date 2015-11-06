@@ -320,10 +320,7 @@
                 rect = el.getBoundingClientRect();
                 pos = util.getScrollPosition();
 
-                if (rect.left === 0 &&
-                    rect.top === 0 &&
-                    rect.right === 0 &&
-                    rect.bottom === 0) {
+                if (!document.contains(el)) {
                     console.warn(errMsg);
                 }
 

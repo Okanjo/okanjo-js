@@ -3,6 +3,19 @@
 
 When stuff changes, it's described here.
 
+## 2015-11-06 - v0.6.7
+
+Ad Widget
+  * Reordered widget impression to fire before product impression
+  * Fixed bad metadata in product impression event
+  
+Core
+ * Better error detection for detached elements when getting element position
+ 
+Metrics
+ * Enhanced key detection when not setting a key globally
+ 
+
 ## 2015-10-27 - v0.6.6
 
  * Metrics: Automatically passes the source channel and context if provided in the page's url on events emitted by the page

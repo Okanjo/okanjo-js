@@ -29,17 +29,6 @@
         this.sourceCx = sourceContext || null;
 
         this._lastKey = undefined;
-
-        //// Track the page view, but don't send it right away.
-        //// Send it in one full second unless something else pushes an event
-        //// This way, we have a chance that the api key get set globally
-        //if (!window._NoOkanjoPageView) {
-        //    this.trackPageView({_noProcess:true});
-        //    var self = this;
-        //    setTimeout(function() {
-        //        self._processQueue();
-        //    }, 1000);
-        //}
     }
 
     OkanjoMetrics.prototype = {
@@ -108,6 +97,10 @@
             data = data || {};
             data.object_type = object_type;
             data.event_type = event_type;
+
+            // Make the key stick in case future events don't have an API key, we can get a fuzzy idea who's responsible for the event
+            // This is also useful for auto page load events, were there is no key defined at time the event was created
+            this._lastKey = data.key || data.key || (data.m && data.m.key) || okanjo.key || this._lastKey || undefined;
 
             // Queue the event for publishing
             this.push(data, callback);
@@ -185,10 +178,6 @@
             if (document.referrer) {
                 event.ref = document.referrer;
             }
-
-            // Make that key stick in case future events don't have an API key, we can get a fuzzy idea who's responsible for the event
-            // This is also useful for auto page load events, were there is no key defined at time the event was created
-            this._lastKey = event.key || this._lastKey || undefined;
 
             okanjo.exec(okanjo.getRoute(okanjo.routes.metrics, { object_type: object_type, event_type: event_type }), event, function(err, res) {
                 if (err) { console.warn('[Okanjo.Metrics] Reporting failed', err, res); }

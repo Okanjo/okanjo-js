@@ -185,6 +185,13 @@
             this.disable_inline_buy = this.config.disable_inline_buy.toLowerCase() === "true";
         }
 
+        // Track ad widget load
+        okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
+            ch: okanjo.metrics.channel.ad_widget,
+            cx: this.config.content,
+            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
+        });
+
         //
         // Ensure target id, and RENDER IT!
         //
@@ -212,13 +219,6 @@
             }
 
         }
-
-        // Track ad widget load
-        okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
-            ch: okanjo.metrics.channel.ad_widget,
-            cx: this.config.content,
-            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
-        });
 
         return true;
 
@@ -286,7 +286,7 @@
             id: this.config.id,
             ch: okanjo.metrics.channel.ad_widget, // pw or aw
             cx: this.config.content, // single, browse, sense | creative, dynamic
-            me: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
+            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
         });
 
     };
