@@ -7,6 +7,10 @@ When stuff changes, it's described here.
 
 Ad & Product Widget
  * Added support for 3rd-party click tracking via the `proxy_url` parameter to an Ad or Product widget
+ 
+Core
+* Removed integration with Moat
+
 
 ## 2015-11-06 - v0.6.7
 
