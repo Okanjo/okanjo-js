@@ -3,11 +3,16 @@
 
 When stuff changes, it's described here.
 
+## 2016-01-12 - v0.6.8
+
+Ad & Product Widget
+ * Added support for 3rd-party click tracking via the `proxy_url` parameter to an Ad or Product widget
+
 ## 2015-11-06 - v0.6.7
 
 Ad Widget
-  * Reordered widget impression to fire before product impression
-  * Fixed bad metadata in product impression event
+ * Reordered widget impression to fire before product impression
+ * Fixed bad metadata in product impression event
   
 Core
  * Better error detection for detached elements when getting element position

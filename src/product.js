@@ -26,6 +26,7 @@
         this.config.cache_ttl = config.cache_ttl === undefined ? 60000 : config.cache_ttl;
         this.use_cache = this.config.use_cache;
         this.cache_ttl = this.config.cache_ttl;
+        this.proxy_url = null;
 
         // Allow changing the metrics context, e.g. embedded in an Ad widget
         this.config.metrics_context = config.metrics_context === undefined ? "pw" : config.metrics_context;
@@ -54,6 +55,7 @@
             // Widget mode
             mode: "mode", // What provider to use to retrieve products, browse, sense or single, default: browse
             disable_inline_buy: "disable-inline-buy", // Whether to disable inline buy functionality, default: false
+            proxy_url: "proxy-url", // 3rd party click through tracking url
 
             // ProductSense Params
             url: "url",  // The URL to digest
@@ -73,7 +75,9 @@
 
             external_id: "external-id", // Vendor-given ID
             sku: "sku", // Vendor stock keeping unit
+
             sold_by: 'sold-by', // Limit products listed by a certain store, default: null
+            external_store_id: "external-store-id", // Limit products to a vendor-given store ID
 
             min_price: "min-price", // Products with price greater-than or equal to this amount
             max_price: "max-price", // Products with price less-than or equal to this amount
@@ -170,6 +174,14 @@
         // Set the metric context to the product mode, if not already set
         if (this.config.metrics_channel_context === null) {
             this.config.metrics_channel_context = this.config.mode;
+        }
+
+        // Set the proxy url, if present
+        if (this.config.proxy_url) {
+            this.proxy_url = this.config.proxy_url;
+
+            // Don't send this (probably gigantic) url on jsonp requests
+            delete this.config.proxy_url;
         }
         
         // Immediately show products from the local browser cache, if present, for immediate visual feedback
@@ -309,10 +321,11 @@
      * Builds the final frame url to use, given the base, url, and params to tack on
      * @param base – Metric tracking URL
      * @param inline – Inline buy URL
+     * @param proxy – The vendor given url to redirect to, after we've tracked the interaction, which should redirect to the buy_url
      * @param params – Additional params to tack on to the inline buy URL
      * @returns {string} – Final frame url
      */
-    function makeFrameUrl(base, inline, params) {
+    function makeFrameUrl(base, inline, proxy, params) {
 
         var pairs = [],
             i,
@@ -324,7 +337,15 @@
             }
         }
 
-        return base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline + (pairs.length > 0 ? (joiner + pairs.join('&')) : ""));
+        var metrics_url = base + "&n="+(new Date()).getTime()+"&u=",
+            buy_url = inline + (pairs.length > 0 ? (joiner + pairs.join('&')) : "");
+
+        // If we're relaying through a proxy tracker, then build the link accordingly
+        if (proxy) {
+            return metrics_url + encodeURIComponent(proxy + encodeURIComponent(buy_url));
+        } else {
+            return metrics_url + encodeURIComponent(buy_url);
+        }
     }
 
 
@@ -348,6 +369,7 @@
             id = this.getAttribute('id'),
             buyUrl = this.getAttribute('data-buy-url'),
             metricUrl = this.getAttribute('data-metric-url') + '&sid=' + okanjo.metrics.sid + '&' + okanjo.JSONP.objectToURI(meta),
+            proxyUrl = this.getAttribute('data-proxy-url'),
             passThroughParams = "ok_msid=" + okanjo.metrics.sid + '&ok_ch=' + this.getAttribute('data-channel') + '&ok_cx=' + this.getAttribute('data-context'),
             modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + passThroughParams,
             modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + passThroughParams;
@@ -364,7 +386,7 @@
 
             // Tell the buy experience that we're loading up in a popup, so they can render that nicely
             metricUrl += '&ea='+okanjo.metrics.action.inline_click + "&m[popup]=true";
-            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, { popup: 1 });
+            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, proxyUrl, { popup: 1 });
 
             okanjo.active_frame = window.open(url, "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
             if (!okanjo.active_frame) {
@@ -446,7 +468,7 @@
             }
 
             metricUrl += '&ea='+okanjo.metrics.action.inline_click + '&m[expandable]=' + (inlineParams.expandable === 1 ? 'true' : 'false');
-            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, inlineParams);
+            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, proxyUrl, inlineParams);
 
             frame.src = url;
 
@@ -456,11 +478,11 @@
 
         } else if (trigger) {
             metricUrl += '&ea='+okanjo.metrics.action.click;
-            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
+            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, proxyUrl, {});
             this.click();
         } else {
             metricUrl += '&ea='+okanjo.metrics.action.click;
-            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
+            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, proxyUrl, {});
         }
     };
 

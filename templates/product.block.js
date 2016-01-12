@@ -11,6 +11,7 @@
         // Copy, format and return the config and products
         options.template_name = 'okanjo-product-block';
         options.config = data.config;
+        options.proxy_url = this.proxy_url;
         options.products = okanjo.mvc.formats.product(data.products);
         return options;
     }, {

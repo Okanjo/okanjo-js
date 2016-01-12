@@ -3990,6 +3990,7 @@ if (typeof JSON !== 'object') {
         this.config.cache_ttl = config.cache_ttl === undefined ? 60000 : config.cache_ttl;
         this.use_cache = this.config.use_cache;
         this.cache_ttl = this.config.cache_ttl;
+        this.proxy_url = null;
 
         // Allow changing the metrics context, e.g. embedded in an Ad widget
         this.config.metrics_context = config.metrics_context === undefined ? "pw" : config.metrics_context;
@@ -4018,6 +4019,7 @@ if (typeof JSON !== 'object') {
             // Widget mode
             mode: "mode", // What provider to use to retrieve products, browse, sense or single, default: browse
             disable_inline_buy: "disable-inline-buy", // Whether to disable inline buy functionality, default: false
+            proxy_url: "proxy-url", // 3rd party click through tracking url
 
             // ProductSense Params
             url: "url",  // The URL to digest
@@ -4037,7 +4039,9 @@ if (typeof JSON !== 'object') {
 
             external_id: "external-id", // Vendor-given ID
             sku: "sku", // Vendor stock keeping unit
+
             sold_by: 'sold-by', // Limit products listed by a certain store, default: null
+            external_store_id: "external-store-id", // Limit products to a vendor-given store ID
 
             min_price: "min-price", // Products with price greater-than or equal to this amount
             max_price: "max-price", // Products with price less-than or equal to this amount
@@ -4134,6 +4138,14 @@ if (typeof JSON !== 'object') {
         // Set the metric context to the product mode, if not already set
         if (this.config.metrics_channel_context === null) {
             this.config.metrics_channel_context = this.config.mode;
+        }
+
+        // Set the proxy url, if present
+        if (this.config.proxy_url) {
+            this.proxy_url = this.config.proxy_url;
+
+            // Don't send this (probably gigantic) url on jsonp requests
+            delete this.config.proxy_url;
         }
         
         // Immediately show products from the local browser cache, if present, for immediate visual feedback
@@ -4273,10 +4285,11 @@ if (typeof JSON !== 'object') {
      * Builds the final frame url to use, given the base, url, and params to tack on
      * @param base – Metric tracking URL
      * @param inline – Inline buy URL
+     * @param proxy – The vendor given url to redirect to, after we've tracked the interaction, which should redirect to the buy_url
      * @param params – Additional params to tack on to the inline buy URL
      * @returns {string} – Final frame url
      */
-    function makeFrameUrl(base, inline, params) {
+    function makeFrameUrl(base, inline, proxy, params) {
 
         var pairs = [],
             i,
@@ -4288,7 +4301,15 @@ if (typeof JSON !== 'object') {
             }
         }
 
-        return base + "&n="+(new Date()).getTime()+"&u=" + encodeURIComponent(inline + (pairs.length > 0 ? (joiner + pairs.join('&')) : ""));
+        var metrics_url = base + "&n="+(new Date()).getTime()+"&u=",
+            buy_url = inline + (pairs.length > 0 ? (joiner + pairs.join('&')) : "");
+
+        // If we're relaying through a proxy tracker, then build the link accordingly
+        if (proxy) {
+            return metrics_url + encodeURIComponent(proxy + encodeURIComponent(buy_url));
+        } else {
+            return metrics_url + encodeURIComponent(buy_url);
+        }
     }
 
 
@@ -4312,6 +4333,7 @@ if (typeof JSON !== 'object') {
             id = this.getAttribute('id'),
             buyUrl = this.getAttribute('data-buy-url'),
             metricUrl = this.getAttribute('data-metric-url') + '&sid=' + okanjo.metrics.sid + '&' + okanjo.JSONP.objectToURI(meta),
+            proxyUrl = this.getAttribute('data-proxy-url'),
             passThroughParams = "ok_msid=" + okanjo.metrics.sid + '&ok_ch=' + this.getAttribute('data-channel') + '&ok_cx=' + this.getAttribute('data-context'),
             modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + passThroughParams,
             modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + passThroughParams;
@@ -4328,7 +4350,7 @@ if (typeof JSON !== 'object') {
 
             // Tell the buy experience that we're loading up in a popup, so they can render that nicely
             metricUrl += '&ea='+okanjo.metrics.action.inline_click + "&m[popup]=true";
-            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, { popup: 1 });
+            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, proxyUrl, { popup: 1 });
 
             okanjo.active_frame = window.open(url, "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
             if (!okanjo.active_frame) {
@@ -4410,7 +4432,7 @@ if (typeof JSON !== 'object') {
             }
 
             metricUrl += '&ea='+okanjo.metrics.action.inline_click + '&m[expandable]=' + (inlineParams.expandable === 1 ? 'true' : 'false');
-            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, inlineParams);
+            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, proxyUrl, inlineParams);
 
             frame.src = url;
 
@@ -4420,11 +4442,11 @@ if (typeof JSON !== 'object') {
 
         } else if (trigger) {
             metricUrl += '&ea='+okanjo.metrics.action.click;
-            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
+            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, proxyUrl, {});
             this.click();
         } else {
             metricUrl += '&ea='+okanjo.metrics.action.click;
-            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, {});
+            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, proxyUrl, {});
         }
     };
 
@@ -4509,11 +4531,14 @@ if (typeof JSON !== 'object') {
         };
 
         this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
+        this.proxy_url = null;
 
         this.configMap = {
 
             // Api Widget Key
             key: "key",
+
+            proxy_url: "proxy-url", // 3rd party click through tracking url
 
             // How should this thing look?
             content: "content", // The content of the ad, creative or dynamic. Default: creative if element has markup, dynamic if not.
@@ -4669,6 +4694,14 @@ if (typeof JSON !== 'object') {
         // Verify the disable param is not a string
         if (this.config.disable_inline_buy && typeof this.config.disable_inline_buy === "string") {
             this.disable_inline_buy = this.config.disable_inline_buy.toLowerCase() === "true";
+        }
+
+        // Set the proxy url, if present
+        if (this.config.proxy_url) {
+            this.proxy_url = this.config.proxy_url;
+
+            // Don't send this (probably gigantic) url on jsonp requests
+            delete this.config.proxy_url;
         }
 
         // Track ad widget load
@@ -4846,6 +4879,7 @@ if (typeof JSON !== 'object') {
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
+            proxy_url: this.proxy_url,
             expandable: this.config.expandable === undefined || (typeof this.config.expandable === "boolean" ? this.config.expandable : (""+this.config.expandable).toLowerCase() === "true"),
             metrics_context: okanjo.metrics.channel.ad_widget, // Set the context of the click to the Ad widget please!
             metrics_channel_context: this.config.content, // Set the channel context to this widget's mode of operation (creative, dynamic)
@@ -4853,13 +4887,8 @@ if (typeof JSON !== 'object') {
         };
 
         // Copy parameters through from the ad config, to the product config, if set
-        (function addIfSet(params,config) {
-            for (var i = 0; i < params.length; i++) {
-                if (config[params[i]] !== undefined) {
-                    productWidgetConfig[params[i]] = config[params[i]];
-                }
-            }
-        })(['template_product_main','template_product_error'], this.config);
+        if (this.config.template_product_main) productWidgetConfig.template_product_main = this.config.template_product_main;
+        if (this.config.template_product_error) productWidgetConfig.template_product_error = this.config.template_product_error;
 
         // Instantiate the widget
         this.productWidget = new okanjo.Product(el, productWidgetConfig);
@@ -4928,7 +4957,7 @@ okanjo.mvc.registerTemplate("okanjo.error", "<span class=okanjo-error>{{ message
 
     okanjo.mvc.registerCss("product.block", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-product-block{font:14px Helvetica,Arial,sans-serif;line-height:1.2em}.okanjo-product-block a{display:block;text-decoration:none}.okanjo-product-block a:after,.okanjo-product-block a:before{content:\" \";display:table}.okanjo-product-block a:after{clear:both}.okanjo-product-block .okanjo-product-list{list-style-type:none;padding:0;margin:0}.okanjo-product-block .okanjo-product{width:130px;overflow:hidden;text-align:center;border:1px solid #ccc;padding:7px;margin:0 4px 1px 0;display:inline-block;box-shadow:1px 1px 1px 1px #eee;background-color:#fff;box-sizing:content-box}.lt-ie8.okanjo-product-block .okanjo-product{display:inline;zoom:1}.okanjo-product-block .okanjo-product-image-container{height:130px}.okanjo-product-block .okanjo-product-image{max-width:100%;max-height:100%;border:0}.okanjo-product-block .okanjo-product-title-container{line-height:17px;overflow:hidden;height:51px;margin:10px 0 0;word-wrap:break-word}.okanjo-product-block .okanjo-product-title-container span{display:inline-block}.lt-ie8.okanjo-product-block .okanjo-product-title-container span{display:inline;zoom:1}.okanjo-product-block .okanjo-ellipses:after{content:\"...\"}.okanjo-product-block .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-product-block .okanjo-product-price-container{line-height:21px;font-weight:700;color:#333;margin-top:5px;margin-bottom:5px;margin-right:5px}.okanjo-product-block .okanjo-product-buy-button{color:#333;border:1px solid #ccc;border-bottom-color:#bbb;background-color:#eee;background-repeat:no-repeat;background-image:-webkit-linear-gradient(top,#fff,#eee);background-image:linear-gradient(to bottom,#fff,#eee);text-shadow:0 1px 1px rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.05);-webkit-transition:.1s;transition:.1s;font-size:13px;border-radius:4px;padding:5px 12px 6px;position:relative;bottom:2px}.okanjo-product-block a:hover .okanjo-product-buy-button{color:#111;border:1px solid #bbb;border-bottom-color:#aaa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 1px 3px rgba(0,0,0,.1)}.okanjo-product-block .okanjo-product-seller-container{margin-top:5px;height:17px;font-size:12px;line-height:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-product-block .okanjo-product-seller-container .okanjo-product-seller-intro{color:#333}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-product-block' });
 
-    var product_block = "<div class=\"{{template_name}} okanjo-expansion-root {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"//{{okanjoMetricUrl}}/metrics/pr/int?m[bot]=true&id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\" data-inline-buy-url=\"{{ inline_buy_url }}\" data-buy-url=\"{{ buy_url }}\" data-metric-url=\"//{{okanjoMetricUrl}}/metrics/pr/int?id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}\" data-expandable=\"{{#config}}{{ expandable }}{{/config}}\" data-channel=\"{{#config}}{{ metrics_context }}{{/config}}\" data-context=\"{{#config}}{{ metrics_channel_context }}{{/config}}\" data-id=\"{{ id }}\" target=_blank itemprop=url title=\"Buy now: {{ name }}\"><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><div class=okanjo-product-price-container><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price_formatted }}</span></div><div class=okanjo-product-button-container><div class=okanjo-product-buy-button>Buy Now</div><meta property=url itemprop=url content=\"//{{okanjoMetricUrl}}/metrics/pr/int?m[bot]=true&m[microdata]=true&id={{id}}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\"></div>{{#sold_by}}<div class=okanjo-product-seller-container itemprop=seller itemscope=\"\" itemtype=http://schema.org/Organization><span><span class=okanjo-product-seller-intro>From</span>&#32;<span class=okanjo-product-seller itemprop=name title=\"{{ sold_by }}\">{{ sold_by }}</span></span></div>{{/sold_by}}</div><div class=\"okanjo-product-meta okanjo-visually-hidden\">{{#impression_url}}<img src={{impression_url}} alt=\"\">{{/impression_url}}{{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul><div class=\"okanjo-product-meta okanjo-visually-hidden\"></div></div>";
+    var product_block = "<div class=\"{{template_name}} okanjo-expansion-root {{classDetects}}\"><ul class=okanjo-product-list itemscope=\"\" itemtype=http://schema.org/ItemList>{{#products}}<li class=okanjo-product itemscope=\"\" itemtype=http://schema.org/Product><a href=\"//{{okanjoMetricUrl}}/metrics/pr/int?m[bot]=true&id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\" data-inline-buy-url=\"{{ inline_buy_url }}\" data-buy-url=\"{{ buy_url }}\" data-metric-url=\"//{{okanjoMetricUrl}}/metrics/pr/int?id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}\" data-proxy-url=\"{{ proxy_url}}\" data-expandable=\"{{#config}}{{ expandable }}{{/config}}\" data-channel=\"{{#config}}{{ metrics_context }}{{/config}}\" data-context=\"{{#config}}{{ metrics_channel_context }}{{/config}}\" data-id=\"{{ id }}\" target=_blank itemprop=url title=\"Buy now: {{ name }}\"><div class=okanjo-product-image-container><img class=okanjo-product-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-product-title-container><span class=okanjo-product-title itemprop=name>{{ name }}</span></div><div itemprop=offers itemscope=\"\" itemtype=http://schema.org/Offer><div class=okanjo-product-price-container><span itemprop=priceCurrency content=\"{{ currency }}\">$</span><span class=okanjo-product-price itemprop=price>{{ price_formatted }}</span></div><div class=okanjo-product-button-container><div class=okanjo-product-buy-button>Buy Now</div><meta property=url itemprop=url content=\"//{{okanjoMetricUrl}}/metrics/pr/int?m[bot]=true&m[microdata]=true&id={{id}}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\"></div>{{#sold_by}}<div class=okanjo-product-seller-container itemprop=seller itemscope=\"\" itemtype=http://schema.org/Organization><span><span class=okanjo-product-seller-intro>From</span>&#32;<span class=okanjo-product-seller itemprop=name title=\"{{ sold_by }}\">{{ sold_by }}</span></span></div>{{/sold_by}}</div><div class=\"okanjo-product-meta okanjo-visually-hidden\">{{#impression_url}}<img src={{impression_url}} alt=\"\">{{/impression_url}}{{#upc}}<span itemprop=productID>upc:{{upc}}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{manufacturer}}</span>{{/manufacturer}}</div></a></li>{{/products}}</ul><div class=\"okanjo-product-meta okanjo-visually-hidden\"></div></div>";
 
     okanjo.mvc.registerTemplate("product.block", product_block, function(data, options) {
         // Ensure params
@@ -4938,6 +4967,7 @@ okanjo.mvc.registerTemplate("okanjo.error", "<span class=okanjo-error>{{ message
         // Copy, format and return the config and products
         options.template_name = 'okanjo-product-block';
         options.config = data.config;
+        options.proxy_url = this.proxy_url;
         options.products = okanjo.mvc.formats.product(data.products);
         return options;
     }, {
@@ -4958,6 +4988,7 @@ okanjo.mvc.registerTemplate("product.sidebar", product_block, function(data, opt
     // Copy, format and return the config and products
     options.template_name = 'okanjo-product-sidebar';
     options.config = data.config;
+    options.proxy_url = this.proxy_url;
     options.products = okanjo.mvc.formats.product(data.products);
     return options;
 }, {
@@ -4978,6 +5009,7 @@ okanjo.mvc.registerTemplate("product.sidebar", product_block, function(data, opt
         // Copy, format and return the config and products
         options.template_name = 'okanjo-product-single';
         options.config = data.config;
+        options.proxy_url = this.proxy_url;
         options.products = okanjo.mvc.formats.product(data.products);
         return options;
     }, {

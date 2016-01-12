@@ -23,11 +23,14 @@
         };
 
         this.disable_inline_buy = this.config.disable_inline_buy === undefined ? false : config.disable_inline_buy === true;
+        this.proxy_url = null;
 
         this.configMap = {
 
             // Api Widget Key
             key: "key",
+
+            proxy_url: "proxy-url", // 3rd party click through tracking url
 
             // How should this thing look?
             content: "content", // The content of the ad, creative or dynamic. Default: creative if element has markup, dynamic if not.
@@ -183,6 +186,14 @@
         // Verify the disable param is not a string
         if (this.config.disable_inline_buy && typeof this.config.disable_inline_buy === "string") {
             this.disable_inline_buy = this.config.disable_inline_buy.toLowerCase() === "true";
+        }
+
+        // Set the proxy url, if present
+        if (this.config.proxy_url) {
+            this.proxy_url = this.config.proxy_url;
+
+            // Don't send this (probably gigantic) url on jsonp requests
+            delete this.config.proxy_url;
         }
 
         // Track ad widget load
@@ -360,6 +371,7 @@
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
+            proxy_url: this.proxy_url,
             expandable: this.config.expandable === undefined || (typeof this.config.expandable === "boolean" ? this.config.expandable : (""+this.config.expandable).toLowerCase() === "true"),
             metrics_context: okanjo.metrics.channel.ad_widget, // Set the context of the click to the Ad widget please!
             metrics_channel_context: this.config.content, // Set the channel context to this widget's mode of operation (creative, dynamic)
@@ -367,13 +379,8 @@
         };
 
         // Copy parameters through from the ad config, to the product config, if set
-        (function addIfSet(params,config) {
-            for (var i = 0; i < params.length; i++) {
-                if (config[params[i]] !== undefined) {
-                    productWidgetConfig[params[i]] = config[params[i]];
-                }
-            }
-        })(['template_product_main','template_product_error'], this.config);
+        if (this.config.template_product_main) productWidgetConfig.template_product_main = this.config.template_product_main;
+        if (this.config.template_product_error) productWidgetConfig.template_product_error = this.config.template_product_error;
 
         // Instantiate the widget
         this.productWidget = new okanjo.Product(el, productWidgetConfig);

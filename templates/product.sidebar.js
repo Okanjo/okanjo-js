@@ -10,6 +10,7 @@ okanjo.mvc.registerTemplate("product.sidebar", product_block, function(data, opt
     // Copy, format and return the config and products
     options.template_name = 'okanjo-product-sidebar';
     options.config = data.config;
+    options.proxy_url = this.proxy_url;
     options.products = okanjo.mvc.formats.product(data.products);
     return options;
 }, {
