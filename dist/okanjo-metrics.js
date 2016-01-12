@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v0.6.7 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v0.6.8 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -36,11 +36,6 @@
             trackEvent: noop,
             trackPageView: noop
         };
-
-        /**
-         * Placeholder, just in case okanjo-js is built without moat
-         */
-        okanjo.moat = { insert: noop };
 
         /**
          * API route definitions
@@ -593,11 +588,6 @@
         // Ads config
     config.ads = {
         apiUri: 'https://ads-api.okanjo.com'
-    };
-
-        // Moat Analytics config
-    config.moat = {
-        tag: 'okanjo969422799577'
     };
 
     /**

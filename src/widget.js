@@ -173,16 +173,6 @@
 
 
     /**
-     * Injects a Moat tag into the widget, optionally into a specific element
-     *
-     * @param {{element:HTMLElement|null,levels:Array,slicers:Array}} options – Moat levels and slicers to report on
-     */
-    proto.trackMoat = function(options) {
-        okanjo.moat.insert(options.element || this.element, options);
-    };
-
-
-    /**
      * Async cleans the widget cache
      */
     proto.autoCleanCache = function() {

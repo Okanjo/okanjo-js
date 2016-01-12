@@ -28,11 +28,6 @@
         };
 
         /**
-         * Placeholder, just in case okanjo-js is built without moat
-         */
-        okanjo.moat = { insert: noop };
-
-        /**
          * API route definitions
          */
         okanjo.routes = {

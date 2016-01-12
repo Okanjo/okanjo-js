@@ -279,19 +279,6 @@
             container.appendChild(existingChildren[i]);
         }
 
-        // Stick a moat tag on the bottom of the ad
-        this.trackMoat({
-            element: container,
-            levels: [
-                this.config.key,
-                okanjo.metrics.channel.ad_widget,
-                this.config.id
-            ],
-            slicers: [
-                window.location.hostname + window.location.pathname
-            ]
-        });
-
         // Track product impression
         okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
             id: this.config.id,

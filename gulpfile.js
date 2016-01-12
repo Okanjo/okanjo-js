@@ -100,7 +100,6 @@ var gulp = require('gulp'),
         // Apps & Widgets
         'src/metrics.js',
         'src/pageview.js',
-        'src/moat.js',
         'src/emitter.js',
         'src/widget.js',
         'src/modal.js',

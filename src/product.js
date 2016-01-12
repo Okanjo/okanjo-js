@@ -503,7 +503,7 @@
                 a.attachEvent('onclick', function(e) { Product.interactTile.call(a, e); });
             }
 
-            // Only stick moat on the product widget if *not* embedded in another widget
+            // Only stick metrics on the product widget if *not* embedded in another widget
             if (self.config.metrics_context == okanjo.metrics.channel.product_widget) {
 
                 // Track product impression
@@ -512,18 +512,6 @@
                     ch: self.config.metrics_context, // pw or aw
                     cx: self.config.metrics_channel_context || self.config.mode, // single, browse, sense | creative, dynamic
                     m: okanjo.util.deepClone(self.config, okanjo.metrics.includeElementInfo(a.parentNode))
-                });
-
-                self.trackMoat({
-                    element: a,
-                    levels: [
-                        self.config.key,
-                        self.config.metrics_context,
-                        a.getAttribute('data-id')
-                    ],
-                    slicers: [
-                        window.location.hostname + window.location.pathname
-                    ]
                 });
             }
 

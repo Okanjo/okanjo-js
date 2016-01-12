@@ -1,4 +1,4 @@
-/*! okanjo-js v0.6.7 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.6.8 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -36,11 +36,6 @@
             trackEvent: noop,
             trackPageView: noop
         };
-
-        /**
-         * Placeholder, just in case okanjo-js is built without moat
-         */
-        okanjo.moat = { insert: noop };
 
         /**
          * API route definitions
@@ -593,11 +588,6 @@
         // Ads config
     config.ads = {
         apiUri: 'https://ads-api.okanjo.com'
-    };
-
-        // Moat Analytics config
-    config.moat = {
-        tag: 'okanjo969422799577'
     };
 
     /**
@@ -3283,74 +3273,6 @@ if (typeof JSON !== 'object') {
     }, 1000);
 
 })(okanjo || this);
-//noinspection JSUnusedLocalSymbols,ThisExpressionReferencesGlobalObjectJS
-(function(okanjo, window) {
-
-    var d = document,
-        addIfNotNull = function(list, params, label) {
-            for (var i = 0; i < list.length; i++) {
-                if (list[i] !== null) params.push(label + (i + 1) + '=' + encodeURIComponent(list[i]));
-            }
-        };
-
-    okanjo.moat = {
-
-        /**
-         * Disable by default until testing is completed
-         */
-        enabled: true,
-
-        /**
-         * Insert a Moat Analytics tracker
-         * @param [element] - The element to append to or leave blank to track the entire page
-         * @param {{levels:Array,slicers:Array}} options – Moat levels and slicers to report on
-         */
-        insert: function(element, options) {
-            if (okanjo.moat.enabled) {
-
-                var b = element || d.getElementsByTagName('body')[0],
-                    ma = d.createElement('script'),
-                    uri = okanjo.moat.getTagUrl(options);
-
-                if (uri) {
-                    ma.type = 'text/javascript';
-                    ma.async = true;
-                    ma.src = uri;
-
-                    b.appendChild(ma);
-                }
-            }
-        },
-
-
-        /**
-         * Builds a Moat script tag URL based on the options received
-         * @param {{levels:Array,slicers:Array}} options – Moat levels and slicers to report on
-         * @returns {string}
-         */
-        getTagUrl: function(options) {
-            if (options && options.levels && Array.isArray(options.levels) && options.slicers && Array.isArray(options.slicers)) {
-
-                var moatParams = [],
-                    moat = okanjo.config.moat;
-
-
-                // Build config param string
-                addIfNotNull(options.levels, moatParams, 'moatClientLevel');
-                addIfNotNull(options.slicers, moatParams, 'moatClientSlicer');
-                moatParams = moatParams.join('&');
-
-                return '//js.moatads.com/' + moat.tag + '/moatad.js#' + moatParams;
-
-            } else {
-                console.warn(new Error('Invalid moat tag options'), options);
-                return null;
-            }
-        }
-
-    };
-
-})(okanjo, this);
 //noinspection ThisExpressionReferencesGlobalObjectJS,JSUnusedLocalSymbols
 /** Based on https://gist.github.com/mudge/5830382 **/
 (function(okanjo, window) {
@@ -3579,16 +3501,6 @@ if (typeof JSON !== 'object') {
         // TODO - override this on the actual wideget implementation
 
         return true;
-    };
-
-
-    /**
-     * Injects a Moat tag into the widget, optionally into a specific element
-     *
-     * @param {{element:HTMLElement|null,levels:Array,slicers:Array}} options – Moat levels and slicers to report on
-     */
-    proto.trackMoat = function(options) {
-        okanjo.moat.insert(options.element || this.element, options);
     };
 
 
@@ -4467,7 +4379,7 @@ if (typeof JSON !== 'object') {
                 a.attachEvent('onclick', function(e) { Product.interactTile.call(a, e); });
             }
 
-            // Only stick moat on the product widget if *not* embedded in another widget
+            // Only stick metrics on the product widget if *not* embedded in another widget
             if (self.config.metrics_context == okanjo.metrics.channel.product_widget) {
 
                 // Track product impression
@@ -4476,18 +4388,6 @@ if (typeof JSON !== 'object') {
                     ch: self.config.metrics_context, // pw or aw
                     cx: self.config.metrics_channel_context || self.config.mode, // single, browse, sense | creative, dynamic
                     m: okanjo.util.deepClone(self.config, okanjo.metrics.includeElementInfo(a.parentNode))
-                });
-
-                self.trackMoat({
-                    element: a,
-                    levels: [
-                        self.config.key,
-                        self.config.metrics_context,
-                        a.getAttribute('data-id')
-                    ],
-                    slicers: [
-                        window.location.hostname + window.location.pathname
-                    ]
                 });
             }
 
@@ -4786,19 +4686,6 @@ if (typeof JSON !== 'object') {
         for( i = 0; i < existingChildren.length; i++ ) {
             container.appendChild(existingChildren[i]);
         }
-
-        // Stick a moat tag on the bottom of the ad
-        this.trackMoat({
-            element: container,
-            levels: [
-                this.config.key,
-                okanjo.metrics.channel.ad_widget,
-                this.config.id
-            ],
-            slicers: [
-                window.location.hostname + window.location.pathname
-            ]
-        });
 
         // Track product impression
         okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {

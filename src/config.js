@@ -18,11 +18,6 @@
         apiUri: 'https://ads-api.okanjo.com'
     };
 
-        // Moat Analytics config
-    config.moat = {
-        tag: 'okanjo969422799577'
-    };
-
     /**
      * Override the default production configuration
      * @param options
