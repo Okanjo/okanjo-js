@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2016-02-09
+ * Added ad server example code (original and minified)
+
 ## 2016-01-12 - v0.6.8
 
 Ad & Product Widget

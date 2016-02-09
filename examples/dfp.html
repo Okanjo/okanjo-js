@@ -1,0 +1,158 @@
+<!-- Define the container that will contain the contents of the Ad creative and ultimately hold the Okanjo widget. -->
+<div id="okanjo-dropzone">
+    <img style="margin:0;height:100%;width:auto;cursor:pointer;" src="https://shop.okanjo.com/brand/walmart/img/Bears.png"/>
+</div>
+
+<!--
+This script will asynchronously load the Ad or Product widget as configured. It will automatically move the drop-zone
+outside of the iframe (when able to do so) to enable expandable functionality.
+-->
+<script>
+    /*! Okanjo Ad Loader v2.0.0 - https://developer.okanjo.com/okanjo-js */
+    (function(config) {
+
+        //
+        // Check Placement Context -------------------------------------------------------------------------------------
+        //
+
+        var doc = document,
+            win = window,
+            container = doc.getElementById('okanjo-dropzone'),
+            isTop = win.top === win.self,
+            isFrameLocated = false;
+
+        try {
+
+            // If we're sandboxed to an iframe, try to move the dropzone element to the top-level DOM
+            if (!isTop) {
+
+                // Locate all the iFrames on the main page
+                var iframes = win.top.document.getElementsByTagName('iframe'),
+                    i = 0, frame, frameDocument;
+
+                // Check each, to see if the frame's document matches the current document
+                for ( ; i < iframes.length; i++) {
+                    frame = iframes[i];
+                    try {
+                        frameDocument = frame.contentDocument || iframes.contentWindow.document; // <-- this can throw
+                        if (frameDocument === document) {
+
+                            // We found our frame! - that means we're friendly and can promote our content
+
+                            // Strip our internal ID off before attaching to the main page
+                            container.removeAttribute('id');
+
+                            // Move our container element to the main page, adjacent to our iframe
+                            frame.parentNode.appendChild(container);
+
+                            // Hide the iframe, since there will be nothing in it anymore
+                            frame.style.display = "none";
+
+                            // Set the page context in which to initialize our widget
+                            doc = win.top.document;
+                            win = win.top;
+
+                            // Flag that everything is perfect
+                            isFrameLocated = true;
+                            break;
+                        }
+                    } catch (e) {
+                        // Trying to pull the contentDocument of an unfriendly iframe will throw - so eat the error
+                    }
+                }
+            }
+        } catch (e) {
+            // CORS issue or iframe is not friendly, so we're stuck within this iframe. Report the exception.
+            console.warn('[Okanjo]', 'There was a problem jumping contexts!', e);
+        }
+
+        // Override if we could not escape and we should have
+        if (!isTop && !isFrameLocated) {
+
+            // Report
+            console.warn('[Okanjo]',
+                'Could not locate our container iFrame on the top-level page! Forcing non-expandable functionality.');
+
+            // Force non-expandable since we failed to escape
+            config.ad && (config.ad.expandable = false);
+            config.match && (config.match.expandable = false);
+        }
+
+        //
+        // Load the widget payload -------------------------------------------------------------------------------------
+        //
+
+        // Async load Okanjo-JS
+        (function(callback) {
+
+            // The context here should be the window of the target frame
+            var win = this,
+                document = win.document,
+                body = document.getElementsByTagName('body')[0],
+                script = document.createElement('script'),
+                scriptLoaded = false;
+
+            script.type = 'text/javascript';
+            script.async = true;
+            script.setAttribute('crossorigin', "anonymous");
+
+            // When the script loads, fire our IIFE callback
+            script.onload = script.onreadystatechange = function() {
+                if (!scriptLoaded &&
+                    (!this.readyState || this.readyState == 'complete' || this.readyState == 'loaded')) {
+                    scriptLoaded = true;
+
+                    // Framework loaded, move on to widget initialization
+                    callback.call(win);
+                }
+            };
+
+            // Start loading the widget payload
+            script.src = config.src || "//cdn.okanjo.com/js/latest/okanjo-bundle.min.js";
+            body.parentNode.insertBefore(script, body);
+
+        }).call(win, function() {
+
+            // The context here should be carried over from the IIFE, or the window of the target frame
+            var win = this;
+
+            // Create a bucket for the widget instance, if not already present (e.g. multiple ads on a page)
+            win.okanjo._widgets || (win.okanjo._widgets = []);
+
+            // Load an Ad widget or a Product widget, depending on the configuration given
+            if (config.ad) {
+                win.okanjo._widgets.push(new win.okanjo.Ad(container, config.ad));
+            } else if (config.match) {
+                win.okanjo._widgets.push(new win.okanjo.Product(container, config.match));
+            } else {
+                console.warn('[Okanjo]','No ad or product configuration given, so there are no widgets to load!');
+            }
+
+        });
+
+    })({
+
+        // Include either the `ad` OR `match` configuration section, but not both!
+
+        // Uncomment the proxy_url line to enable click-tracking through your ad server (e.g. DFP, AppNexus, etc)
+
+        ad: {
+            key: "PUT_YOUR_WIDGET_KEY_HERE",
+            id: 'PR2cKR3AitaHebMAe6g',
+            size: 'medium_rectangle',
+            type: 'product',
+//            proxy_url: '%%CLICK_URL_UNESC%%', // (Google DFP macro)
+            expandable: true
+        },
+
+        match: {
+            key: "PUT_YOUR_WIDGET_KEY_HERE",
+            mode: 'browse',
+            take: 2,
+            q: 'brew city',
+            template_product_main: 'product.sidebar',
+//            proxy_url: '%%CLICK_URL_UNESC%%', // (Google DFP macro)
+            expandable: true
+        }
+    });
+</script>
