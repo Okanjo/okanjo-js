@@ -106,7 +106,7 @@
 
             // template customization options
             size: "size", // the product container size
-            template_layout: "template-layout",  // Products displayed as tile or list, default: list, size can override this
+            template_layout: "template-layout",  // Products displayed as grid or list, default grid, size can override this
             template_theme: "template-theme", // Typographic theme, either newsprint or modern, default: modern
             template_cta_style: "template-cta-style", // The CTA button visual style. Can be button or link, links will take less space.
             template_cta_text: "template-cta-text", // The text within the CTA button, will be css-truncated if too long for given layout, default: Shop Now
