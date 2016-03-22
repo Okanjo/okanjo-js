@@ -1109,15 +1109,17 @@ if (!Array.prototype.filter) {
     // Make it safe to do console.log() always.
     /*! Console-polyfill. | MIT license. | https://github.com/paulmillr/console-polyfill */
     //noinspection ThisExpressionReferencesGlobalObjectJS
-    (function (con) {
+    (function (win) {
         'use strict';
-        var prop, method,
+        var con = win.console || {},
+            prop, method,
             empty = {},
             dummy = function() {},
             properties = 'memory'.split(','),
             methods = ('assert,count,debug,dir,dirxml,error,exception,group,' +
             'groupCollapsed,groupEnd,info,log,markTimeline,profile,profileEnd,' +
             'time,timeEnd,trace,warn').split(',');
+        win.console = con;
         // jshint -W084
         while (prop = properties.pop()) {
             if (con[prop] === undefined) {
@@ -1130,7 +1132,7 @@ if (!Array.prototype.filter) {
             }
         }
         // jshint +W084
-    })(this.console || {});
+    })(this || {});
 
     /*! Okanjo Local Storage Polyfill v1.0.0 | (c) 2013 Okanjo Partners Inc | Based on https://gist.github.com/juliocesar/926500/ddb28fb72903be87cb9044a945c6edbe1aa28b3a */
     //noinspection ThisExpressionReferencesGlobalObjectJS

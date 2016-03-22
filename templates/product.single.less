@@ -47,6 +47,10 @@
     //word-break: break-all;
     word-wrap: break-word;
 
+    & > span {
+      max-width: 100%; // prevent extremely long words from breaking truncation
+    }
+
     span {
       .inline-block();
     }

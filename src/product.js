@@ -102,7 +102,16 @@
 
             // Override template names
             template_product_main: 'template-product-main', // The product template to render, default: product.block
-            template_product_error: 'template-product-error' // The product error template to render, default: okanjo.error
+            template_product_error: 'template-product-error', // The product error template to render, default: okanjo.error
+
+            // template customization options
+            size: "size", // the product container size
+            template_layout: "template-layout",  // Products displayed as grid or list, default grid, size can override this
+            template_theme: "template-theme", // Typographic theme, either newsprint or modern, default: modern
+            template_cta_style: "template-cta-style", // The CTA button visual style. Can be button or link, links will take less space.
+            template_cta_text: "template-cta-text", // The text within the CTA button, will be css-truncated if too long for given layout, default: Shop Now
+            template_cta_color: "template-cta-color" // The color of text of the CTA button or link, default: 0099ff.
+
         };
 
         // Initialize unless told not to
@@ -183,7 +192,7 @@
             // Don't send this (probably gigantic) url on jsonp requests
             delete this.config.proxy_url;
         }
-        
+
         // Immediately show products from the local browser cache, if present, for immediate visual feedback
         if (this.config.use_cache && this.loadProductsFromCache()) {
             // Loaded from cache successfully!
