@@ -3,6 +3,16 @@
 
 When stuff changes, it's described here.
 
+## 2016-03-22 - v0.6.9
+ * New block2 template for product blocks, supporting list and grid views for better ad formats (will become default in the near future)
+ * Block2 includes logic for enforcing ad format restrictions on style config, and custom cta colors
+ * Fixed broken console polyfill
+ * Fixed issue with product-single template where long words in product titles would overflow past tile boundaries
+ * Added template configuration fields: `size`, `template_layout`, `template_theme`, `template_cta_style`, `template_cta_text`, and `template_cta_color`
+ * Added font stack variables to common.less
+ * Fixed bad mobile viewport dimensions
+ 
+
 ## 2016-02-09
  * Added ad server example code (original and minified)
 
