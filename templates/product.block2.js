@@ -28,7 +28,6 @@
         var brandColor = options.config.template_cta_color;
 
         if (brandColor) {
-            console.log(brandColor);
             var brandCSS,
                 brandCSSId = "okanjo-product-block2-cus-" + blockId;
 
