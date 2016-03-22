@@ -361,9 +361,18 @@
          * @return {{vw: number, vh: number}}
          */
         util.getViewportSize = function() {
+            var doc = document,
+                win = window,
+                el = (doc.compatMode && doc.compatMode === 'CSS1Compat') ? doc.documentElement : doc.body,
+                width = el.clientWidth,
+                height = el.clientHeight,
+                inWidth = win.innerWidth || 0,
+                inHeight = win.innerHeight || 0,
+                mobileZoom = (inWidth && width > inWidth) || (inHeight && height > inHeight);
+
             return {
-                vw: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
-                vh: Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
+                vw: mobileZoom ? inWidth : width,
+                vh: mobileZoom ? inHeight : height
             };
         };
 
