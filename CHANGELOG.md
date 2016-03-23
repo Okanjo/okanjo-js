@@ -3,6 +3,11 @@
 
 When stuff changes, it's described here.
 
+## 2016-03-23 - v0.6.10
+ * Added support for custom cta text via product meta data key `cta_text`
+ * Added click event positional data
+
+
 ## 2016-03-22 - v0.6.9
  * New block2 template for product blocks, supporting list and grid views for better ad formats (will become default in the near future)
  * Block2 includes logic for enforcing ad format restrictions on style config, and custom cta colors
