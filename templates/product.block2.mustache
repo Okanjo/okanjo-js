@@ -18,11 +18,9 @@
                     <img class="okanjo-product-image" src="{{ image_url }}" title="{{ name }}" itemprop="image">
                 </div>
                 <div class="okanjo-product-info-container">
-                    {{#sold_by}}
-                        <div class="okanjo-product-seller-container {{#config}}{{ template_theme }}{{/config}}" itemprop="seller" itemscope itemtype="http://schema.org/Organization">
-                            <span class="okanjo-product-seller" itemprop="name" title="{{ sold_by }}">{{ sold_by }}</span>
-                        </div>
-                    {{/sold_by}}
+                    <div class="okanjo-product-seller-container {{#config}}{{ template_theme }}{{/config}}" itemprop="seller" itemscope itemtype="http://schema.org/Organization">
+                        <span class="okanjo-product-seller" itemprop="name" title="{{ sold_by }}">{{ sold_by }}{{^sold_by}}&nbsp;{{/sold_by}}</span>
+                    </div>
                     <div class="okanjo-product-title-container {{#config}}{{ template_theme }}{{/config}}">
                         <span class="okanjo-product-title" itemprop="name">{{ name }}</span>
                     </div>
