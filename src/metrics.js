@@ -308,6 +308,19 @@
             data.vy2 = data.vy1+vp.vh;
 
             return data;
+        },
+
+        /**
+         * Injects the event information into the given data object
+         * @param event
+         * @param data
+         * @return {*|{}}
+         */
+        includeEventInfo: function(event, data) {
+            var pos = okanjo.util.getEventPosition(event);
+            data.ex = pos.ex;
+            data.ey = pos.ey;
+            return data;
         }
 
     };

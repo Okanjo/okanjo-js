@@ -374,7 +374,7 @@
             expanded = false,
 
             // Get positional data
-            meta = { m: okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(this))},
+            meta = { m: okanjo.metrics.includeEventInfo(e, okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(this)))},
             id = this.getAttribute('id'),
             buyUrl = this.getAttribute('data-buy-url'),
             metricUrl = this.getAttribute('data-metric-url') + '&sid=' + okanjo.metrics.sid + '&' + okanjo.JSONP.objectToURI(meta),

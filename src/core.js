@@ -378,6 +378,26 @@
 
 
         /**
+         * Gets the x, y location of the event relative to the page
+         * @param e – Event
+         * @return {{ex: number, ey: number}}
+         */
+        util.getEventPosition = function(e) {
+            var ex = e.pageX,
+                ey = e.pageY,
+                doc = document,
+                body = doc.body,
+                el = doc.documentElement,
+                scrollLeft = 'scrollLeft',
+                scrollTop = 'scrollTop';
+            return {
+                ex: ex === undefined ? e.clientX + body[scrollLeft] + el[scrollLeft] : ex,
+                ey: ey === undefined ? e.clientY + body[scrollTop] + el[scrollTop] : ey
+            };
+        };
+
+
+        /**
          * Splits the text in the element to fit within the visible height of its container, and separates with an ellipses
          * @param {HTMLElement|Node} element – The DOM element containing the text to fit
          * @param {HTMLElement} [container] – Optional container to compute fit on. Defaults to the element's parent
