@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v0.6.9 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v0.6.10 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -383,6 +383,26 @@
             return {
                 vw: mobileZoom ? inWidth : width,
                 vh: mobileZoom ? inHeight : height
+            };
+        };
+
+
+        /**
+         * Gets the x, y location of the event relative to the page
+         * @param e – Event
+         * @return {{ex: number, ey: number}}
+         */
+        util.getEventPosition = function(e) {
+            var ex = e.pageX,
+                ey = e.pageY,
+                doc = document,
+                body = doc.body,
+                el = doc.documentElement,
+                scrollLeft = 'scrollLeft',
+                scrollTop = 'scrollTop';
+            return {
+                ex: ex === undefined ? e.clientX + body[scrollLeft] + el[scrollLeft] : ex,
+                ey: ey === undefined ? e.clientY + body[scrollTop] + el[scrollTop] : ey
             };
         };
 
@@ -2422,6 +2442,19 @@ if (typeof JSON !== 'object') {
             data.vx2 = data.vx1+vp.vw;
             data.vy2 = data.vy1+vp.vh;
 
+            return data;
+        },
+
+        /**
+         * Injects the event information into the given data object
+         * @param event
+         * @param data
+         * @return {*|{}}
+         */
+        includeEventInfo: function(event, data) {
+            var pos = okanjo.util.getEventPosition(event);
+            data.ex = pos.ex;
+            data.ey = pos.ey;
             return data;
         }
 
