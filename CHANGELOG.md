@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2016-03-23
+ * Fixed edge case in tile display for products without a `sold_by` property
+ 
+
 ## 2016-03-23 - v0.6.10
  * Added support for custom cta text via product meta data key `cta_text`
  * Added click event positional data
