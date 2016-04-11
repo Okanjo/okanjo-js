@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2016-04-11 – v0.6.11
+ * Added shortid derivative helper
+
+
 ## 2016-03-23
  * Fixed edge case in tile display for products without a `sold_by` property
  
