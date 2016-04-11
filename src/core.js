@@ -619,7 +619,7 @@
                 str = str + encode(seconds);
 
                 return str;
-            }
+            };
         })();
 
 
