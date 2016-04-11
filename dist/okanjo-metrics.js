@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v0.6.10 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v0.6.11 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -568,6 +568,69 @@
             }
             return out;
         };
+
+        /*! based on shortid https://github.com/dylang/shortid */
+        util.shortid = (function(clusterWorkerId) {
+
+            var shuffled = 'ylZM7VHLvOFcohp01x-fXNr8P_tqin6RkgWGm4SIDdK5s2TAJebzQEBUwuY9j3aC',
+
+                crypto = typeof require !== 'undefined' ? require('crypto') : (window.crypto || window.msCrypto),
+
+                randomByte = function() {
+                    if (crypto && crypto.randomBytes) {
+                        return crypto.randomBytes(1)[0] & 0x30;
+                    } else if (!crypto || !crypto.getRandomValues) {
+                        return Math.floor(Math.random() * 256) & 0x30;
+                    }
+
+                    var dest = new Uint8Array(1);
+                    crypto.getRandomValues(dest);
+                    return dest[0] & 0x30;
+                },
+
+                encode = function(number) {
+                    var loopCounter = 0,
+                        done,
+                        str = '';
+
+                    while (!done) {
+                        str = str + shuffled[ ( (number >> (4 * loopCounter)) & 0x0f ) | randomByte() ];
+                        done = number < (Math.pow(16, loopCounter + 1 ) );
+                        loopCounter++;
+                    }
+                    return str;
+                },
+
+            // Ignore all milliseconds before a certain time to reduce the size of the date entropy without sacrificing uniqueness.
+            // This number should be updated every year or so to keep the generated id short.
+            // To regenerate `new Date() - 0` and bump the version. Always bump the version!
+
+                REDUCE_TIME = 1458848907498,
+                version = 6,
+                counter,
+                previousSeconds;
+            clusterWorkerId = clusterWorkerId || 0;
+
+            return function() {
+                var str = '',
+                    seconds = Math.floor(((new Date()).getTime() - REDUCE_TIME) * 0.001);
+
+                if (seconds === previousSeconds) {
+                    counter++;
+                } else {
+                    counter = 0;
+                    previousSeconds = seconds;
+                }
+
+                str = str + encode(version) + encode(clusterWorkerId);
+                if (counter > 0) {
+                    str = str + encode(counter);
+                }
+                str = str + encode(seconds);
+
+                return str;
+            }
+        })();
 
 
         function splitArguments(query) {

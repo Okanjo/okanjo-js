@@ -1,4 +1,4 @@
-/*! okanjo-js v0.6.10 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.6.11 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -568,6 +568,69 @@
             }
             return out;
         };
+
+        /*! based on shortid https://github.com/dylang/shortid */
+        util.shortid = (function(clusterWorkerId) {
+
+            var shuffled = 'ylZM7VHLvOFcohp01x-fXNr8P_tqin6RkgWGm4SIDdK5s2TAJebzQEBUwuY9j3aC',
+
+                crypto = typeof require !== 'undefined' ? require('crypto') : (window.crypto || window.msCrypto),
+
+                randomByte = function() {
+                    if (crypto && crypto.randomBytes) {
+                        return crypto.randomBytes(1)[0] & 0x30;
+                    } else if (!crypto || !crypto.getRandomValues) {
+                        return Math.floor(Math.random() * 256) & 0x30;
+                    }
+
+                    var dest = new Uint8Array(1);
+                    crypto.getRandomValues(dest);
+                    return dest[0] & 0x30;
+                },
+
+                encode = function(number) {
+                    var loopCounter = 0,
+                        done,
+                        str = '';
+
+                    while (!done) {
+                        str = str + shuffled[ ( (number >> (4 * loopCounter)) & 0x0f ) | randomByte() ];
+                        done = number < (Math.pow(16, loopCounter + 1 ) );
+                        loopCounter++;
+                    }
+                    return str;
+                },
+
+            // Ignore all milliseconds before a certain time to reduce the size of the date entropy without sacrificing uniqueness.
+            // This number should be updated every year or so to keep the generated id short.
+            // To regenerate `new Date() - 0` and bump the version. Always bump the version!
+
+                REDUCE_TIME = 1458848907498,
+                version = 6,
+                counter,
+                previousSeconds;
+            clusterWorkerId = clusterWorkerId || 0;
+
+            return function() {
+                var str = '',
+                    seconds = Math.floor(((new Date()).getTime() - REDUCE_TIME) * 0.001);
+
+                if (seconds === previousSeconds) {
+                    counter++;
+                } else {
+                    counter = 0;
+                    previousSeconds = seconds;
+                }
+
+                str = str + encode(version) + encode(clusterWorkerId);
+                if (counter > 0) {
+                    str = str + encode(counter);
+                }
+                str = str + encode(seconds);
+
+                return str;
+            }
+        })();
 
 
         function splitArguments(query) {
@@ -4873,7 +4936,7 @@ if (typeof JSON !== 'object') {
 return okanjo;
 }));
 
-/*! okanjo-js v0.6.10 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.6.11 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {okanjo.mvc.registerCss("ad.block", ".okanjo-ad-block{position:relative}.okanjo-ad-block .okanjo-ad-dynamic-product .okanjo-product-list{margin:0;width:100%}.okanjo-ad-block.okanjo-ad-fit{width:100%;height:100%;position:relative}.okanjo-ad-block.okanjo-ad-fit .okanjo-ad-container,.okanjo-ad-block.okanjo-ad-fit .okanjo-ad-dynamic-product,.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block,.okanjo-ad-block.okanjo-ad-fit .okanjo-product-list{height:100%;width:100%}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product{height:100%;width:100%;padding:0;box-sizing:border-box;margin:0}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-image-container{margin:.5em}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-title-container{height:auto;margin:1em .5em}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-price-container{position:absolute;bottom:.5em;background:#fff;padding:.25em 0 0;margin:0 1px 0 0;left:1px;right:1px}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block.lt-ie9 .okanjo-product-title-container:before{display:none}", { id: 'okanjo-ad-block' });
 
 okanjo.mvc.registerTemplate("ad.block", "<div class=\"okanjo-ad-block {{classDetects}}\"><div class=\"okanjo-ad-container okanjo-expansion-root\" data-size={{size}}></div><div class=okanjo-ad-meta></div></div>", function(data, options) {
