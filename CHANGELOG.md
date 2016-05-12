@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2016-05-12 – v0.6.12
+ * Added metric cart object type
+
 ## 2016-04-11 – v0.6.11
  * Added shortid derivative helper
 
