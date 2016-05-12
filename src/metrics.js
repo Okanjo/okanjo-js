@@ -57,6 +57,7 @@
 
 
         object_type: {
+            cart: 'ct',
             page: 'pg',
             widget: 'wg',
             product: 'pr',
