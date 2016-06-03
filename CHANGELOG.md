@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2016-06-03 – v0.6.13
+ * Fixed an issue with page argument parsing, when the arguments themselves are encoded poorly
+ * Added support for A/B placement testing and reporting
+
 ## 2016-05-12 – v0.6.12
  * Added metric cart object type
 

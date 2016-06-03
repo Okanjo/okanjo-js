@@ -639,17 +639,22 @@
                 i = 0,
                 temp, key, value, eqIndex;
             for ( ; i < ampSplit.length; i++) {
-                temp = ampSplit[i];
-                eqIndex = temp.indexOf('=');
-                if (eqIndex < 0) {
-                    key = decodeURIComponent(temp);
-                    value = null;
-                } else {
-                    key = decodeURIComponent(temp.substring(0, eqIndex));
-                    value = decodeURIComponent(temp.substring(eqIndex + 1));
-                }
-                if (key) {
-                    params[key] = value;
+                try {
+                    temp = ampSplit[i];
+                    eqIndex = temp.indexOf('=');
+                    if (eqIndex < 0) {
+                        key = decodeURIComponent(temp);
+                        value = null;
+                    } else {
+                        key = decodeURIComponent(temp.substring(0, eqIndex));
+                        value = decodeURIComponent(temp.substring(eqIndex + 1));
+                    }
+                    if (key) {
+                        params[key] = value;
+                    }
+                } catch(e) {
+                    //noinspection JSUnusedAssignment
+                    console.error('[Okanjo] Failed to parse URL parameter:', temp, e);
                 }
             }
             return params;
@@ -4239,6 +4244,8 @@ if (typeof JSON !== 'object') {
                 // Store the products array locally
                 self.items = res.data;
                 self.numFound = res.numFound;
+                self.articleId = res.articleId;
+                self.placementTest = res.placementTest;
 
                 // Allow hooks when the response returns from the server
                 self.emit('data', res);
@@ -4246,7 +4253,8 @@ if (typeof JSON !== 'object') {
                 // Render the products
                 self.showProducts(self.items);
 
-                if (self.use_cache) {
+                // If cache is enabled and placement testing is not applicable
+                if (self.use_cache && (!self.placementTest || (self.placementTest && !self.placementTest.enabled))) {
                     // Cache the products for next page load so something loads up right away until refreshed
                     var key = self.getCacheKey();
                     self.saveInCache(key, self.items);
@@ -4358,8 +4366,23 @@ if (typeof JSON !== 'object') {
             inlineParams = {},
             expanded = false,
 
-            // Get positional data
-            meta = { m: okanjo.metrics.includeEventInfo(e, okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(this)))},
+            // Get positional / meta data
+            meta = (function(context, e) {
+                var baseMeta = {
+                        m: okanjo.metrics.includeEventInfo(e, okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(context)))
+                    },
+                    placementTestEnabled = context.getAttribute('data-placement-enabled'),
+                    placementTestId = context.getAttribute('data-placement-test'),
+                    placementTestSeed = context.getAttribute('data-placement-seed'),
+                    articleId = context.getAttribute('data-article-id');
+
+                if (placementTestEnabled) baseMeta.m.pten = placementTestEnabled;
+                if (placementTestId) baseMeta.m.ptid = placementTestId;
+                if (placementTestSeed) baseMeta.m.ptseed = placementTestSeed;
+                if (articleId) baseMeta.m.aid = articleId;
+
+                return baseMeta;
+            })(this, e),
             id = this.getAttribute('id'),
             buyUrl = this.getAttribute('data-buy-url'),
             metricUrl = this.getAttribute('data-metric-url') + '&sid=' + okanjo.metrics.sid + '&' + okanjo.JSONP.objectToURI(meta),
@@ -4500,12 +4523,23 @@ if (typeof JSON !== 'object') {
             // Only stick metrics on the product widget if *not* embedded in another widget
             if (self.config.metrics_context == okanjo.metrics.channel.product_widget) {
 
+                var baseMeta = {},
+                    placementTestEnabled = a.getAttribute('data-placement-enabled'),
+                    placementTestId = a.getAttribute('data-placement-test'),
+                    placementTestSeed = a.getAttribute('data-placement-seed'),
+                    articleId = a.getAttribute('data-article-id');
+
+                if (placementTestEnabled) baseMeta.pten = placementTestEnabled;
+                if (placementTestId) baseMeta.ptid = placementTestId;
+                if (placementTestSeed) baseMeta.ptseed = placementTestSeed;
+                if (articleId) baseMeta.aid = articleId;
+
                 // Track product impression
                 okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
                     id: a.getAttribute('data-id'),
                     ch: self.config.metrics_context, // pw or aw
                     cx: self.config.metrics_channel_context || self.config.mode, // single, browse, sense | creative, dynamic
-                    m: okanjo.util.deepClone(self.config, okanjo.metrics.includeElementInfo(a.parentNode))
+                    m: okanjo.util.deepClone(self.config, okanjo.metrics.includeElementInfo(a.parentNode, baseMeta))
                 });
             }
 

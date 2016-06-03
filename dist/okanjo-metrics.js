@@ -639,17 +639,22 @@
                 i = 0,
                 temp, key, value, eqIndex;
             for ( ; i < ampSplit.length; i++) {
-                temp = ampSplit[i];
-                eqIndex = temp.indexOf('=');
-                if (eqIndex < 0) {
-                    key = decodeURIComponent(temp);
-                    value = null;
-                } else {
-                    key = decodeURIComponent(temp.substring(0, eqIndex));
-                    value = decodeURIComponent(temp.substring(eqIndex + 1));
-                }
-                if (key) {
-                    params[key] = value;
+                try {
+                    temp = ampSplit[i];
+                    eqIndex = temp.indexOf('=');
+                    if (eqIndex < 0) {
+                        key = decodeURIComponent(temp);
+                        value = null;
+                    } else {
+                        key = decodeURIComponent(temp.substring(0, eqIndex));
+                        value = decodeURIComponent(temp.substring(eqIndex + 1));
+                    }
+                    if (key) {
+                        params[key] = value;
+                    }
+                } catch(e) {
+                    //noinspection JSUnusedAssignment
+                    console.error('[Okanjo] Failed to parse URL parameter:', temp, e);
                 }
             }
             return params;

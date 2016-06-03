@@ -14,6 +14,10 @@
         options.config = data.config;
         options.proxy_url = this.proxy_url;
         options.products = okanjo.mvc.formats.product(data.products);
+        options.article_id = this.articleId || "";
+        options.placement_test_enabled = this.placementTest && this.placementTest.enabled ? "1" : "0";
+        options.placement_test_id = this.placementTest ? this.placementTest.id : "";
+        options.placement_test_seed = this.placementTest ? this.placementTest.seed : "";
 
 
         // enforce format restrictions
