@@ -4014,6 +4014,7 @@ if (typeof JSON !== 'object') {
         // Set default caching settings
         this.config.use_cache = config.use_cache === undefined ? true : config.use_cache === true;
         this.config.cache_ttl = config.cache_ttl === undefined ? 60000 : config.cache_ttl;
+        this.disable_popup = config.disable_popup === true;
         this.use_cache = this.config.use_cache;
         this.cache_ttl = this.config.cache_ttl;
         this.proxy_url = null;
@@ -4361,7 +4362,8 @@ if (typeof JSON !== 'object') {
         var inline = this.getAttribute('data-inline-buy-url'),
             expandable = this.getAttribute('data-expandable'),
             nativeBuy = !okanjo.util.empty(inline),
-            doPopup = okanjo.util.isMobile() && nativeBuy,
+            disablePopup = this.getAttribute('data-disable-popup') || false,
+            doPopup = disablePopup ? false : (okanjo.util.isMobile() && nativeBuy),
             url = this.getAttribute('href'),
             inlineParams = {},
             expanded = false,
@@ -4918,6 +4920,7 @@ if (typeof JSON !== 'object') {
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
+            disable_popup: this.config.disable_popup === true,
             proxy_url: this.proxy_url,
             expandable: this.config.expandable === undefined || (typeof this.config.expandable === "boolean" ? this.config.expandable : (""+this.config.expandable).toLowerCase() === "true"),
             metrics_context: okanjo.metrics.channel.ad_widget, // Set the context of the click to the Ad widget please!

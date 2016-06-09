@@ -24,6 +24,7 @@
         // Set default caching settings
         this.config.use_cache = config.use_cache === undefined ? true : config.use_cache === true;
         this.config.cache_ttl = config.cache_ttl === undefined ? 60000 : config.cache_ttl;
+        this.disable_popup = config.disable_popup === true;
         this.use_cache = this.config.use_cache;
         this.cache_ttl = this.config.cache_ttl;
         this.proxy_url = null;
@@ -371,7 +372,8 @@
         var inline = this.getAttribute('data-inline-buy-url'),
             expandable = this.getAttribute('data-expandable'),
             nativeBuy = !okanjo.util.empty(inline),
-            doPopup = okanjo.util.isMobile() && nativeBuy,
+            disablePopup = this.getAttribute('data-disable-popup') || false,
+            doPopup = disablePopup ? false : (okanjo.util.isMobile() && nativeBuy),
             url = this.getAttribute('href'),
             inlineParams = {},
             expanded = false,

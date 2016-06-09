@@ -358,6 +358,7 @@
             key: this.key,
             mode: okanjo.Product.contentTypes.single,
             disable_inline_buy: this.disable_inline_buy,
+            disable_popup: this.config.disable_popup === true,
             proxy_url: this.proxy_url,
             expandable: this.config.expandable === undefined || (typeof this.config.expandable === "boolean" ? this.config.expandable : (""+this.config.expandable).toLowerCase() === "true"),
             metrics_context: okanjo.metrics.channel.ad_widget, // Set the context of the click to the Ad widget please!
