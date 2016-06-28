@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2016-06-29 – v0.6.15
+ * Added instance ids for page and widgets
+
 ## 2016-06-09 - v0.6.14
  * Added ability to disable mobile popup functionality (use at your own risk!)
  * Added placement test support to deprecated templates

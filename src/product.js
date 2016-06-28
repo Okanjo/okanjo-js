@@ -213,7 +213,7 @@
             okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
                 ch: this.config.metrics_context, // pw or aw
                 cx: this.config.metrics_channel_context || this.config.mode, // single, browse, sense | creative, dynamic
-                m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
+                m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element, { wgid: this.instanceId }))
             });
         }
 
@@ -375,6 +375,7 @@
             disablePopup = this.getAttribute('data-disable-popup') || false,
             doPopup = disablePopup ? false : (okanjo.util.isMobile() && nativeBuy),
             url = this.getAttribute('href'),
+            instanceId = this.getAttribute('instance-id'),
             inlineParams = {},
             expanded = false,
 
@@ -392,6 +393,9 @@
                 if (placementTestId) baseMeta.m.ptid = placementTestId;
                 if (placementTestSeed) baseMeta.m.ptseed = placementTestSeed;
                 if (articleId) baseMeta.m.aid = articleId;
+
+                // Add widget instance id
+                baseMeta.m.wgid = instanceId;
 
                 return baseMeta;
             })(this, e),
@@ -545,6 +549,9 @@
                 if (placementTestId) baseMeta.ptid = placementTestId;
                 if (placementTestSeed) baseMeta.ptseed = placementTestSeed;
                 if (articleId) baseMeta.aid = articleId;
+
+                // Attach widget instance id
+                baseMeta.wgid = self.instanceId;
 
                 // Track product impression
                 okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
