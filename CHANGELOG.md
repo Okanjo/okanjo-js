@@ -3,8 +3,11 @@
 
 When stuff changes, it's described here.
 
-## 2016-06-29 - v0.6.15
+## 2016-06-29 - v0.6.16
  * New size `auto` option for product block2 templates, allows full-width lists for more native placements.
+
+## 2016-06-29 – v0.6.15
+ * Added instance ids for page and widgets
 
 ## 2016-06-09 - v0.6.14
  * Added ability to disable mobile popup functionality (use at your own risk!)
