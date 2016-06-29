@@ -19,6 +19,7 @@
         options.placement_test_id = this.placementTest ? this.placementTest.id : "";
         options.placement_test_seed = this.placementTest ? this.placementTest.seed : "";
         options.disable_popup = this.disable_popup ? "1" : "";
+        options.instanceId = this.instanceId;
 
         return options;
     }, {

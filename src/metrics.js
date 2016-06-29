@@ -8,6 +8,9 @@
 
         this._queue = [];
 
+        // Generate a page id
+        this.pageId = okanjo.util.shortid();
+
         var pageArgs = okanjo.util.getPageArguments(true),
             urlSid = pageArgs[this.msid_key],
             cookieSid = okanjo.Cookie.get(this.msid_key),
@@ -163,17 +166,19 @@
                     }
                 }
                 event.m = meta;
+            } else {
+                event.m = {};
             }
+
 
             // If we were referred through a particular channel/context, then hold on to that for events emitted by this page
             if (this.sourceCh || this.sourceCx) {
-                if (!event.m) {
-                    event.m = {};
-                }
-
                 if (this.sourceCh) { event.m.ref_ch = this.sourceCh; }
                 if (this.sourceCx) { event.m.ref_cx = this.sourceCx; }
             }
+
+            // Automatically attach page load id
+            event.m.pgid = this.pageId;
 
             // Pass the page's source reference
             if (document.referrer) {

@@ -18,6 +18,9 @@
                 config = config || {};
             }
 
+            // Generate widget instance id
+            this.instanceId = okanjo.util.shortid();
+
             this.element = element;
             this.config = config || { };
 

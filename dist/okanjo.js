@@ -1,4 +1,4 @@
-/*! okanjo-js v0.6.14 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.6.15 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -3053,6 +3053,9 @@ if (typeof JSON !== 'object') {
 
         this._queue = [];
 
+        // Generate a page id
+        this.pageId = okanjo.util.shortid();
+
         var pageArgs = okanjo.util.getPageArguments(true),
             urlSid = pageArgs[this.msid_key],
             cookieSid = okanjo.Cookie.get(this.msid_key),
@@ -3208,17 +3211,19 @@ if (typeof JSON !== 'object') {
                     }
                 }
                 event.m = meta;
+            } else {
+                event.m = {};
             }
+
 
             // If we were referred through a particular channel/context, then hold on to that for events emitted by this page
             if (this.sourceCh || this.sourceCx) {
-                if (!event.m) {
-                    event.m = {};
-                }
-
                 if (this.sourceCh) { event.m.ref_ch = this.sourceCh; }
                 if (this.sourceCx) { event.m.ref_cx = this.sourceCx; }
             }
+
+            // Automatically attach page load id
+            event.m.pgid = this.pageId;
 
             // Pass the page's source reference
             if (document.referrer) {
@@ -3463,6 +3468,9 @@ if (typeof JSON !== 'object') {
             } else {
                 config = config || {};
             }
+
+            // Generate widget instance id
+            this.instanceId = okanjo.util.shortid();
 
             this.element = element;
             this.config = config || { };
@@ -4203,7 +4211,7 @@ if (typeof JSON !== 'object') {
             okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
                 ch: this.config.metrics_context, // pw or aw
                 cx: this.config.metrics_channel_context || this.config.mode, // single, browse, sense | creative, dynamic
-                m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
+                m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element, { wgid: this.instanceId }))
             });
         }
 
@@ -4365,6 +4373,7 @@ if (typeof JSON !== 'object') {
             disablePopup = this.getAttribute('data-disable-popup') || false,
             doPopup = disablePopup ? false : (okanjo.util.isMobile() && nativeBuy),
             url = this.getAttribute('href'),
+            instanceId = this.getAttribute('instance-id'),
             inlineParams = {},
             expanded = false,
 
@@ -4382,6 +4391,9 @@ if (typeof JSON !== 'object') {
                 if (placementTestId) baseMeta.m.ptid = placementTestId;
                 if (placementTestSeed) baseMeta.m.ptseed = placementTestSeed;
                 if (articleId) baseMeta.m.aid = articleId;
+
+                // Add widget instance id
+                baseMeta.m.wgid = instanceId;
 
                 return baseMeta;
             })(this, e),
@@ -4535,6 +4547,9 @@ if (typeof JSON !== 'object') {
                 if (placementTestId) baseMeta.ptid = placementTestId;
                 if (placementTestSeed) baseMeta.ptseed = placementTestSeed;
                 if (articleId) baseMeta.aid = articleId;
+
+                // Attach widget instance id
+                baseMeta.wgid = self.instanceId;
 
                 // Track product impression
                 okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
@@ -4762,7 +4777,7 @@ if (typeof JSON !== 'object') {
         okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
             ch: okanjo.metrics.channel.ad_widget,
             cx: this.config.content,
-            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
+            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element, { wgid: this.instanceId }))
         });
 
         //
@@ -4846,7 +4861,7 @@ if (typeof JSON !== 'object') {
             id: this.config.id,
             ch: okanjo.metrics.channel.ad_widget, // pw or aw
             cx: this.config.content, // single, browse, sense | creative, dynamic
-            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element))
+            m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element, { wgid: this.instanceId }))
         });
 
     };
