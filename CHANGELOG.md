@@ -3,8 +3,9 @@
 
 When stuff changes, it's described here.
 
-## 2016-06-29 - v0.6.16
+## 2016-07-01 - v0.7.1
  * New size `auto` option for product block2 templates, allows full-width lists for more native placements.
+ * Added opt-in parameter `backfill` to show a display ad when no products match the page content.
 
 ## 2016-06-28 – v0.6.15
  * Added instance ids for page and widgets
