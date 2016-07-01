@@ -290,6 +290,86 @@
       }
     }
   }
+
+  // full width list format
+  &.auto {
+    font-size: 1em;
+    width: 100%;
+
+    .okanjo-product {
+      width: 100%;
+      height: auto;
+      border-left: none;
+      border-right: none;
+
+      a {
+        max-width: 500px;
+        width: 95%;
+        margin: 0 auto;
+        padding: 2.5%;
+      }
+
+      &.list {
+        height:  auto;
+
+        .okanjo-product-image-container {
+          width: 18%;
+          height: auto;
+          line-height: 1px; // top aligned
+        }
+
+        .okanjo-product-info-container {
+          height: auto;
+          float: none;
+          margin-left: 21%;
+          width: 79%;
+        }
+
+        .okanjo-product-seller-container {
+          height: auto;
+          font-size: 12px;
+          line-height: 1.2;
+        }
+
+        .okanjo-product-price-container  {
+          height: auto;
+          font-size: 15px;
+          line-height: 1.5;
+        }
+
+        .okanjo-product-title-container {
+          font-size: 15px;
+          line-height: 1.4;
+          height: auto;
+        }
+
+        .okanjo-product-buy-button {
+          display: inline-block;
+          font-size: 14px;
+          line-height: 1.8;
+          margin-bottom: -1.7%;
+        }
+      }
+    }
+
+    // layout adjustments for button cta-style
+    &.okanjo-cta-style-button {
+      .okanjo-product {
+        &.list {
+          .okanjo-product-price-container  {
+            line-height: 1.3;
+          }
+          .okanjo-product-title-container {
+            line-height: 1.25;
+          }
+          .okanjo-product-buy-button {
+            font-size: 13px;
+          }
+        }
+      }
+    }
+  }
+
 }
 
 

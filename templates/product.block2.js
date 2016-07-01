@@ -23,10 +23,10 @@
 
 
         // enforce format restrictions
-        if ((options.config.size == "leaderboard")  || (options.config.size == "large_mobile_banner")) {
+        if ((options.config.size == "leaderboard") || (options.config.size == "large_mobile_banner")) {
             options.config.template_layout = "list";
             options.config.template_cta_style = "link";
-        } else if (options.config.size == "half_page") {
+        } else if ((options.config.size == "half_page") || (options.config.size == "auto")){
             options.config.template_layout = "list";
         }
 
