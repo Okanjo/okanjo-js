@@ -60,6 +60,7 @@
 
 
         object_type: {
+            thirdparty_ad: 'ta',
             cart: 'ct',
             page: 'pg',
             widget: 'wg',
@@ -327,6 +328,16 @@
             data.ex = pos.ex;
             data.ey = pos.ey;
             return data;
+        },
+
+        /**
+         * Copies a config object and another thing and flattens it
+         * @param config
+         * @param base
+         * @return {{}|*}
+         */
+        copy: function(config, base) {
+            return okanjo.util.flatten(okanjo.util.deepClone(config, base));
         }
 
     };

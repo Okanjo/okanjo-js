@@ -315,7 +315,7 @@
                 rect = el.getBoundingClientRect();
                 pos = util.getScrollPosition();
 
-                if (!document.contains(el)) {
+                if (!document.body.contains(el)) {
                     console.warn(errMsg);
                 }
 
@@ -557,6 +557,33 @@
                 out = mixed;
             }
             return out;
+        };
+
+        /**
+         * Flattens a multi-dimensional object into a single object
+         * @param obj
+         * @return {{}}
+         */
+        util.flatten = function (obj) {
+            var toReturn = {}, flatObject, x, i;
+
+            for (i in obj) {
+                if (!obj.hasOwnProperty(i)) continue;
+
+                // Convert object ids to hex strings
+                if (Array.isArray(obj[i])) {
+                    toReturn[i] = obj[i];
+                } else if ((typeof obj[i]) == 'object') {
+                    flatObject = util.flatten(obj[i]);
+                    for (x in flatObject) {
+                        if (!flatObject.hasOwnProperty(x)) continue;
+                        toReturn[i + '_' + x] = flatObject[x];
+                    }
+                } else {
+                    toReturn[i] = obj[i];
+                }
+            }
+            return toReturn;
         };
 
         /*! based on shortid https://github.com/dylang/shortid */

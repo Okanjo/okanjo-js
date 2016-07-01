@@ -94,6 +94,7 @@
             donation_to: "donation-to", // The name of the non-profit that benefits from the purchase
 
             suboptimal: 'suboptimal', // Option to enable products labeled as suboptimal (e.g. products that have weak descriptions and could come back as false matches)
+            backfill: 'backfill', // Option to allow placing a display ad in the event no products are returned.
 
             // Pagination
             skip: ['skip', 'page-start'], // The index of the result set to start at, starting from 0. default: 0
@@ -164,6 +165,7 @@
                 }
             }
             this.config.mode = Product.contentTypes.sense;
+            this.config.take = this.config.take || 5; // Default the take to ensure an upper-bound is set
         } else {
             // Make sure a mode is always set, and cannot be empty
             this.config.mode = okanjo.util.empty(this.config.mode) ? Product.contentTypes.browse : this.config.mode;
@@ -213,7 +215,7 @@
             okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
                 ch: this.config.metrics_context, // pw or aw
                 cx: this.config.metrics_channel_context || this.config.mode, // single, browse, sense | creative, dynamic
-                m: okanjo.util.deepClone(this.config, okanjo.metrics.includeElementInfo(this.element, { wgid: this.instanceId }))
+                m: okanjo.metrics.copy(this.config, okanjo.metrics.includeElementInfo(this.element, { wgid: this.instanceId }))
             });
         }
 
@@ -244,7 +246,7 @@
      * Execute the Product request to Okanjo to get some product tile markup
      */
     proto.getProducts = function() {
-        var self = this;
+        var self = this, count;
         this.executeSearch(function(err, res) {
             if (err) {
                 // Can't show anything, just render a generic error message
@@ -252,27 +254,42 @@
                 self.element.innerHTML = okanjo.mvc.render(self.templates.product_error, self, { message: 'Could not retrieve products.' });
                 self.emit('error', err);
             } else {
-                // Store the products array locally
-                self.items = res.data;
-                self.numFound = res.numFound;
-                self.articleId = res.articleId;
-                self.placementTest = res.placementTest;
 
-                // Allow hooks when the response returns from the server
-                self.emit('data', res);
+                // Hook on empty
+                count = (res.data||[]).length;
+                if (count === 0) self.emit('empty');
 
-                // Render the products
-                self.showProducts(self.items);
+                // Check for adx backfill scenario, if allowed
+                if (self.config.backfill && self.config.mode == Product.contentTypes.sense && count === 0) {
 
-                // If cache is enabled and placement testing is not applicable
-                if (self.use_cache && (!self.placementTest || (self.placementTest && !self.placementTest.enabled))) {
-                    // Cache the products for next page load so something loads up right away until refreshed
-                    var key = self.getCacheKey();
-                    self.saveInCache(key, self.items);
+                    // Replace content with backfill from adx
+                    self.backfillAd();
+
+                } else {
+
+                    // Store the products array locally
+                    self.items = res.data;
+                    self.numFound = res.numFound;
+                    self.articleId = res.articleId;
+                    self.placementTest = res.placementTest;
+                    self.shorted = self.config.mode == Product.contentTypes.sense && self.config.take > count;
+
+                    // Allow hooks when the response returns from the server
+                    self.emit('data', res);
+
+                    // Render the products
+                    self.showProducts(self.items);
+
+                    // If cache is enabled and placement testing is not applicable
+                    if (!self.shorted && self.use_cache && (!self.placementTest || (self.placementTest && !self.placementTest.enabled))) {
+                        // Cache the products for next page load so something loads up right away until refreshed
+                        var key = self.getCacheKey();
+                        self.saveInCache(key, self.items);
+                    }
+
+                    // Allow hooks when the product widget finishes initialization
+                    self.emit('load', {fromCache: false});
                 }
-
-                // Allow hooks when the product widget finishes initialization
-                self.emit('load', { fromCache: false });
             }
         });
     };
@@ -529,37 +546,41 @@
 
         //noinspection JSUnresolvedFunction
         okanjo.qwery('a', this.element).every(function(a) {
+            var id = a.getAttribute('data-id');
+            if (id) {
+                if (a.addEventListener) {
+                    a.addEventListener('click', Product.interactTile);
+                } else {
+                    a.attachEvent('onclick', function (e) {
+                        Product.interactTile.call(a, e);
+                    });
+                }
 
-            if(a.addEventListener) {
-                a.addEventListener('click', Product.interactTile);
-            } else {
-                a.attachEvent('onclick', function(e) { Product.interactTile.call(a, e); });
-            }
+                // Only stick metrics on the product widget if *not* embedded in another widget
+                if (self.config.metrics_context == okanjo.metrics.channel.product_widget) {
 
-            // Only stick metrics on the product widget if *not* embedded in another widget
-            if (self.config.metrics_context == okanjo.metrics.channel.product_widget) {
+                    var baseMeta = {},
+                        placementTestEnabled = a.getAttribute('data-placement-enabled'),
+                        placementTestId = a.getAttribute('data-placement-test'),
+                        placementTestSeed = a.getAttribute('data-placement-seed'),
+                        articleId = a.getAttribute('data-article-id');
 
-                var baseMeta = {},
-                    placementTestEnabled = a.getAttribute('data-placement-enabled'),
-                    placementTestId = a.getAttribute('data-placement-test'),
-                    placementTestSeed = a.getAttribute('data-placement-seed'),
-                    articleId = a.getAttribute('data-article-id');
+                    if (placementTestEnabled) baseMeta.pten = placementTestEnabled;
+                    if (placementTestId) baseMeta.ptid = placementTestId;
+                    if (placementTestSeed) baseMeta.ptseed = placementTestSeed;
+                    if (articleId) baseMeta.aid = articleId;
 
-                if (placementTestEnabled) baseMeta.pten = placementTestEnabled;
-                if (placementTestId) baseMeta.ptid = placementTestId;
-                if (placementTestSeed) baseMeta.ptseed = placementTestSeed;
-                if (articleId) baseMeta.aid = articleId;
+                    // Attach widget instance id
+                    baseMeta.wgid = self.instanceId;
 
-                // Attach widget instance id
-                baseMeta.wgid = self.instanceId;
-
-                // Track product impression
-                okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
-                    id: a.getAttribute('data-id'),
-                    ch: self.config.metrics_context, // pw or aw
-                    cx: self.config.metrics_channel_context || self.config.mode, // single, browse, sense | creative, dynamic
-                    m: okanjo.util.deepClone(self.config, okanjo.metrics.includeElementInfo(a.parentNode, baseMeta))
-                });
+                    // Track product impression
+                    okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
+                        id: id,
+                        ch: self.config.metrics_context, // pw or aw
+                        cx: self.config.metrics_channel_context || self.config.mode, // single, browse, sense | creative, dynamic
+                        m: okanjo.metrics.copy(self.config, okanjo.metrics.includeElementInfo(a.parentNode, baseMeta))
+                    });
+                }
             }
 
             return true;
@@ -571,6 +592,152 @@
             return true;
         });
 
+    };
+
+
+    /**
+     * Fills the widget with empty products to best match an ad to the dimensions of the widget
+     * @return {{width:number,height:number}|null}
+     */
+    proto.guessAdSize = function() {
+        // Load the container with placeholders to see how big we expand to.
+        var size, items = [], i = 0,
+            //sizes = '980x120|980x90|970x250|970x90|970x66|960x90|950x90|930x180|750x300|750x200|750x100|728x90|580x400|468x60|336x280|320x100|320x50|300x1050|300x600|300x250|300x100|300x50|300x31|292x30|250x360|250x250|240x400|240x133|234x60|220x90|200x446|200x200|180x150|160x600|125x125|120x600|120x240|120x60|88x31'.split('|'),
+            sizes = '300x250|728x90|250x250|200x200|120x240|468x60|180x150|320x50|125x125|234x60'.split('|'),
+            sizeInstance, sizeInstanceWidth, sizeInstanceHeight;
+
+        for ( ; i < this.config.take; i++) {
+            items.push({});
+        }
+        this.showProducts(items);
+
+        // Get the actual size of the unit
+        size = okanjo.util.getElementSize(this.element);
+
+        // Drop the content
+        this.element.innerHTML = "";
+
+        // Avoid rounding errors in some browsers (looking at you, IE8)
+        size.width += 1;
+        size.height += 1;
+
+        // Best fit the size to an ad-size
+        for (i = 0; i < sizes.length; i++) {
+            sizeInstance = sizes[i].split('x');
+            sizeInstanceWidth = parseInt(sizeInstance[0]);
+            sizeInstanceHeight = parseInt(sizeInstance[1]);
+            if (sizeInstanceWidth <= size.width && sizeInstanceHeight <= size.height) {
+                return { width: sizeInstanceWidth, height: sizeInstanceHeight };
+            }
+        }
+
+        // No match, don't show an ad
+        return null;
+    };
+
+
+    /**
+     * Starts the backfill process to show an backup display ad
+     */
+    proto.backfillAd = function() {
+
+        var backfill = this.config.backfill,
+            match,
+            size = null;
+
+        if (typeof backfill === "string") {
+            // Check if the backfill target is a known ad unit size
+            if (okanjo.Ad) {
+                size = okanjo.Ad.sizes[backfill];
+            }
+
+            // Check if the string is a dimensional value
+            if (!size) {
+                if (match = (/^([0-9]+)x([0-9]+)$/i).exec(backfill)) {
+                    size = {
+                        width: match[1],
+                        height: match[2]
+                    };
+                }
+            }
+        }
+
+        // Do we have to guess the size?
+        if (!size) {
+            size = this.guessAdSize();
+        }
+
+        if (size) {
+            this.loadAd(size);
+        } else {
+            console.error('[Okanjo.'+this.widgetName+'] Failed to backfill ad: Unable to match ad size to widget dimensions');
+        }
+    };
+
+
+    /**
+     * Loads an ad from Google Adx of the given dimensions
+     * @param size
+     */
+    proto.loadAd = function(size) {
+        var adxframe = document.createElement('iframe'),
+            frameAttributes = {
+                'class': 'okanjo-inline-buy-frame',
+                frameborder: 0,
+                vspace: 0,
+                hspace: 0,
+                webkitallowfullscreen: '',
+                mozallowfullscreen: '',
+                allowfullscreen: '',
+                scrolling: 'auto'
+            },
+            pubId = 'ca-pub-9976681432228271',
+            slotId = '3992956792',
+            adxframeContent = '<html><head><style type="text/css">html,body {margin: 0; padding: 0;}</style></head><body><'+'script type="text/javascript">' +
+                'google_ad_client = "'+pubId+'";' +
+                'google_ad_slot = "'+slotId+'";' +
+                'google_ad_width = '+size.width+';' +
+                'google_ad_height = '+size.height+';' +
+                'google_page_url = "'+window.location.href+'";' +
+                //'google_adtest = "on";' +
+                '<'+'/script>' +
+                '<' +'script type="text/javascript" src="//pagead2.googlesyndication.com/pagead/show_ads.js"><'+'/script></body></html>';
+
+        this.element.innerHTML = "";
+        this.element.appendChild(adxframe);
+        adxframe.contentWindow.document.open();
+        adxframe.contentWindow.document.write(adxframeContent);
+        adxframe.contentWindow.document.close();
+
+        for (var i in frameAttributes) {
+            if (frameAttributes.hasOwnProperty(i)) {
+                adxframe.setAttribute(i, frameAttributes[i]);
+            }
+        }
+
+        adxframe.className = "okanjo-ad-backfill";
+        adxframe.setAttribute('width', size.width + "px");
+        adxframe.setAttribute('height', size.height + "px");
+
+        var baseMeta = {
+            wgid: this.instanceId,
+            pten: this.placementTest && this.placementTest.enabled ? 1 : 0
+        };
+
+        if (this.placementTest) {
+            if (this.placementTest.id) baseMeta.ptid = this.placementTest.id;
+            if (this.placementTest.seed) baseMeta.ptseed = this.placementTest.seed;
+        }
+
+        if (this.articleId) baseMeta.aid = this.articleId;
+
+
+        // Track backfill impression
+        okanjo.metrics.trackEvent(okanjo.metrics.object_type.thirdparty_ad, okanjo.metrics.event_type.impression, {
+            ch: this.config.metrics_context, // pw or aw
+            cx: this.config.metrics_channel_context || this.config.mode, // single, browse, sense | creative, dynamic
+            m: okanjo.metrics.copy(this.config, okanjo.metrics.includeElementInfo(this.element, baseMeta))
+        });
     };
 
     okanjo.Product = Product;
