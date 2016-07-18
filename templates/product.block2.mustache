@@ -30,9 +30,9 @@
                     <div class="okanjo-product-title-container {{#config}}{{ template_theme }}{{/config}}">
                         <span class="okanjo-product-title" itemprop="name">{{ name }}</span>
                     </div>
-                    <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+                    <div  >
                         <div class="okanjo-product-price-container">
-                            <span itemprop="priceCurrency" content="{{ currency }}">$</span><span class="okanjo-product-price" itemprop="price">{{ price_formatted }}</span>
+                            <span content="{{ currency }}">$</span><span class="okanjo-product-price" >{{ price_formatted }}</span>
                         </div>
                         <div class="okanjo-product-button-container">
                             <div class="okanjo-product-buy-button"><span>{{meta.cta_text}}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Shop Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div>

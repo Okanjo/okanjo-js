@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2016-07-18 - v0.7.2
+ * Removed offer/price schema attributes from template to avoid issues where articles list prices in google search results.
+
 ## 2016-07-01 - v0.7.1
  * New size `auto` option for product block2 templates, allows full-width lists for more native placements.
  * Added opt-in parameter `backfill` to show a display ad when no products match the page content.
