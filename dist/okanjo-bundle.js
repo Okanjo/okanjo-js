@@ -1,4 +1,4 @@
-/*! okanjo-js v0.7.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.7.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -5195,7 +5195,7 @@ if (typeof JSON !== 'object') {
 return okanjo;
 }));
 
-/*! okanjo-js v0.7.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.7.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {okanjo.mvc.registerCss("ad.block", ".okanjo-ad-block{position:relative}.okanjo-ad-block .okanjo-ad-dynamic-product .okanjo-product-list{margin:0;width:100%}.okanjo-ad-block.okanjo-ad-fit{width:100%;height:100%;position:relative}.okanjo-ad-block.okanjo-ad-fit .okanjo-ad-container,.okanjo-ad-block.okanjo-ad-fit .okanjo-ad-dynamic-product,.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block,.okanjo-ad-block.okanjo-ad-fit .okanjo-product-list{height:100%;width:100%}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product{height:100%;width:100%;padding:0;box-sizing:border-box;margin:0}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-image-container{margin:.5em}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-title-container{height:auto;margin:1em .5em}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block .okanjo-product-price-container{position:absolute;bottom:.5em;background:#fff;padding:.25em 0 0;margin:0 1px 0 0;left:1px;right:1px}.okanjo-ad-block.okanjo-ad-fit .okanjo-product-block.lt-ie9 .okanjo-product-title-container:before{display:none}", { id: 'okanjo-ad-block' });
 
 okanjo.mvc.registerTemplate("ad.block", "<div class=\"okanjo-ad-block {{classDetects}}\"><div class=\"okanjo-ad-container okanjo-expansion-root\" data-size={{size}}></div><div class=okanjo-ad-meta></div></div>", function(data, options) {
