@@ -24,6 +24,8 @@
             noop = function(){},
             okanjo = ok || {};
 
+        // Override version with this version
+        okanjo.version = "0.7.4";
 
         // Override these later
         okanjo.qwery = noop;
@@ -2410,6 +2412,9 @@ if (typeof JSON !== 'object') {
 
             // Automatically attach page load id
             event.m.pgid = this.pageId;
+
+            // Automatically attach JS build version
+            event.m.ok_ver = okanjo.version;
 
             // Pass the page's source reference
             if (document.referrer) {

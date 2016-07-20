@@ -14,6 +14,8 @@
             noop = function(){},
             okanjo = ok || {};
 
+        // Override version with this version
+        okanjo.version = "%%OKANJO_VERSION";
 
         // Override these later
         okanjo.qwery = noop;

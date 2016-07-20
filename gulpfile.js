@@ -66,15 +66,20 @@ var gulp = require('gulp'),
     // Auto add vendor prefixes in CSS
     autoprefix= new LessPluginAutoPrefix({ browsers: ["> 5%"] }),
 
+    // Module info
+    getPackageJson = function() {
+        return JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    },
+
     // Header
     getHeader = function(name) {
-        var metadata = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+        var metadata = getPackageJson();
         return '/*! ' + (name || metadata.name) + ' v' + metadata.version + ' | (c) 2013 Okanjo Partners Inc | ' + metadata.homepage + ' */\n';
     },
 
     // Version bump + dist update message
     getVersionCommitMessage = function() {
-        var metadata = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+        var metadata = getPackageJson();
         return 'Tagged as v' + metadata.version;
     },
 
@@ -182,10 +187,11 @@ gulp.task('vendor-metrics', ['deps'], function() {
 });
 
 gulp.task('min-metrics', ['vendor-metrics'], function() {
-    var s1 = size(), s2 = size();
+    var s1 = size(), s2 = size(), packageJson = getPackageJson();
     //noinspection JSUnusedGlobalSymbols
     return gulp.src(metricsOnlyBuildFiles)
         .pipe(sourcemaps.init())
+        .pipe(replace(/%%OKANJO_VERSION/, packageJson.version))
         .pipe(concat('okanjo-metrics.js'))
         .pipe(umd({
             exports: function() {
@@ -254,10 +260,11 @@ gulp.task('lint', function() {
 
 
 gulp.task('min', ['vendor'], function() {
-    var s1 = size(), s2 = size();
+    var s1 = size(), s2 = size(), packageJson = getPackageJson();
     //noinspection JSUnusedGlobalSymbols
     return gulp.src(sources)
         .pipe(sourcemaps.init())
+        .pipe(replace(/%%OKANJO_VERSION/, packageJson.version))
         .pipe(concat('okanjo.js'))
         .pipe(umd({
             exports: function() {

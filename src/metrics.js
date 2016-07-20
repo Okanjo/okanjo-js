@@ -181,6 +181,9 @@
             // Automatically attach page load id
             event.m.pgid = this.pageId;
 
+            // Automatically attach JS build version
+            event.m.ok_ver = okanjo.version;
+
             // Pass the page's source reference
             if (document.referrer) {
                 event.ref = document.referrer;
