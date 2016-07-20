@@ -4448,7 +4448,7 @@ if (typeof JSON !== 'object') {
                 if (articleId) baseMeta.m.aid = articleId;
 
                 // Was the product loaded as a last-ditch effort?
-                baseMeta.m.bf = backfill ? 1 : 0;
+                baseMeta.m.bf = backfill === "true" ? 1 : 0;
 
                 // Add widget instance id
                 baseMeta.m.wgid = instanceId;
@@ -4611,7 +4611,7 @@ if (typeof JSON !== 'object') {
                     if (articleId) baseMeta.aid = articleId;
 
                     // Was the product loaded as a last-ditch effort?
-                    baseMeta.bf = backfill ? 1 : 0;
+                    baseMeta.bf = backfill === "true" ? 1 : 0;
 
                     // Attach widget instance id
                     baseMeta.wgid = self.instanceId;
