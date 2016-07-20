@@ -61,13 +61,13 @@
             // ProductSense Params
             url: "url",  // The URL to digest
             selectors: "selectors", // CSV of page element selectors, default: p,title,meta[name="description"],meta[name="keywords"]
-            text: "text", // The given text to digest, but no more than 50KB
+            url_category: "url-category", // Article taxonomy (e.g. news, sports, lifestyles, etc)
 
-            // Search Params
+            // Search Params (Filters)
 
-            "id": "id", // The specific product ID to fetch (single mode), default: null
+            id: "id", // The specific product ID to fetch (single mode), default: null
 
-            "q": "q", // Search query text
+            q: "q", // Search query text
 
             marketplace_status: ['marketplace-status'], // Option to switch to testing product pool, default: live
             marketplace_id: ['marketplace-id'], // Limit products listed under the given marketplace, default: null
@@ -113,7 +113,6 @@
             template_cta_style: "template-cta-style", // The CTA button visual style. Can be button or link, links will take less space.
             template_cta_text: "template-cta-text", // The text within the CTA button, will be css-truncated if too long for given layout, default: Shop Now
             template_cta_color: "template-cta-color" // The color of text of the CTA button or link, default: 0099ff.
-
         };
 
         // Initialize unless told not to
@@ -395,6 +394,7 @@
             instanceId = this.getAttribute('instance-id'),
             inlineParams = {},
             expanded = false,
+            backfill = this.getAttribute('data-backfill'),
 
             // Get positional / meta data
             meta = (function(context, e) {
@@ -410,6 +410,9 @@
                 if (placementTestId) baseMeta.m.ptid = placementTestId;
                 if (placementTestSeed) baseMeta.m.ptseed = placementTestSeed;
                 if (articleId) baseMeta.m.aid = articleId;
+
+                // Was the product loaded as a last-ditch effort?
+                baseMeta.m.bf = backfill ? 1 : 0;
 
                 // Add widget instance id
                 baseMeta.m.wgid = instanceId;
@@ -563,12 +566,16 @@
                         placementTestEnabled = a.getAttribute('data-placement-enabled'),
                         placementTestId = a.getAttribute('data-placement-test'),
                         placementTestSeed = a.getAttribute('data-placement-seed'),
-                        articleId = a.getAttribute('data-article-id');
+                        articleId = a.getAttribute('data-article-id'),
+                        backfill = a.getAttribute('data-backfill');
 
                     if (placementTestEnabled) baseMeta.pten = placementTestEnabled;
                     if (placementTestId) baseMeta.ptid = placementTestId;
                     if (placementTestSeed) baseMeta.ptseed = placementTestSeed;
                     if (articleId) baseMeta.aid = articleId;
+
+                    // Was the product loaded as a last-ditch effort?
+                    baseMeta.bf = backfill ? 1 : 0;
 
                     // Attach widget instance id
                     baseMeta.wgid = self.instanceId;
@@ -653,12 +660,14 @@
 
             // Check if the string is a dimensional value
             if (!size) {
+                /* jshint -W084 */
                 if (match = (/^([0-9]+)x([0-9]+)$/i).exec(backfill)) {
                     size = {
                         width: match[1],
                         height: match[2]
                     };
                 }
+                /* jshint +W084 */
             }
         }
 

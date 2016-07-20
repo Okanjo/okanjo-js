@@ -3,6 +3,11 @@
 
 When stuff changes, it's described here.
 
+## 2016-07-20 – v0.7.3
+ * Added `url_category` sense mode parameter to indicate the taxonomy/genre of the article
+ * Added support for back-filled products when running in sense mode
+ * Removed deprecated `text` sense mode parameter from product config
+
 ## 2016-07-18 - v0.7.2
  * Removed offer/price schema attributes from template to avoid issues where articles list prices in google search results.
 
