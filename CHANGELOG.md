@@ -3,7 +3,7 @@
 
 When stuff changes, it's described here.
 
-## 2016-07-20 – v0.7.3
+## 2016-07-20 – v0.7.4
  * Added `url_category` sense mode parameter to indicate the taxonomy/genre of the article
  * Added support for back-filled products when running in sense mode
  * Removed deprecated `text` sense mode parameter from product config
