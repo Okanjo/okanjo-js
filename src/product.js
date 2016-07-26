@@ -14,7 +14,7 @@
         this.items = [];
         this.config = config = config || {
             mode: Product.contentTypes.browse, // Default to browse
-            use_cache: true,
+            use_cache: false,
             cache_ttl: 60000
         };
 
@@ -22,7 +22,7 @@
         this.config.nag = config.nag === undefined ? true : config.nag === true;
 
         // Set default caching settings
-        this.config.use_cache = config.use_cache === undefined ? true : config.use_cache === true;
+        this.config.use_cache = config.use_cache === undefined ? false : config.use_cache === true;
         this.config.cache_ttl = config.cache_ttl === undefined ? 60000 : config.cache_ttl;
         this.disable_popup = config.disable_popup === true;
         this.use_cache = this.config.use_cache;

@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2016-07-26 – v0.7.6
+ * Disabled caching API responses by default
+
 ## 2016-07-20 – v0.7.5
  * Added js build version to the okanjo object and reported metrics
 
