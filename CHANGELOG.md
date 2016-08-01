@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2016-08-01 – v0.7.7
+ * Added js build version to interaction events
+
 ## 2016-07-26 – v0.7.6
  * Disabled caching API responses by default
 

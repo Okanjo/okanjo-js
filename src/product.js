@@ -414,6 +414,9 @@
                 // Was the product loaded as a last-ditch effort?
                 baseMeta.m.bf = backfill === "true" ? 1 : 0;
 
+                // Include the widget version
+                baseMeta.m.ok_ver = okanjo.version;
+
                 // Add widget instance id
                 baseMeta.m.wgid = instanceId;
 
