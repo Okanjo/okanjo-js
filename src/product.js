@@ -427,7 +427,6 @@
             expandable = container.getAttribute('data-expandable'),
             disablePopup = container.getAttribute('data-disable-popup') || false,
             backfill = this.getAttribute('data-backfill'),
-            id = this.getAttribute('data-id'),
             buyUrl = this.getAttribute('data-buy-url'),
             inline = this.getAttribute('data-inline-buy-url'),
             proxyUrl = this.getAttribute('data-proxy-url'),
@@ -440,7 +439,8 @@
             modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + passThroughParams,
             modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + passThroughParams;
 
-        // Add positional meta data
+        // Add product / positional meta data
+        eventData.id = this.getAttribute('data-id');
         eventData.m = okanjo.metrics.includeEventInfo(e, okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(this, eventData.m)));
 
         // Show a new window on applicable devices instead of a native buy experience
@@ -584,6 +584,7 @@
                         eventData = okanjo.util.deepClone(self.metricBase, {});
 
                     // Was the product loaded as a last-ditch effort?
+                    eventData.id = a.getAttribute('data-id');
                     eventData.m.bf = (backfill === "true") ? 1 : 0;
 
                     // Update the event metadata
