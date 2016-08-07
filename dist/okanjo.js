@@ -1,4 +1,4 @@
-/*! okanjo-js v0.8.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.8.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -25,7 +25,7 @@
             okanjo = ok || {};
 
         // Override version with this version
-        okanjo.version = "0.8.1";
+        okanjo.version = "0.8.2";
 
         // Override these later
         okanjo.qwery = noop;
@@ -4490,7 +4490,6 @@ if (typeof JSON !== 'object') {
             expandable = container.getAttribute('data-expandable'),
             disablePopup = container.getAttribute('data-disable-popup') || false,
             backfill = this.getAttribute('data-backfill'),
-            id = this.getAttribute('data-id'),
             buyUrl = this.getAttribute('data-buy-url'),
             inline = this.getAttribute('data-inline-buy-url'),
             proxyUrl = this.getAttribute('data-proxy-url'),
@@ -4503,7 +4502,8 @@ if (typeof JSON !== 'object') {
             modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + passThroughParams,
             modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + passThroughParams;
 
-        // Add positional meta data
+        // Add product / positional meta data
+        eventData.id = this.getAttribute('data-id');
         eventData.m = okanjo.metrics.includeEventInfo(e, okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(this, eventData.m)));
 
         // Show a new window on applicable devices instead of a native buy experience
@@ -4647,6 +4647,7 @@ if (typeof JSON !== 'object') {
                         eventData = okanjo.util.deepClone(self.metricBase, {});
 
                     // Was the product loaded as a last-ditch effort?
+                    eventData.id = a.getAttribute('data-id');
                     eventData.m.bf = (backfill === "true") ? 1 : 0;
 
                     // Update the event metadata
