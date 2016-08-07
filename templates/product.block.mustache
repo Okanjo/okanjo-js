@@ -1,23 +1,18 @@
 <div class="{{template_name}} okanjo-expansion-root {{classDetects}}">
-    <ul class="okanjo-product-list" itemscope itemtype="http://schema.org/ItemList">
+    <ul class="okanjo-product-list" itemscope itemtype="http://schema.org/ItemList"
+        data-metric-json="{{ metricBaseJSON }}"
+        data-proxy-url="{{ proxy_url}}"
+        data-expandable="{{#config}}{{ expandable }}{{/config}}"
+        data-disable-popup="{{ disable_popup }}"
+        data-instance-id="{{ instanceId }}">
+        {{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }}
     {{#products}}
         <li class="okanjo-product" itemscope itemtype="http://schema.org/Product">
             <a href="//{{okanjoMetricUrl}}/metrics/pr/int?m[bot]=true&id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}"
-               data-inline-buy-url="{{ inline_buy_url }}"
-               data-buy-url="{{ buy_url }}"
-               data-metric-url="//{{okanjoMetricUrl}}/metrics/pr/int?id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}"
-               data-proxy-url="{{ proxy_url}}"
-               data-expandable="{{#config}}{{ expandable }}{{/config}}"
-               data-channel="{{#config}}{{ metrics_context }}{{/config}}"
-               data-context="{{#config}}{{ metrics_channel_context }}{{/config}}"
-               data-article-id="{{ article_id }}"
-               data-placement-enabled="{{ placement_test_enabled }}"
-               data-placement-test="{{ placement_test_id }}"
-               data-placement-seed="{{ placement_test_seed }}"
-               data-disable-popup="{{ disable_popup }}"
                data-id="{{ id }}"
                data-backfill="{{ backfill }}"
-               data-instance-id="{{ instanceId }}"
+               data-inline-buy-url="{{ inline_buy_url }}"
+               data-buy-url="{{ buy_url }}"
                target="_blank"
                itemprop="url"
                title="Buy now: {{ name }}">

@@ -3223,6 +3223,23 @@ if (typeof JSON !== 'object') {
             delete event.object_type;
             delete event.event_type;
 
+            this.normalizeEventData(event);
+
+            okanjo.exec(okanjo.getRoute(okanjo.routes.metrics, { object_type: object_type, event_type: event_type }), event, function(err, res) {
+                if (err) { console.warn('[Okanjo.Metrics] Reporting failed', err, res); }
+
+                /*jslint -W030 */
+                callback && (callback(err, res));
+            });
+
+        },
+
+        /**
+         * Normalizes event data for consistency and adds common information to the event
+         * @param event
+         */
+        normalizeEventData: function(event) {
+
             // Stick the key in there, if not already set
             event.key = event.key || (event.m && event.m.key) || okanjo.key || this._lastKey || undefined;
 
@@ -3262,14 +3279,6 @@ if (typeof JSON !== 'object') {
             if (document.referrer) {
                 event.ref = document.referrer;
             }
-
-            okanjo.exec(okanjo.getRoute(okanjo.routes.metrics, { object_type: object_type, event_type: event_type }), event, function(err, res) {
-                if (err) { console.warn('[Okanjo.Metrics] Reporting failed', err, res); }
-
-                /*jslint -W030 */
-                callback && (callback(err, res));
-            });
-
         },
 
 
@@ -3415,8 +3424,21 @@ if (typeof JSON !== 'object') {
          */
         copy: function(config, base) {
             return okanjo.util.flatten(okanjo.util.deepClone(config, base));
-        }
+        },
 
+        /**
+         * Ensure that all parameters are less than the data limit
+         * @param data
+         * @return {*}
+         */
+        truncate: function(data) {
+            for(var i in data) {
+                if (data.hasOwnProperty(i) && typeof data[i] === "string") {
+                    data[i] = data[i].substr(0, 255);
+                }
+            }
+            return data;
+        }
     };
 
     okanjo.metrics = new OkanjoMetrics();
@@ -4236,6 +4258,21 @@ if (typeof JSON !== 'object') {
             delete this.config.proxy_url;
         }
 
+        // Build the base metric data for events from this widget
+        // Generate metric url for this type
+        this.metricBase = {
+            // id: 'APPLIED IN TEMPLATE',
+            ch: this.config.metrics_context,
+            cx: this.config.metrics_channel_context || this.config.mode,
+            key: this.config.key,
+            m: {
+                //ok_ver: 'COMES FROM NORMALIZATION',
+                //pgid: 'COMES FROM NORMALIZATION',
+                //bf: 'APPLIED IN TEMPLATE',
+                wgid: this.instanceId
+            }
+        };
+
         // Immediately show products from the local browser cache, if present, for immediate visual feedback
         if (this.config.use_cache && this.loadProductsFromCache()) {
             // Loaded from cache successfully!
@@ -4252,15 +4289,12 @@ if (typeof JSON !== 'object') {
 
         // Track widget impression
         if (this.config.metrics_context == okanjo.metrics.channel.product_widget) {
-            okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, {
-                ch: this.config.metrics_context, // pw or aw
-                cx: this.config.metrics_channel_context || this.config.mode, // single, browse, sense | creative, dynamic
-                m: okanjo.metrics.copy(this.config, okanjo.metrics.includeElementInfo(this.element, { wgid: this.instanceId }))
-            });
+            var eventData = okanjo.util.deepClone(this.metricBase, {});
+            eventData.m = okanjo.metrics.truncate(okanjo.metrics.copy(this.config, okanjo.metrics.includeElementInfo(this.element, eventData.m)));
+            okanjo.metrics.trackEvent(okanjo.metrics.object_type.widget, okanjo.metrics.event_type.impression, eventData);
         }
 
         return true;
-
     };
 
 
@@ -4314,6 +4348,14 @@ if (typeof JSON !== 'object') {
                     self.placementTest = res.placementTest;
                     self.shorted = self.config.mode == Product.contentTypes.sense && self.config.take > count;
 
+                    // Update the base metric data with new new information
+                    if (self.articleId) self.metricBase.m.aid = self.articleId;
+                    self.metricBase.m.pten = (self.placementTest && self.placementTest.enabled) ? '1' : '0';
+                    if (self.placementTest) {
+                        if (self.placementTest.id) self.metricBase.m.ptid = self.placementTest.id;
+                        if (self.placementTest.seed) self.metricBase.m.ptseed = self.placementTest.seed;
+                    }
+
                     // Allow hooks when the response returns from the server
                     self.emit('data', res);
 
@@ -4340,17 +4382,18 @@ if (typeof JSON !== 'object') {
      * @param {function(err:*, res:*)} callback – Closure to fire when completed
      */
     proto.executeSearch = function(callback) {
+        var config = okanjo.util.deepClone(this.config);
         if (this.config.mode === Product.contentTypes.sense) {
-            okanjo.exec(okanjo.getRoute(okanjo.routes.products_sense), this.config, callback);
+            okanjo.exec(okanjo.getRoute(okanjo.routes.products_sense), config, callback);
         } else if (this.config.mode === Product.contentTypes.single) {
-            okanjo.exec(okanjo.getRoute(okanjo.routes.products_id, { product_id: this.config.id }), this.config, function(err, res) {
+            okanjo.exec(okanjo.getRoute(okanjo.routes.products_id, { product_id: this.config.id }), config, function(err, res) {
                 if (!err && res && res.data) {
                     res.data = [ res.data ];
                 }
                 if (callback) callback(err, res);
             });
         } else {
-            okanjo.exec(okanjo.getRoute(okanjo.routes.products), this.config, callback);
+            okanjo.exec(okanjo.getRoute(okanjo.routes.products), config, callback);
         }
     };
 
@@ -4389,17 +4432,18 @@ if (typeof JSON !== 'object') {
 
     /**
      * Builds the final frame url to use, given the base, url, and params to tack on
-     * @param base – Metric tracking URL
+     * @param eventData – Metric event data
      * @param inline – Inline buy URL
      * @param proxy – The vendor given url to redirect to, after we've tracked the interaction, which should redirect to the buy_url
      * @param params – Additional params to tack on to the inline buy URL
      * @returns {string} – Final frame url
      */
-    function makeFrameUrl(base, inline, proxy, params) {
+    function makeClickThroughUrl(eventData, inline, proxy, params) {
 
         var pairs = [],
             i,
-            joiner = (inline.indexOf('?') < 0 ? '?' : '&');
+            joiner = (inline.indexOf('?') < 0 ? '?' : '&'),
+            buy_url;
 
         for (i in params) {
             if (params.hasOwnProperty(i)) {
@@ -4407,15 +4451,30 @@ if (typeof JSON !== 'object') {
             }
         }
 
-        var metrics_url = base + "&n="+(new Date()).getTime()+"&u=",
-            buy_url = inline + (pairs.length > 0 ? (joiner + pairs.join('&')) : "");
+        // Normalize the event data
+        okanjo.metrics.normalizeEventData(eventData);
+
+        // Cache buster
+        eventData.n = (new Date()).getTime();
+
+        // Build buy url
+        buy_url = inline + (pairs.length > 0 ? (joiner + pairs.join('&')) : "");
 
         // If we're relaying through a proxy tracker, then build the link accordingly
         if (proxy) {
-            return metrics_url + encodeURIComponent(proxy + encodeURIComponent(buy_url));
+            eventData.u = proxy + encodeURIComponent(buy_url);
         } else {
-            return metrics_url + encodeURIComponent(buy_url);
+            eventData.u = buy_url;
         }
+
+        // Convert event to url
+        return okanjo.JSONP.makeUrl({
+            url: okanjo.getRoute(okanjo.routes.metrics, {
+                object_type: okanjo.metrics.object_type.product,
+                event_type: okanjo.metrics.event_type.interaction
+            }),
+            data: eventData
+        });
     }
 
 
@@ -4426,51 +4485,26 @@ if (typeof JSON !== 'object') {
      */
     Product.interactTile = function(e, trigger) {
 
-        var inline = this.getAttribute('data-inline-buy-url'),
-            expandable = this.getAttribute('data-expandable'),
-            nativeBuy = !okanjo.util.empty(inline),
-            disablePopup = this.getAttribute('data-disable-popup') || false,
-            doPopup = disablePopup ? false : (okanjo.util.isMobile() && nativeBuy),
-            url = this.getAttribute('href'),
-            instanceId = this.getAttribute('instance-id'),
+        var container = this.parentNode.parentNode,
+            eventData = JSON.parse(container.getAttribute('data-metric-json')),
+            expandable = container.getAttribute('data-expandable'),
+            disablePopup = container.getAttribute('data-disable-popup') || false,
+            backfill = this.getAttribute('data-backfill'),
+            id = this.getAttribute('data-id'),
+            buyUrl = this.getAttribute('data-buy-url'),
+            inline = this.getAttribute('data-inline-buy-url'),
+            proxyUrl = this.getAttribute('data-proxy-url'),
+            url,
             inlineParams = {},
             expanded = false,
-            backfill = this.getAttribute('data-backfill'),
-
-            // Get positional / meta data
-            meta = (function(context, e) {
-                var baseMeta = {
-                        m: okanjo.metrics.includeEventInfo(e, okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(context)))
-                    },
-                    placementTestEnabled = context.getAttribute('data-placement-enabled'),
-                    placementTestId = context.getAttribute('data-placement-test'),
-                    placementTestSeed = context.getAttribute('data-placement-seed'),
-                    articleId = context.getAttribute('data-article-id');
-
-                if (placementTestEnabled) baseMeta.m.pten = placementTestEnabled;
-                if (placementTestId) baseMeta.m.ptid = placementTestId;
-                if (placementTestSeed) baseMeta.m.ptseed = placementTestSeed;
-                if (articleId) baseMeta.m.aid = articleId;
-
-                // Was the product loaded as a last-ditch effort?
-                baseMeta.m.bf = backfill === "true" ? 1 : 0;
-
-                // Include the widget version
-                baseMeta.m.ok_ver = okanjo.version;
-
-                // Add widget instance id
-                baseMeta.m.wgid = instanceId;
-
-                return baseMeta;
-            })(this, e),
-            id = this.getAttribute('id'),
-            buyUrl = this.getAttribute('data-buy-url'),
-            metricUrl = this.getAttribute('data-metric-url') + '&sid=' + okanjo.metrics.sid + '&' + okanjo.JSONP.objectToURI(meta),
-            proxyUrl = this.getAttribute('data-proxy-url'),
-            passThroughParams = "ok_msid=" + okanjo.metrics.sid + '&ok_ch=' + this.getAttribute('data-channel') + '&ok_cx=' + this.getAttribute('data-context'),
+            nativeBuy = !okanjo.util.empty(inline),
+            doPopup = disablePopup ? false : (okanjo.util.isMobile() && nativeBuy),
+            passThroughParams = "ok_msid=" + okanjo.metrics.sid + '&ok_ch=' + eventData.ch + '&ok_cx=' + eventData.cx,
             modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + passThroughParams,
             modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + passThroughParams;
 
+        // Add positional meta data
+        eventData.m = okanjo.metrics.includeEventInfo(e, okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(this, eventData.m)));
 
         // Show a new window on applicable devices instead of a native buy experience
         if (doPopup) {
@@ -4482,8 +4516,9 @@ if (typeof JSON !== 'object') {
             //
 
             // Tell the buy experience that we're loading up in a popup, so they can render that nicely
-            metricUrl += '&ea='+okanjo.metrics.action.inline_click + "&m[popup]=true";
-            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, proxyUrl, { popup: 1 });
+            eventData.ea = okanjo.metrics.action.inline_click;
+            eventData.m.popup = 'true';
+            url = makeClickThroughUrl(eventData, modifiedInlineBuyUrl, proxyUrl, { popup: 1 });
 
             okanjo.active_frame = window.open(url, "okanjo-inline-buy-frame", "width=400,height=400,location=yes,resizable=yes,scrollbars=yes");
             if (!okanjo.active_frame) {
@@ -4537,7 +4572,7 @@ if (typeof JSON !== 'object') {
                 //
 
                 // Locate the parent ad container and attempt to shove the frame in there
-                // If it fails to do so, then resort to a modal, since expandable was set not on an ad, derp.
+                // If it fails to do so, then resort to a modal, since expandable was set not on an ad, de72qw2227.
                 var candidate = this, parent = null;
                 while(candidate) {
                     candidate = candidate.parentNode;
@@ -4564,8 +4599,9 @@ if (typeof JSON !== 'object') {
                 }
             }
 
-            metricUrl += '&ea='+okanjo.metrics.action.inline_click + '&m[expandable]=' + (inlineParams.expandable === 1 ? 'true' : 'false');
-            url = makeFrameUrl(metricUrl, modifiedInlineBuyUrl, proxyUrl, inlineParams);
+            eventData.ea = okanjo.metrics.action.inline_click;
+            eventData.m.expandable = (inlineParams.expandable === 1 ? 'true' : 'false');
+            url = makeClickThroughUrl(eventData, modifiedInlineBuyUrl, proxyUrl, inlineParams);
 
             frame.src = url;
 
@@ -4574,12 +4610,12 @@ if (typeof JSON !== 'object') {
             }
 
         } else if (trigger) {
-            metricUrl += '&ea='+okanjo.metrics.action.click;
-            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, proxyUrl, {});
+            eventData.ea = okanjo.metrics.action.click;
+            this.href = makeClickThroughUrl(eventData, modifiedBuyUrl, proxyUrl, {});
             this.click();
         } else {
-            metricUrl += '&ea='+okanjo.metrics.action.click;
-            this.href = makeFrameUrl(metricUrl, modifiedBuyUrl, proxyUrl, {});
+            eventData.ea = okanjo.metrics.action.click;
+            this.href = makeClickThroughUrl(eventData, modifiedBuyUrl, proxyUrl, {});
         }
     };
 
@@ -4606,31 +4642,18 @@ if (typeof JSON !== 'object') {
                 // Only stick metrics on the product widget if *not* embedded in another widget
                 if (self.config.metrics_context == okanjo.metrics.channel.product_widget) {
 
-                    var baseMeta = {},
-                        placementTestEnabled = a.getAttribute('data-placement-enabled'),
-                        placementTestId = a.getAttribute('data-placement-test'),
-                        placementTestSeed = a.getAttribute('data-placement-seed'),
-                        articleId = a.getAttribute('data-article-id'),
-                        backfill = a.getAttribute('data-backfill');
-
-                    if (placementTestEnabled) baseMeta.pten = placementTestEnabled;
-                    if (placementTestId) baseMeta.ptid = placementTestId;
-                    if (placementTestSeed) baseMeta.ptseed = placementTestSeed;
-                    if (articleId) baseMeta.aid = articleId;
+                    // Gather the goods
+                    var backfill = a.getAttribute('data-backfill'),
+                        eventData = okanjo.util.deepClone(self.metricBase, {});
 
                     // Was the product loaded as a last-ditch effort?
-                    baseMeta.bf = backfill === "true" ? 1 : 0;
+                    eventData.m.bf = (backfill === "true") ? 1 : 0;
 
-                    // Attach widget instance id
-                    baseMeta.wgid = self.instanceId;
+                    // Update the event metadata
+                    eventData.m = okanjo.metrics.truncate(okanjo.metrics.copy(self.config, okanjo.metrics.includeElementInfo(a.parentNode, eventData.m)));
 
-                    // Track product impression
-                    okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, {
-                        id: id,
-                        ch: self.config.metrics_context, // pw or aw
-                        cx: self.config.metrics_channel_context || self.config.mode, // single, browse, sense | creative, dynamic
-                        m: okanjo.metrics.copy(self.config, okanjo.metrics.includeElementInfo(a.parentNode, baseMeta))
-                    });
+                    // Track product impression event
+                    okanjo.metrics.trackEvent(okanjo.metrics.object_type.product, okanjo.metrics.event_type.impression, eventData);
                 }
             }
 
@@ -4642,7 +4665,6 @@ if (typeof JSON !== 'object') {
             okanjo.util.ellipsify(t);
             return true;
         });
-
     };
 
 
@@ -4772,25 +4794,14 @@ if (typeof JSON !== 'object') {
         adxframe.setAttribute('width', size.width + "px");
         adxframe.setAttribute('height', size.height + "px");
 
-        var baseMeta = {
-            wgid: this.instanceId,
-            pten: this.placementTest && this.placementTest.enabled ? 1 : 0
-        };
-
-        if (this.placementTest) {
-            if (this.placementTest.id) baseMeta.ptid = this.placementTest.id;
-            if (this.placementTest.seed) baseMeta.ptseed = this.placementTest.seed;
-        }
-
-        if (this.articleId) baseMeta.aid = this.articleId;
-
-
         // Track backfill impression
-        okanjo.metrics.trackEvent(okanjo.metrics.object_type.thirdparty_ad, okanjo.metrics.event_type.impression, {
-            ch: this.config.metrics_context, // pw or aw
-            cx: this.config.metrics_channel_context || this.config.mode, // single, browse, sense | creative, dynamic
-            m: okanjo.metrics.copy(this.config, okanjo.metrics.includeElementInfo(this.element, baseMeta))
-        });
+        var eventData = okanjo.util.deepClone(this.metricBase, {});
+        eventData.m.ta_w = size.width;
+        eventData.m.ta_h = size.height;
+        eventData.m.ta_pubid = pubId;
+        eventData.m.ta_slotid = slotId;
+        eventData.m = okanjo.metrics.truncate(okanjo.metrics.copy(this.config, okanjo.metrics.includeElementInfo(this.element, eventData.m)));
+        okanjo.metrics.trackEvent(okanjo.metrics.object_type.thirdparty_ad, okanjo.metrics.event_type.impression, eventData);
     };
 
     okanjo.Product = Product;

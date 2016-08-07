@@ -149,6 +149,23 @@
             delete event.object_type;
             delete event.event_type;
 
+            this.normalizeEventData(event);
+
+            okanjo.exec(okanjo.getRoute(okanjo.routes.metrics, { object_type: object_type, event_type: event_type }), event, function(err, res) {
+                if (err) { console.warn('[Okanjo.Metrics] Reporting failed', err, res); }
+
+                /*jslint -W030 */
+                callback && (callback(err, res));
+            });
+
+        },
+
+        /**
+         * Normalizes event data for consistency and adds common information to the event
+         * @param event
+         */
+        normalizeEventData: function(event) {
+
             // Stick the key in there, if not already set
             event.key = event.key || (event.m && event.m.key) || okanjo.key || this._lastKey || undefined;
 
@@ -188,14 +205,6 @@
             if (document.referrer) {
                 event.ref = document.referrer;
             }
-
-            okanjo.exec(okanjo.getRoute(okanjo.routes.metrics, { object_type: object_type, event_type: event_type }), event, function(err, res) {
-                if (err) { console.warn('[Okanjo.Metrics] Reporting failed', err, res); }
-
-                /*jslint -W030 */
-                callback && (callback(err, res));
-            });
-
         },
 
 
@@ -341,8 +350,21 @@
          */
         copy: function(config, base) {
             return okanjo.util.flatten(okanjo.util.deepClone(config, base));
-        }
+        },
 
+        /**
+         * Ensure that all parameters are less than the data limit
+         * @param data
+         * @return {*}
+         */
+        truncate: function(data) {
+            for(var i in data) {
+                if (data.hasOwnProperty(i) && typeof data[i] === "string") {
+                    data[i] = data[i].substr(0, 255);
+                }
+            }
+            return data;
+        }
     };
 
     okanjo.metrics = new OkanjoMetrics();

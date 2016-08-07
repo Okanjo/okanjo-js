@@ -12,14 +12,12 @@
         options.config = data.config;
         options.proxy_url = this.proxy_url;
         options.products = okanjo.mvc.formats.product(data.products);
-
-        options.article_id = this.articleId || "";
-        options.placement_test_enabled = this.placementTest && this.placementTest.enabled ? "1" : "0";
-        options.placement_test_id = this.placementTest ? this.placementTest.id : "";
-        options.placement_test_seed = this.placementTest ? this.placementTest.seed : "";
         options.disable_popup = this.disable_popup ? "1" : "";
         options.instanceId = this.instanceId;
 
+        var eventData = okanjo.util.deepClone(this.metricBase, {});
+        eventData.m = okanjo.metrics.truncate(okanjo.metrics.copy(this.config, eventData.m));
+        options.metricBaseJSON = JSON.stringify(eventData);
 
         return options;
     }, {

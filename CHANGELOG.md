@@ -3,6 +3,18 @@
 
 When stuff changes, it's described here.
 
+## 2016-08-06 – v0.8.1
+
+Metrics
+ * Refactored event normalization to its own helper
+ * Added truncation helper to limit properties to ensure acceptance
+
+Product Widget
+ * Refactored all events to use metric normalization to correct consistency and reduce redundancy 
+ * Fixed leaking of callback param into config property on api exec
+ * Refactored click through url function to convert event into an actual url
+ * Fixed missing instance id in the deprecated sidebar template
+
 ## 2016-08-01 – v0.7.7
  * Added js build version to interaction events
 
