@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2016-09-08 - v0.8.3
+ * Enabled ADX backfill via placement testing
+
 ## 2016-08-07 - v0.8.2
  * Fixed missing product ids in normalized event data
 

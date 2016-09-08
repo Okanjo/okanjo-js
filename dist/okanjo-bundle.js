@@ -4334,7 +4334,7 @@ if (typeof JSON !== 'object') {
                 if (count === 0) self.emit('empty');
 
                 // Check for adx backfill scenario, if allowed
-                if (self.config.backfill && self.config.mode == Product.contentTypes.sense && count === 0) {
+                if (res.backfillADX) {
 
                     // Replace content with backfill from adx
                     self.backfillAd();
