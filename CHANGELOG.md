@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2016-09-09 – v0.8.4
+ * Prioritized 720x90 over 300x250 to better fill a wider space
+ * Default ADX backfill ads to be centered in their original container
+
 ## 2016-09-08 - v0.8.3
  * Enabled ADX backfill via placement testing
 
