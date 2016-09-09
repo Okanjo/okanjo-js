@@ -1,4 +1,4 @@
-/*! okanjo-js v0.8.3 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v0.8.4 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -25,7 +25,7 @@
             okanjo = ok || {};
 
         // Override version with this version
-        okanjo.version = "0.8.3";
+        okanjo.version = "0.8.4";
 
         // Override these later
         okanjo.qwery = noop;
@@ -4677,7 +4677,7 @@ if (typeof JSON !== 'object') {
         // Load the container with placeholders to see how big we expand to.
         var size, items = [], i = 0,
             //sizes = '980x120|980x90|970x250|970x90|970x66|960x90|950x90|930x180|750x300|750x200|750x100|728x90|580x400|468x60|336x280|320x100|320x50|300x1050|300x600|300x250|300x100|300x50|300x31|292x30|250x360|250x250|240x400|240x133|234x60|220x90|200x446|200x200|180x150|160x600|125x125|120x600|120x240|120x60|88x31'.split('|'),
-            sizes = '300x250|728x90|250x250|200x200|120x240|468x60|180x150|320x50|125x125|234x60'.split('|'),
+            sizes = '728x90|300x250|250x250|200x200|120x240|468x60|180x150|320x50|125x125|234x60'.split('|'),
             sizeInstance, sizeInstanceWidth, sizeInstanceHeight;
 
         for ( ; i < this.config.take; i++) {
@@ -4756,9 +4756,10 @@ if (typeof JSON !== 'object') {
      * @param size
      */
     proto.loadAd = function(size) {
-        var adxframe = document.createElement('iframe'),
+        var adxContainer = document.createElement('div'),
+            adxFrame = document.createElement('iframe'),
             frameAttributes = {
-                'class': 'okanjo-inline-buy-frame',
+                'class': 'okanjo-adx-frame',
                 frameborder: 0,
                 vspace: 0,
                 hspace: 0,
@@ -4779,21 +4780,25 @@ if (typeof JSON !== 'object') {
                 '<'+'/script>' +
                 '<' +'script type="text/javascript" src="//pagead2.googlesyndication.com/pagead/show_ads.js"><'+'/script></body></html>';
 
+        adxContainer.className = "okanjo-adx-container";
+        adxContainer.appendChild(adxFrame);
+
         this.element.innerHTML = "";
-        this.element.appendChild(adxframe);
-        adxframe.contentWindow.document.open();
-        adxframe.contentWindow.document.write(adxframeContent);
-        adxframe.contentWindow.document.close();
+        this.element.appendChild(adxContainer);
+
+        adxFrame.contentWindow.document.open();
+        adxFrame.contentWindow.document.write(adxframeContent);
+        adxFrame.contentWindow.document.close();
 
         for (var i in frameAttributes) {
             if (frameAttributes.hasOwnProperty(i)) {
-                adxframe.setAttribute(i, frameAttributes[i]);
+                adxFrame.setAttribute(i, frameAttributes[i]);
             }
         }
 
-        adxframe.className = "okanjo-ad-backfill";
-        adxframe.setAttribute('width', size.width + "px");
-        adxframe.setAttribute('height', size.height + "px");
+        adxFrame.className = "okanjo-ad-backfill";
+        adxFrame.setAttribute('width', size.width + "px");
+        adxFrame.setAttribute('height', size.height + "px");
 
         // Track backfill impression
         var eventData = okanjo.util.deepClone(this.metricBase, {});
