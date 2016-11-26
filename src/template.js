@@ -243,6 +243,30 @@
                 } else { // Unknown value
                     return null;
                 }
+            },
+
+
+            /**
+             * Formats an article or an array of article objects for the view
+             * @param {*} mixed – Article or an array of article objects
+             * @returns {*} – Formatted article array or object
+             */
+            article: function(mixed) {
+                // If we got an array of products, handle each one
+                if (typeof mixed === "object" && Array.isArray(mixed)) {
+                    var articles = [];
+                    for(var i = 0; i < mixed.length; i++) {
+                        articles.push(this.article(mixed[i]));
+                    }
+                    return articles;
+                } else if(typeof mixed === "object" ) { // Individual article
+                    // Set first image as the display image
+                    mixed.image_url = mixed.image || '';
+                    mixed.escaped_buy_url = encodeURIComponent(mixed.url);
+                    return mixed;
+                } else { // Unknown value
+                    return null;
+                }
             }
 
         }

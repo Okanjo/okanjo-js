@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2016-11-26 - v0.9.1
+ * Added support for experimental article matching mode
+
 ## 2016-09-09 – v0.8.4
  * Prioritized 720x90 over 300x250 to better fill a wider space
  * Default ADX backfill ads to be centered in their original container

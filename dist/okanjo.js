@@ -982,6 +982,30 @@
                 } else { // Unknown value
                     return null;
                 }
+            },
+
+
+            /**
+             * Formats an article or an array of article objects for the view
+             * @param {*} mixed – Article or an array of article objects
+             * @returns {*} – Formatted article array or object
+             */
+            article: function(mixed) {
+                // If we got an array of products, handle each one
+                if (typeof mixed === "object" && Array.isArray(mixed)) {
+                    var articles = [];
+                    for(var i = 0; i < mixed.length; i++) {
+                        articles.push(this.article(mixed[i]));
+                    }
+                    return articles;
+                } else if(typeof mixed === "object" ) { // Individual article
+                    // Set first image as the display image
+                    mixed.image_url = mixed.image || '';
+                    mixed.escaped_buy_url = encodeURIComponent(mixed.url);
+                    return mixed;
+                } else { // Unknown value
+                    return null;
+                }
             }
 
         }
@@ -3134,6 +3158,7 @@ if (typeof JSON !== 'object') {
 
 
         object_type: {
+            article: 'am',
             thirdparty_ad: 'ta',
             cart: 'ct',
             page: 'pg',
@@ -4103,12 +4128,14 @@ if (typeof JSON !== 'object') {
 
         this.templates = {
             product_error: "okanjo.error",
-            product_main: "product.block"
+            product_main: "product.block",
+            article_main: "article.block2"
         };
 
         this.css = {
             product_main: "product.block",
-            product_modal: "okanjo.modal"
+            product_modal: "okanjo.modal",
+            article_main: "article.block2"
         };
 
         this.configMap = {
@@ -4339,6 +4366,30 @@ if (typeof JSON !== 'object') {
                     // Replace content with backfill from adx
                     self.backfillAd();
 
+                } else if (res.type === 'articles') {
+
+                    // Store the products array locally
+                    self.items = res.data;
+                    self.articleId = res.articleId;
+                    self.placementTest = res.placementTest;
+
+                    // Update the base metric data with new new information
+                    if (self.articleId) self.metricBase.m.aid = self.articleId;
+                    self.metricBase.m.pten = (self.placementTest && self.placementTest.enabled) ? '1' : '0';
+                    if (self.placementTest) {
+                        if (self.placementTest.id) self.metricBase.m.ptid = self.placementTest.id;
+                        if (self.placementTest.seed) self.metricBase.m.ptseed = self.placementTest.seed;
+                    }
+
+                    // Allow hooks when the response returns from the server
+                    self.emit('data', res);
+
+                    // Render the products
+                    self.showArticles(self.items);
+
+                    // Allow hooks when the product widget finishes initialization
+                    self.emit('load', { fromCache: false });
+
                 } else {
 
                     // Store the products array locally
@@ -4436,14 +4487,17 @@ if (typeof JSON !== 'object') {
      * @param inline – Inline buy URL
      * @param proxy – The vendor given url to redirect to, after we've tracked the interaction, which should redirect to the buy_url
      * @param params – Additional params to tack on to the inline buy URL
+     * @param options - Additional options for formatting
      * @returns {string} – Final frame url
      */
-    function makeClickThroughUrl(eventData, inline, proxy, params) {
+    function makeClickThroughUrl(eventData, inline, proxy, params, options) {
 
         var pairs = [],
             i,
             joiner = (inline.indexOf('?') < 0 ? '?' : '&'),
             buy_url;
+
+        options = options || {};
 
         for (i in params) {
             if (params.hasOwnProperty(i)) {
@@ -4470,7 +4524,7 @@ if (typeof JSON !== 'object') {
         // Convert event to url
         return okanjo.JSONP.makeUrl({
             url: okanjo.getRoute(okanjo.routes.metrics, {
-                object_type: okanjo.metrics.object_type.product,
+                object_type: options.object_type || okanjo.metrics.object_type.product,
                 event_type: okanjo.metrics.event_type.interaction
             }),
             data: eventData
@@ -4666,6 +4720,105 @@ if (typeof JSON !== 'object') {
             okanjo.util.ellipsify(t);
             return true;
         });
+    };
+
+
+    /**
+     * Displays the articles results
+     * @param {[*]} data - The array of products
+     */
+    proto.showArticles = function(data) {
+
+        // Handle the inline buy configuration option
+        this.handleInlineBuyOption();
+
+        // Render the product content!
+        this.element.innerHTML = okanjo.mvc.render(this.templates.article_main, this, {
+            articles: data || this.items || [],
+            config: this.config
+        });
+
+        this.bindArticleEvents();
+    };
+
+
+    /**
+     * Binds event listeners to the anchor elements in the article widgets
+     */
+    proto.bindArticleEvents = function() {
+
+        var self = this;
+
+        //noinspection JSUnresolvedFunction
+        okanjo.qwery('a', this.element).every(function(a) {
+            var id = a.getAttribute('data-id');
+            if (id) {
+                if (a.addEventListener) {
+                    a.addEventListener('click', Product.interactArticleTile);
+                } else {
+                    a.attachEvent('onclick', function (e) {
+                        Product.interactArticleTile.call(a, e);
+                    });
+                }
+
+                // Only stick metrics on the product widget if *not* embedded in another widget
+                if (self.config.metrics_context == okanjo.metrics.channel.product_widget) {
+
+                    // Gather the goods
+                    var backfill = a.getAttribute('data-backfill'),
+                        eventData = okanjo.util.deepClone(self.metricBase, {});
+
+                    // Was the product loaded as a last-ditch effort?
+                    eventData.id = a.getAttribute('data-id');
+                    eventData.m.bf = (backfill === "true") ? 1 : 0;
+
+                    // Update the event metadata
+                    eventData.m = okanjo.metrics.truncate(okanjo.metrics.copy(self.config, okanjo.metrics.includeElementInfo(a.parentNode, eventData.m)));
+
+                    // Track article impression event
+                    okanjo.metrics.trackEvent(okanjo.metrics.object_type.article, okanjo.metrics.event_type.impression, eventData);
+                }
+            }
+
+            return true;
+        });
+
+        // Show ellipses on title text that doesn't quite fit
+        okanjo.qwery('.okanjo-article-title', this.element).every(function(t) {
+            okanjo.util.ellipsify(t);
+            return true;
+        });
+    };
+
+
+    /**
+     * Handle user interaction with the article tile
+     * @param e – User interaction DOM event
+     * @param trigger – Whether to trigger the click event or not on the link
+     */
+    Product.interactArticleTile = function(e, trigger) {
+
+        var container = this.parentNode.parentNode,
+            eventData = JSON.parse(container.getAttribute('data-metric-json')),
+            buyUrl = this.getAttribute('data-article-url'),
+            proxyUrl = this.getAttribute('data-proxy-url'),
+            url,
+            passThroughParams = "ok_msid=" + okanjo.metrics.sid + '&ok_ch=' + eventData.ch + '&ok_cx=' + eventData.cx,
+            modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + passThroughParams;
+
+        // Add product / positional meta data
+        eventData.id = this.getAttribute('data-id');
+        eventData.m = okanjo.metrics.includeEventInfo(e, okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(this, eventData.m)));
+
+        // Show a new window on applicable devices instead of a native buy experience
+        if (trigger) {
+            eventData.ea = okanjo.metrics.action.click;
+            this.href = makeClickThroughUrl(eventData, modifiedBuyUrl, proxyUrl, {}, { object_type: okanjo.metrics.object_type.article });
+            this.click();
+        } else {
+            eventData.ea = okanjo.metrics.action.click;
+            this.href = makeClickThroughUrl(eventData, modifiedBuyUrl, proxyUrl, {}, { object_type: okanjo.metrics.object_type.article });
+        }
     };
 
 

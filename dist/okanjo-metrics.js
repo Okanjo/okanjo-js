@@ -2292,6 +2292,7 @@ if (typeof JSON !== 'object') {
 
 
         object_type: {
+            article: 'am',
             thirdparty_ad: 'ta',
             cart: 'ct',
             page: 'pg',

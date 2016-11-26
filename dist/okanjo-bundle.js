@@ -982,6 +982,30 @@
                 } else { // Unknown value
                     return null;
                 }
+            },
+
+
+            /**
+             * Formats an article or an array of article objects for the view
+             * @param {*} mixed – Article or an array of article objects
+             * @returns {*} – Formatted article array or object
+             */
+            article: function(mixed) {
+                // If we got an array of products, handle each one
+                if (typeof mixed === "object" && Array.isArray(mixed)) {
+                    var articles = [];
+                    for(var i = 0; i < mixed.length; i++) {
+                        articles.push(this.article(mixed[i]));
+                    }
+                    return articles;
+                } else if(typeof mixed === "object" ) { // Individual article
+                    // Set first image as the display image
+                    mixed.image_url = mixed.image || '';
+                    mixed.escaped_buy_url = encodeURIComponent(mixed.url);
+                    return mixed;
+                } else { // Unknown value
+                    return null;
+                }
             }
 
         }
@@ -3134,6 +3158,7 @@ if (typeof JSON !== 'object') {
 
 
         object_type: {
+            article: 'am',
             thirdparty_ad: 'ta',
             cart: 'ct',
             page: 'pg',
@@ -4103,12 +4128,14 @@ if (typeof JSON !== 'object') {
 
         this.templates = {
             product_error: "okanjo.error",
-            product_main: "product.block"
+            product_main: "product.block",
+            article_main: "article.block2"
         };
 
         this.css = {
             product_main: "product.block",
-            product_modal: "okanjo.modal"
+            product_modal: "okanjo.modal",
+            article_main: "article.block2"
         };
 
         this.configMap = {
@@ -4339,6 +4366,30 @@ if (typeof JSON !== 'object') {
                     // Replace content with backfill from adx
                     self.backfillAd();
 
+                } else if (res.type === 'articles') {
+
+                    // Store the products array locally
+                    self.items = res.data;
+                    self.articleId = res.articleId;
+                    self.placementTest = res.placementTest;
+
+                    // Update the base metric data with new new information
+                    if (self.articleId) self.metricBase.m.aid = self.articleId;
+                    self.metricBase.m.pten = (self.placementTest && self.placementTest.enabled) ? '1' : '0';
+                    if (self.placementTest) {
+                        if (self.placementTest.id) self.metricBase.m.ptid = self.placementTest.id;
+                        if (self.placementTest.seed) self.metricBase.m.ptseed = self.placementTest.seed;
+                    }
+
+                    // Allow hooks when the response returns from the server
+                    self.emit('data', res);
+
+                    // Render the products
+                    self.showArticles(self.items);
+
+                    // Allow hooks when the product widget finishes initialization
+                    self.emit('load', { fromCache: false });
+
                 } else {
 
                     // Store the products array locally
@@ -4436,14 +4487,17 @@ if (typeof JSON !== 'object') {
      * @param inline – Inline buy URL
      * @param proxy – The vendor given url to redirect to, after we've tracked the interaction, which should redirect to the buy_url
      * @param params – Additional params to tack on to the inline buy URL
+     * @param options - Additional options for formatting
      * @returns {string} – Final frame url
      */
-    function makeClickThroughUrl(eventData, inline, proxy, params) {
+    function makeClickThroughUrl(eventData, inline, proxy, params, options) {
 
         var pairs = [],
             i,
             joiner = (inline.indexOf('?') < 0 ? '?' : '&'),
             buy_url;
+
+        options = options || {};
 
         for (i in params) {
             if (params.hasOwnProperty(i)) {
@@ -4470,7 +4524,7 @@ if (typeof JSON !== 'object') {
         // Convert event to url
         return okanjo.JSONP.makeUrl({
             url: okanjo.getRoute(okanjo.routes.metrics, {
-                object_type: okanjo.metrics.object_type.product,
+                object_type: options.object_type || okanjo.metrics.object_type.product,
                 event_type: okanjo.metrics.event_type.interaction
             }),
             data: eventData
@@ -4666,6 +4720,105 @@ if (typeof JSON !== 'object') {
             okanjo.util.ellipsify(t);
             return true;
         });
+    };
+
+
+    /**
+     * Displays the articles results
+     * @param {[*]} data - The array of products
+     */
+    proto.showArticles = function(data) {
+
+        // Handle the inline buy configuration option
+        this.handleInlineBuyOption();
+
+        // Render the product content!
+        this.element.innerHTML = okanjo.mvc.render(this.templates.article_main, this, {
+            articles: data || this.items || [],
+            config: this.config
+        });
+
+        this.bindArticleEvents();
+    };
+
+
+    /**
+     * Binds event listeners to the anchor elements in the article widgets
+     */
+    proto.bindArticleEvents = function() {
+
+        var self = this;
+
+        //noinspection JSUnresolvedFunction
+        okanjo.qwery('a', this.element).every(function(a) {
+            var id = a.getAttribute('data-id');
+            if (id) {
+                if (a.addEventListener) {
+                    a.addEventListener('click', Product.interactArticleTile);
+                } else {
+                    a.attachEvent('onclick', function (e) {
+                        Product.interactArticleTile.call(a, e);
+                    });
+                }
+
+                // Only stick metrics on the product widget if *not* embedded in another widget
+                if (self.config.metrics_context == okanjo.metrics.channel.product_widget) {
+
+                    // Gather the goods
+                    var backfill = a.getAttribute('data-backfill'),
+                        eventData = okanjo.util.deepClone(self.metricBase, {});
+
+                    // Was the product loaded as a last-ditch effort?
+                    eventData.id = a.getAttribute('data-id');
+                    eventData.m.bf = (backfill === "true") ? 1 : 0;
+
+                    // Update the event metadata
+                    eventData.m = okanjo.metrics.truncate(okanjo.metrics.copy(self.config, okanjo.metrics.includeElementInfo(a.parentNode, eventData.m)));
+
+                    // Track article impression event
+                    okanjo.metrics.trackEvent(okanjo.metrics.object_type.article, okanjo.metrics.event_type.impression, eventData);
+                }
+            }
+
+            return true;
+        });
+
+        // Show ellipses on title text that doesn't quite fit
+        okanjo.qwery('.okanjo-article-title', this.element).every(function(t) {
+            okanjo.util.ellipsify(t);
+            return true;
+        });
+    };
+
+
+    /**
+     * Handle user interaction with the article tile
+     * @param e – User interaction DOM event
+     * @param trigger – Whether to trigger the click event or not on the link
+     */
+    Product.interactArticleTile = function(e, trigger) {
+
+        var container = this.parentNode.parentNode,
+            eventData = JSON.parse(container.getAttribute('data-metric-json')),
+            buyUrl = this.getAttribute('data-article-url'),
+            proxyUrl = this.getAttribute('data-proxy-url'),
+            url,
+            passThroughParams = "ok_msid=" + okanjo.metrics.sid + '&ok_ch=' + eventData.ch + '&ok_cx=' + eventData.cx,
+            modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + passThroughParams;
+
+        // Add product / positional meta data
+        eventData.id = this.getAttribute('data-id');
+        eventData.m = okanjo.metrics.includeEventInfo(e, okanjo.metrics.includeViewportInfo(okanjo.metrics.includeElementInfo(this, eventData.m)));
+
+        // Show a new window on applicable devices instead of a native buy experience
+        if (trigger) {
+            eventData.ea = okanjo.metrics.action.click;
+            this.href = makeClickThroughUrl(eventData, modifiedBuyUrl, proxyUrl, {}, { object_type: okanjo.metrics.object_type.article });
+            this.click();
+        } else {
+            eventData.ea = okanjo.metrics.action.click;
+            this.href = makeClickThroughUrl(eventData, modifiedBuyUrl, proxyUrl, {}, { object_type: okanjo.metrics.object_type.article });
+        }
     };
 
 
@@ -5244,6 +5397,63 @@ okanjo.mvc.registerTemplate("ad.block", "<div class=\"okanjo-ad-block {{classDet
 }, {
     css: [ 'ad.block' ]
 });
+
+
+    okanjo.mvc.registerCss("article.block2", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-article-block2{color:#333;font:12px/1.2 \"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif}.okanjo-article-block2:after,.okanjo-article-block2:before{content:\" \";display:table}.okanjo-article-block2:after{clear:both}.okanjo-article-block2 .okanjo-ellipses:after{content:\"...\"}.okanjo-article-block2 .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-article-block2 .okanjo-article{display:block;float:left;background-color:#fff;box-sizing:content-box;width:148px;border:1px solid #e6e6e6;margin:0 -1px -1px 0}.okanjo-article-block2 .okanjo-article:last-child{margin:0}.okanjo-article-block2 a{display:block;overflow:hidden;color:#333;text-decoration:none;padding:10px}.okanjo-article-block2 a:hover{color:inherit;text-decoration:none}.okanjo-article-block2 .okanjo-article-image-container{float:left;overflow:hidden;text-align:center;vertical-align:middle;width:100%;height:128px;line-height:127px;margin:0 0 3px}.okanjo-article-block2 .okanjo-article-image{max-width:100%;max-height:100%;border:none;vertical-align:middle}.okanjo-article-block2 .okanjo-article-info-container{float:left;height:auto;width:100%}.okanjo-article-block2 .okanjo-article-publisher-container{color:#999;font-size:11px;line-height:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-article-block2 .okanjo-article-publisher-container.newsprint{font-family:Georgia,serif}.okanjo-article-block2 .okanjo-article-description-container{display:none}.okanjo-article-block2 .okanjo-article-title-container{overflow:hidden;margin-top:3px;margin-bottom:4px;font-weight:700;font-size:12px;line-height:14px;height:45px;word-wrap:break-word}.okanjo-article-block2 .okanjo-article-title-container.newsprint{font:13px/15px Georgia,serif}.okanjo-article-block2 .okanjo-article-title-container span{display:inline-block}.lt-ie8.okanjo-article-block2 .okanjo-article-title-container span{display:inline;zoom:1}.okanjo-article-block2 .okanjo-article-price-container{font-size:15px;line-height:1;margin-bottom:5px}.okanjo-article-block2 .okanjo-article-buy-button{color:#09f;font-size:12px;line-height:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-article-block2 .okanjo-article.list{width:298px;height:122px}.okanjo-article-block2 .okanjo-article.list a{padding:11px}.okanjo-article-block2 .okanjo-article.list .okanjo-article-title-container{margin-top:4px;margin-bottom:6px}.okanjo-article-block2 .okanjo-article.list .okanjo-article-image-container{width:100px;height:100px;line-height:1px;margin:0 11px 0 0}.okanjo-article-block2 .okanjo-article.list .okanjo-article-info-container{height:auto;float:none}.okanjo-article-block2.okanjo-cta-style-button .okanjo-article-title-container{height:52px}.okanjo-article-block2.okanjo-cta-style-button .okanjo-article-buy-button{display:block;text-align:center;line-height:26px;padding:0 8px;border:1px solid #09f;border-radius:2px;-webkit-transition:50ms ease;transition:50ms ease}.okanjo-article-block2.okanjo-cta-style-button .okanjo-article-buy-button:hover{background:#09f;color:#fff}.okanjo-article-block2.okanjo-cta-style-button .okanjo-article-buy-button:active{box-shadow:inset 0 3px 10px rgba(0,0,0,.15)}.okanjo-article-block2.medium_rectangle .okanjo-article{width:148px;height:248px}.okanjo-article-block2.medium_rectangle .okanjo-article:first-child{width:149px;height:248px}.okanjo-article-block2.medium_rectangle .okanjo-article.list{width:298px;height:123px}.okanjo-article-block2.medium_rectangle .okanjo-article.list .okanjo-article-image-container{width:100px;height:100px;line-height:1px}.okanjo-article-block2.medium_rectangle .okanjo-article.list .okanjo-article-info-container{height:auto;float:left;width:165px}.okanjo-article-block2.medium_rectangle .okanjo-article.list:first-child{height:124px}.okanjo-article-block2.medium_rectangle .okanjo-article.list:first-child a{padding-top:12px}.okanjo-article-block2.leaderboard .okanjo-article{width:241px;height:88px}.okanjo-article-block2.leaderboard .okanjo-article:first-child{width:242px}.okanjo-article-block2.leaderboard .okanjo-article a{padding:7px}.okanjo-article-block2.leaderboard .okanjo-article .okanjo-article-image-container{width:74px;height:74px;line-height:1px;margin:0 7px 0 0}.okanjo-article-block2.leaderboard .okanjo-article .okanjo-article-title-container{font-size:11px;line-height:13px;height:26px;margin-top:1px;margin-bottom:4px}.okanjo-article-block2.half_page .okanjo-article .okanjo-article-title-container,.okanjo-article-block2.leaderboard .okanjo-article .okanjo-article-price-container{margin-bottom:3px}.okanjo-article-block2.leaderboard .okanjo-article .okanjo-article-title-container.newsprint{font:700 11px/13px Georgia,serif}.okanjo-article-block2.half_page .okanjo-article{height:118px}.okanjo-article-block2.half_page .okanjo-article:nth-last-child(n+2){height:119px}.okanjo-article-block2.half_page .okanjo-article .okanjo-article-image-container{width:96px;height:96px}.okanjo-article-block2.large_mobile_banner .okanjo-article{width:318px;height:98px}.okanjo-article-block2.large_mobile_banner .okanjo-article a{padding:6px}.okanjo-article-block2.large_mobile_banner .okanjo-article .okanjo-article-image-container{width:86px;height:86px}.okanjo-article-block2.large_mobile_banner .okanjo-article .okanjo-article-title-container{height:30px}.okanjo-article-block2.auto{font-size:1em;width:100%}.okanjo-article-block2.auto .okanjo-article{width:100%;height:auto;border-left:none;border-right:none}.okanjo-article-block2.auto .okanjo-article a{max-width:500px;width:95%;margin:0 auto;padding:2.5%}.okanjo-article-block2.auto .okanjo-article.list{height:auto}.okanjo-article-block2.auto .okanjo-article.list .okanjo-article-image-container{width:18%;height:auto;line-height:1px}.okanjo-article-block2.auto .okanjo-article.list .okanjo-article-info-container{height:auto;float:none;margin-left:21%;width:79%}.okanjo-article-block2.auto .okanjo-article.list .okanjo-article-publisher-container{height:auto;font-size:12px;line-height:1.2}.okanjo-article-block2.auto .okanjo-article.list .okanjo-article-price-container{height:auto;font-size:15px;line-height:1.5}.okanjo-article-block2.auto .okanjo-article.list .okanjo-article-title-container{font-size:15px;line-height:1.4;height:auto}.okanjo-article-block2.auto .okanjo-article.list .okanjo-article-buy-button{display:inline-block;font-size:14px;line-height:1.8;margin-bottom:-1.7%}.okanjo-article-block2.auto.okanjo-cta-style-button .okanjo-article.list .okanjo-article-price-container{line-height:1.3}.okanjo-article-block2.auto.okanjo-cta-style-button .okanjo-article.list .okanjo-article-title-container{line-height:1.25}.okanjo-article-block2.auto.okanjo-cta-style-button .okanjo-article.list .okanjo-article-buy-button{font-size:13px}.okanjo-adx-container{text-align:center}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", { id: 'okanjo-article-block2' });
+
+    var article_block2 = "<div class=\"{{template_name}} okanjo-expansion-root {{classDetects}} {{#config}} {{ size }} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-article-block2-cus-{{blockId}}\"><div class=okanjo-article-list itemscope=\"\" itemtype=http://schema.org/ItemList data-metric-json=\"{{ metricBaseJSON }}\" data-proxy-url=\"{{ proxy_url}}\" data-instance-id=\"{{ instanceId }}\">{{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }} {{#articles}}<div class=\"okanjo-article {{#config}}{{ template_layout }}{{/config}}\" itemscope=\"\" itemtype=http://schema.org/Article><a href=\"//{{okanjoMetricUrl}}/metrics/am/int?m[bot]=true&id={{ id }}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_article_url }}\" data-id=\"{{ id }}\" data-article-url=\"{{ url }}\" target=_blank itemprop=url title=\"Read More: {{ title }}\"><div class=okanjo-article-image-container><img class=okanjo-article-image src=\"{{ image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-article-info-container><div class=\"okanjo-article-publisher-container {{#config}}{{ template_theme }}{{/config}}\" itemprop=publisher itemscope=\"\" itemtype=http://schema.org/Organization><span class=okanjo-article-publisher itemprop=name title=\"{{ publisher_name }}\">{{ publisher_name }}{{^publisher_name}}&nbsp;{{/publisher_name}}</span></div><div class=\"okanjo-article-title-container {{#config}}{{ template_theme }}{{/config}}\"><span class=okanjo-article-title itemprop=name>{{ title }}</span></div><div class=\"okanjo-article-description-container {{#config}}{{ template_theme }}{{/config}}\"><div class=okanjo-article-description itemprop=description>{{ description }}</div></div><div><div class=okanjo-article-button-container><div class=okanjo-article-buy-button><span>{{meta.cta_text}}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Read Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div><meta property=url itemprop=url content=\"//{{okanjoMetricUrl}}/metrics/am/int?m[bot]=true&m[microdata]=true&id={{id}}&ch={{#config}}{{ metrics_context }}{{/config}}&cx={{#config}}{{ metrics_channel_context }}{{/config}}&key={{#config}}{{ key }}{{/config}}&n={{ now }}&u={{ escaped_buy_url }}\"></div></div><div class=\"okanjo-article-meta okanjo-visually-hidden\">{{#author}}<span itemprop=author>{{author}}</span>{{/author}} {{#published}}<span itemprop=dateCreated>{{published}}</span>{{/published}}</div></div></a></div>{{/articles}}</div><div class=\"okanjo-article-meta okanjo-visually-hidden\"></div></div>",
+        blockId = 0;
+
+    okanjo.mvc.registerTemplate("article.block2", article_block2, function(data, options) {
+        // Ensure params
+        data = data || { articles: [], config: {} };
+        options = okanjo.util.clone(options);
+
+        // Copy, format and return the config and products
+        options.template_name = 'okanjo-article-block2';
+        options.config = data.config;
+        options.proxy_url = this.proxy_url;
+        options.articles = okanjo.mvc.formats.article(data.articles);
+        options.instanceId = this.instanceId;
+
+        var eventData = okanjo.util.deepClone(this.metricBase, {});
+        eventData.m = okanjo.metrics.truncate(okanjo.metrics.copy(this.config, eventData.m));
+        options.metricBaseJSON = JSON.stringify(eventData);
+
+
+        // enforce format restrictions
+        if ((options.config.size == "leaderboard") || (options.config.size == "large_mobile_banner")) {
+            options.config.template_layout = "list";
+            options.config.template_cta_style = "link";
+        } else if ((options.config.size == "half_page") || (options.config.size == "auto")){
+            options.config.template_layout = "list";
+        }
+
+        // add branding if necessary
+        var brandColor = options.config.template_cta_color;
+
+        if (brandColor) {
+            var brandCSS,
+                brandCSSId = "okanjo-article-block2-cus-" + blockId;
+
+            brandCSS = ".okanjo-article-block2."+brandCSSId+" .okanjo-article-buy-button { color: "+brandColor+";} " +
+                ".okanjo-article-block2."+brandCSSId+".okanjo-cta-style-button .okanjo-article-buy-button { border: 1px solid "+brandColor+"; } " +
+                ".okanjo-article-block2."+brandCSSId+".okanjo-cta-style-button .okanjo-article-buy-button:hover { background: "+brandColor+"; } ";
+
+            okanjo.mvc.registerCss(brandCSSId, brandCSS, { id: brandCSSId });
+            okanjo.mvc.ensureCss(brandCSSId);
+        }
+
+        options.blockId = blockId++;
+
+
+
+        return options;
+    }, {
+        css: [ /*'okanjo.core',*/ 'article.block2', 'okanjo.modal']
+    });
+
+
 
 
 okanjo.mvc.registerCss("okanjo.core", "", { id: 'okanjo-core' });
