@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v0.9.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v0.9.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -25,7 +25,7 @@
             okanjo = ok || {};
 
         // Override version with this version
-        okanjo.version = "0.9.1";
+        okanjo.version = "0.9.2";
 
         // Override these later
         okanjo.qwery = noop;
