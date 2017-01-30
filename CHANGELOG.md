@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2017-01-23 – v0.9.3
+ * Updated Google Ad markup 
+ * Added buy url param pass through for better reporting 
+
 ## 2016-11-27 - v0.9.2
  * Added product-block2 classes to article markup for backwards compatibility
 

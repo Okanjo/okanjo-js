@@ -4545,6 +4545,7 @@ if (typeof JSON !== 'object') {
             disablePopup = container.getAttribute('data-disable-popup') || false,
             backfill = this.getAttribute('data-backfill'),
             buyUrl = this.getAttribute('data-buy-url'),
+            buyUrlParam = this.getAttribute('data-buy-url-param'),
             inline = this.getAttribute('data-inline-buy-url'),
             proxyUrl = this.getAttribute('data-proxy-url'),
             url,
@@ -4552,7 +4553,7 @@ if (typeof JSON !== 'object') {
             expanded = false,
             nativeBuy = !okanjo.util.empty(inline),
             doPopup = disablePopup ? false : (okanjo.util.isMobile() && nativeBuy),
-            passThroughParams = "ok_msid=" + okanjo.metrics.sid + '&ok_ch=' + eventData.ch + '&ok_cx=' + eventData.cx,
+            passThroughParams = "ok_msid=" + okanjo.metrics.sid + '&ok_ch=' + eventData.ch + '&ok_cx=' + eventData.cx + (buyUrlParam ? '&' + encodeURIComponent(buyUrlParam) + '=' + encodeURIComponent(okanjo.metrics.sid || 'unknown') : ''),
             modifiedBuyUrl = buyUrl + (buyUrl.indexOf('?') < 0 ? '?' : '&') + passThroughParams,
             modifiedInlineBuyUrl = inline + (inline.indexOf('?') < 0 ? '?' : '&') + passThroughParams;
 
@@ -4905,7 +4906,7 @@ if (typeof JSON !== 'object') {
 
 
     /**
-     * Loads an ad from Google Adx of the given dimensions
+     * Loads an ad from Google of the given dimensions
      * @param size
      */
     proto.loadAd = function(size) {
@@ -4921,17 +4922,11 @@ if (typeof JSON !== 'object') {
                 allowfullscreen: '',
                 scrolling: 'auto'
             },
-            pubId = 'ca-pub-9976681432228271',
-            slotId = '3992956792',
-            adxframeContent = '<html><head><style type="text/css">html,body {margin: 0; padding: 0;}</style></head><body><'+'script type="text/javascript">' +
-                'google_ad_client = "'+pubId+'";' +
-                'google_ad_slot = "'+slotId+'";' +
-                'google_ad_width = '+size.width+';' +
-                'google_ad_height = '+size.height+';' +
-                'google_page_url = "'+window.location.href+'";' +
-                //'google_adtest = "on";' +
+            adxframeContent = '<html><head><style type="text/css">html,body {margin: 0; padding: 0;}</style></head><body>' +
+                '<'+'script type="text/javascript" src="https://www.googletagservices.com/tag/js/gpt.js">' +
+                    'googletag.pubads().definePassback("/90447967/okanjo:<publisher>", [['+size.width+', '+size.height+']]).display();' +
                 '<'+'/script>' +
-                '<' +'script type="text/javascript" src="//pagead2.googlesyndication.com/pagead/show_ads.js"><'+'/script></body></html>';
+                '</body></html>';
 
         adxContainer.className = "okanjo-adx-container";
         adxContainer.appendChild(adxFrame);
@@ -4957,8 +4952,6 @@ if (typeof JSON !== 'object') {
         var eventData = okanjo.util.deepClone(this.metricBase, {});
         eventData.m.ta_w = size.width;
         eventData.m.ta_h = size.height;
-        eventData.m.ta_pubid = pubId;
-        eventData.m.ta_slotid = slotId;
         eventData.m = okanjo.metrics.truncate(okanjo.metrics.copy(this.config, okanjo.metrics.includeElementInfo(this.element, eventData.m)));
         okanjo.metrics.trackEvent(okanjo.metrics.object_type.thirdparty_ad, okanjo.metrics.event_type.impression, eventData);
     };
