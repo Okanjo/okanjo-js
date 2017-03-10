@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2017-03-10 – v0.9.4
+ * Added pixels to templates
+
 ## 2017-01-23 – v0.9.3
  * Updated Google Ad markup 
  * Added buy url param pass through for better reporting 
