@@ -1,5 +1,7 @@
+(function(window) {
+    const okanjo = window.okanjo;
+    okanjo.ui.engine.registerCss("okanjo.core", "@@include(jsStringEscape('okanjo.core.css'))", {id: 'okanjo-core'});
+    okanjo.ui.engine.registerCss("okanjo.modal", "@@include(jsStringEscape('okanjo.modal.css'))", {id: 'okanjo-modal'});
 
-okanjo.mvc.registerCss("okanjo.core", "@@include(jsStringEscape('okanjo.core.css'))", { id: 'okanjo-core' });
-okanjo.mvc.registerCss("okanjo.modal", "@@include(jsStringEscape('okanjo.modal.css'))", { id: 'okanjo-modal' });
-
-okanjo.mvc.registerTemplate("okanjo.error", "@@include(jsStringEscape('okanjo.error.mustache'))", { css: ['okanjo.core'] });
+    okanjo.ui.engine.registerTemplate("okanjo.error", "@@include(jsStringEscape('okanjo.error.mustache'))", {css: ['okanjo.core']});
+})(window);

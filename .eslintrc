@@ -1,0 +1,24 @@
+{
+    "env": {
+        "browser": true,
+        "node": false,
+        "es6": true
+    },
+    "parserOptions": {
+        "ecmaFeatures": {
+            "jsx": false,
+            "experimentalObjectRestSpread": false
+        },
+        "sourceType": "script"
+    },
+    "plugins": [
+
+    ],
+    "extends": "eslint:recommended",
+    "globals": {
+        "okanjo": true,
+        "define": true,
+        "require": true,
+        "module": true
+    }
+}

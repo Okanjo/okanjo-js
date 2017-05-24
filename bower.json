@@ -1,7 +1,7 @@
 {
   "name": "okanjo",
-  "main": "dist/okanjo-bundle.min.js",
-  "version": "0.9.4",
+  "main": "dist/okanjo-bundle.js",
+  "version": "1.0.0",
   "authors": [
     "Okanjo Partners Inc"
   ],
@@ -25,7 +25,7 @@
   ],
   "dependencies": {
     "qwery": "^3.4.2",
-    "mustache.js": "~1.1.0",
+    "mustache.js": "^2.3.0",
     "raven-js": "~1.1.17"
   }
 }

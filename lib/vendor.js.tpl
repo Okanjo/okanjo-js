@@ -4,6 +4,6 @@
 
 <%= contents %>
 
-}).apply(okanjo);
+}).apply(okanjo.lib);
 
 /* jshint ignore:end */

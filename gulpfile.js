@@ -36,164 +36,195 @@
  * SOFTWARE.
  */
 
-var gulp = require('gulp'),
-    path = require('path'),
-    fs = require('fs'),
-    awspublish = require('gulp-awspublish'),
-    bower = require('gulp-bower'),
-    bump = require('gulp-bump'),
-    concat = require('gulp-concat'),
-    fileinclude = require('gulp-file-include'),
-    filter = require('gulp-filter'),
-    git = require('gulp-git'),
-    insert = require('gulp-insert'),
-    jshint = require('gulp-jshint'),
-    less = require('gulp-less'),
-    minifyCSS = require('gulp-minify-css'),
-    minifyHTML = require('gulp-minify-html'),
-    notify = require('gulp-notify'),
-    rename = require('gulp-rename'),
-    replace = require('gulp-replace'),
-    size = require('gulp-size'),
-    sourcemaps = require('gulp-sourcemaps'),
-    tagVersion = require('gulp-tag-version'),
-    uglify = require('gulp-uglify'),
-    umd = require('gulp-umd'),
-    wrap = require('gulp-wrap'),
-    jsStringEscape = require('js-string-escape'),
-    LessPluginAutoPrefix = require('less-plugin-autoprefix'),
+"use strict";
 
-    // Auto add vendor prefixes in CSS
-    autoprefix= new LessPluginAutoPrefix({ browsers: ["> 5%"] }),
+const Gulp = require('gulp');
+const Path = require('path');
+const FS = require('fs');
+const Del = require('del');
+const AWSPublish = require('gulp-awspublish');
+const Bower = require('gulp-bower');
+const Babel = require('gulp-babel');
+const Bump = require('gulp-bump');
+const Concat = require('gulp-concat');
+const FileInclude = require('gulp-file-include');
+const Filter = require('gulp-filter');
+const Git = require('gulp-git');
+const Insert = require('gulp-insert');
+const ESLint = require('gulp-eslint');
+const Less = require('gulp-less');
+const MinifyCSS = require('gulp-minify-css');
+const MinifyHTML = require('gulp-minify-html');
+const Notify = require('gulp-notify');
+const Rename = require('gulp-rename');
+const Replace = require('gulp-replace');
+const Size = require('gulp-size');
+const SourceMaps = require('gulp-sourcemaps');
+const TagVersion = require('gulp-tag-version');
+const Uglify = require('gulp-uglify');
+const UMD = require('gulp-umd');
+const Wrap = require('gulp-wrap');
+const JSEscapeString = require('js-string-escape');
+const LessPluginAutoPrefix = require('less-plugin-autoprefix');
 
-    // Module info
-    getPackageJson = function() {
-        return JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-    },
+// Auto add vendor prefixes in CSS
+const autoprefix = new LessPluginAutoPrefix({ browsers: ["> 5%"] });
 
-    // Header
-    getHeader = function(name) {
-        var metadata = getPackageJson();
-        return '/*! ' + (name || metadata.name) + ' v' + metadata.version + ' | (c) 2013 Okanjo Partners Inc | ' + metadata.homepage + ' */\n';
-    },
+// Module info
+const getPackageJson = function() {
+    return JSON.parse(FS.readFileSync(Path.join(__dirname, 'package.json'), 'utf8'));
+};
 
-    // Version bump + dist update message
-    getVersionCommitMessage = function() {
-        var metadata = getPackageJson();
-        return 'Tagged as v' + metadata.version;
-    },
+// Header
+const getHeader = function(name) {
+    const metadata = getPackageJson();
+    return '/*! ' + (name || metadata.name) + ' v' + metadata.version + ' | (c) 2013 Okanjo Partners Inc | ' + metadata.homepage + ' */\n';
+};
 
-    // Global Okanjo sources, dependencies and polyfills
-    sources = [
+// Version bump + dist update message
+const getVersionCommitMessage = function() {
+    const metadata = getPackageJson();
+    return 'Tagged as v' + metadata.version;
+};
 
-        // Core
-        'src/core.js',
-        'src/config.js',
-        'src/template.js',
-        'src/jsonp.js',
+// Global Okanjo sources, dependencies and polyfills
+const sources = [
 
-        // Internal dependencies & polyfills
-        'lib/polyfill/ie.js',
-        'lib/polyfill/console.js',
-        'src/cache.js',
-        'src/cookie.js',
-        'lib/polyfill/json2.js',
 
-        // External  dependencies & polyfills
-        'build/vendor.js',
+    // Core
+    /// 'src/old/core.js',
+    /// 'src/old/config.js',
+    // 'src/old/template.js',
+    /// 'src/old/jsonp.js',
 
-        // Apps & Widgets
-        'src/metrics.js',
-        'src/pageview.js',
-        'src/emitter.js',
-        'src/widget.js',
-        'src/modal.js',
-        'src/product.js',
-        'src/ad.js'
-    ],
+    'src/Okanjo.js',
+    'src/Request.js',
+    'src/Cookie.js',
 
-    // Things that normally expose themselves to the root context, but shouldn't because we need them to not conflict
-    vendorSources = [
-        'lib/qwery/qwery.js',
-        'lib/polyfill/domready.js',
-        'lib/mustache.js/mustache.js' //,
-        //'build/modal.js'
-    ],
+    'src/TemplateEngine.js',
+    'src/Modal.js',
 
-    bundleSources = [
-        'dist/okanjo.js',
-        'dist/okanjo-templates.js'
-    ],
+    'src/Metrics.js',
 
-    versionFiles = [
-        'package.json',
-        'bower.json'
-    ],
+    'src/EventEmitter.js',
+    'src/Widget.js',
+    'src/Placement.js',
+    'src/Product.js',
+    'src/Ad.js',
 
-    deployFiles = [
-        'dist/okanjo.js',
-        'dist/okanjo.min.js',
-        'dist/okanjo.min.js.map',
+    /// Internal dependencies & polyfills
+    /// 'lib/polyfill/ie.js',
+    /// 'lib/polyfill/console.js',
+    /// 'src/old/cache.js',
+    /// 'src/old/cookie.js',
+    /// 'lib/polyfill/json2.js',
 
-        'dist/okanjo-bundle.js',
-        'dist/okanjo-bundle.min.js',
-        'dist/okanjo-bundle.min.js.map',
+    // External  dependencies & polyfills
+    'build/vendor.js',
 
-        'dist/okanjo-templates.js',
-        'dist/okanjo-templates.min.js',
-        'dist/okanjo-templates.min.js.map',
+    // Apps & Widgets
+    // 'src/old/metrics.js',
+    // 'src/old/pageview.js',
+    /// 'src/old/emitter.js',
+    /// 'src/old/widget.js',
+    // 'src/old/modal.js',
+    // 'src/old/product.js',
+    // 'src/old/ad.js'
+];
 
-        'dist/okanjo-metrics.js',
-        'dist/okanjo-metrics.min.js',
-        'dist/okanjo-metrics.min.js.map'
+const metricsOnlyBuildFiles = [
 
-    ],
+    'src/Okanjo.js',
+    'src/Request.js',
+    'src/Cookie.js',
 
-    metricsOnlyVendorFiles = [
-        'lib/qwery/qwery.js',
-        'lib/polyfill/domready.js'
-    ],
+    'src/Metrics.js',
 
-    metricsOnlyBuildFiles = [
+    /// 'src/old/core.js',
+    /// 'src/old/config.js',
+    /// 'src/old/jsonp.js',
 
-        'src/core.js',
-        'src/config.js',
-        'src/jsonp.js',
+    // Internal dependencies & polyfills
+    /// 'lib/polyfill/ie.js',
+    /// 'lib/polyfill/console.js',
+    // 'src/old/cache.js',
+    /// 'src/old/cookie.js',
+    /// 'lib/polyfill/json2.js',
 
-        // Internal dependencies & polyfills
-        'lib/polyfill/ie.js',
-        'lib/polyfill/console.js',
-        'src/cache.js',
-        'src/cookie.js',
-        'lib/polyfill/json2.js',
+    // External  dependencies & polyfills
+    'build/vendor-metrics.js',
 
-        // External  dependencies & polyfills
-        'build/vendor-metrics.js',
 
-        // Apps & Widgets
-        'src/metrics.js'
-    ];
+    // Apps & Widgets
+    // 'src/old/metrics.js'
+];
+
+// Things that normally expose themselves to the root context, but shouldn't because we need them to not conflict
+const vendorSources = [
+    // 'lib/qwery/qwery.js',
+    // 'lib/polyfill/domready.js',
+    'lib/mustache.js/mustache.js' //,
+    //'build/modal.js'
+];
+
+const metricsOnlyVendorFiles = [
+    // 'lib/qwery/qwery.js',
+    'lib/polyfill/domready.js'
+];
+
+
+const bundleSources = [
+    'dist/okanjo.js',
+    'dist/okanjo-templates.js'
+];
+
+const versionFiles = [
+    'package.json',
+    'bower.json'
+];
+
+const deployFiles = [
+    'dist/okanjo.js',
+    'dist/okanjo.min.js',
+    'dist/okanjo.min.js.map',
+
+    'dist/okanjo-bundle.js',
+    'dist/okanjo-bundle.min.js',
+    'dist/okanjo-bundle.min.js.map',
+
+    'dist/okanjo-templates.js',
+    'dist/okanjo-templates.min.js',
+    'dist/okanjo-templates.min.js.map',
+
+    'dist/okanjo-metrics.js',
+    'dist/okanjo-metrics.min.js',
+    'dist/okanjo-metrics.min.js.map'
+
+];
 
 //
 // OKANJO-METRICS.JS ===========================================================================================================
 //
 
 
-gulp.task('vendor-metrics', ['deps'], function() {
-    return gulp.src(metricsOnlyVendorFiles)
-        .pipe(concat('vendor-metrics.js'))
-        .pipe(wrap({ src: 'lib/vendor.js.tpl' }))
-        .pipe(gulp.dest('build'))
+Gulp.task('vendor-metrics', ['deps'], function() {
+    return Gulp.src(metricsOnlyVendorFiles)
+        .pipe(Concat('vendor-metrics.js'))
+        .pipe(Wrap({ src: 'lib/vendor.js.tpl' }))
+        .pipe(Gulp.dest('build'))
 });
 
-gulp.task('min-metrics', ['vendor-metrics'], function() {
-    var s1 = size(), s2 = size(), packageJson = getPackageJson();
+Gulp.task('min-metrics', ['vendor-metrics'], function() {
+    let s1 = Size(), s2 = Size();
+    const packageJson = getPackageJson();
+
     //noinspection JSUnusedGlobalSymbols
-    return gulp.src(metricsOnlyBuildFiles)
-        .pipe(sourcemaps.init())
-        .pipe(replace(/%%OKANJO_VERSION/, packageJson.version))
-        .pipe(concat('okanjo-metrics.js'))
-        .pipe(umd({
+    return Gulp.src(metricsOnlyBuildFiles)
+        .pipe(SourceMaps.init())
+        .pipe(Replace(/%%OKANJO_VERSION/, packageJson.version))
+        .pipe(Concat('okanjo-metrics.js'))
+        .pipe(Babel())
+        .pipe(UMD({
             exports: function() {
                 return 'okanjo';
             },
@@ -202,16 +233,16 @@ gulp.task('min-metrics', ['vendor-metrics'], function() {
             }
         }))
         .pipe(s1)
-        .pipe(insert.prepend(getHeader('okanjo-metrics.js')))
-        .pipe(gulp.dest('dist'))
-        .pipe(uglify({
+        .pipe(Insert.prepend(getHeader('okanjo-metrics.js')))
+        .pipe(Gulp.dest('dist'))
+        .pipe(Uglify({
             preserveComments: 'some'
         }))
-        .pipe(rename('okanjo-metrics.min.js'))
+        .pipe(Rename('okanjo-metrics.min.js'))
         .pipe(s2)
-        .pipe(sourcemaps.write('../dist', { sourceRoot: './' }))
-        .pipe(gulp.dest('dist'))
-        .pipe(notify({
+        .pipe(SourceMaps.write('../dist', { sourceRoot: './' }))
+        .pipe(Gulp.dest('dist'))
+        .pipe(Notify({
             onLast: true,
             message: function () {
                 //noinspection JSUnresolvedVariable
@@ -220,19 +251,19 @@ gulp.task('min-metrics', ['vendor-metrics'], function() {
         }));
 });
 
-gulp.task('fix-maps-metrics', ['min-metrics'], function() {
-    return gulp.src('dist/okanjo-metrics.min.js')
-        .pipe(replace(/sourceMappingURL=\.\.\/dist\//, 'sourceMappingURL='))
-        .pipe(gulp.dest('dist'));
+Gulp.task('fix-maps-metrics', ['min-metrics'], function() {
+    return Gulp.src('dist/okanjo-metrics.min.js')
+        .pipe(Replace(/sourceMappingURL=\.\.\/dist\//, 'sourceMappingURL='))
+        .pipe(Gulp.dest('dist'));
 });
 
 //
 // OKANJO.JS ===========================================================================================================
 //
 
-gulp.task('deps', function() {
-    return gulp.src([])
-        .pipe(bower())
+Gulp.task('deps', function() {
+    return Gulp.src([])
+        .pipe(Bower())
 });
 
 
@@ -244,29 +275,50 @@ gulp.task('deps', function() {
 //});
 
 
-gulp.task('vendor', ['deps'], function() {
-    return gulp.src(vendorSources)
-        .pipe(concat('vendor.js'))
-        .pipe(wrap({ src: 'lib/vendor.js.tpl' }))
-        .pipe(gulp.dest('build'))
+Gulp.task('vendor', ['deps'], function() {
+    return Gulp.src(vendorSources)
+        .pipe(Concat('vendor.js'))
+        .pipe(Wrap({ src: 'lib/vendor.js.tpl' }))
+        .pipe(Gulp.dest('build'))
 });
 
 
-gulp.task('lint', function() {
-    return gulp.src(sources)
-        .pipe(jshint())
-        .pipe(jshint.reporter('default', { verbose: true }));
+Gulp.task('lint', function() {
+    return Gulp.src(sources)
+        .pipe(ESLint())
+        .pipe(ESLint.result((result) => {
+            if ((result.errorCount + result.warningCount) > 0) {
+
+                // console.log(Util.inspect(result, {colors: true, depth: 10}));
+
+                console.error();
+                console.error(result.filePath);
+                result.messages.forEach((message) => {
+                    let severity = 'error';
+                    if (message.severity === 1) severity = 'warning';
+                    else if (message.severity === 0) severity = 'notice';
+
+                    console.error(`  ${message.line}:${message.column}  ${severity}  ${message.message}  ${message.ruleId}`);
+                });
+                console.error();
+
+            }
+        }))
+    ;
 });
 
 
-gulp.task('min', ['vendor'], function() {
-    var s1 = size(), s2 = size(), packageJson = getPackageJson();
+Gulp.task('min', ['vendor'], function() {
+    let s1 = Size(), s2 = Size();
+    const packageJson = getPackageJson();
+
     //noinspection JSUnusedGlobalSymbols
-    return gulp.src(sources)
-        .pipe(sourcemaps.init())
-        .pipe(replace(/%%OKANJO_VERSION/, packageJson.version))
-        .pipe(concat('okanjo.js'))
-        .pipe(umd({
+    return Gulp.src(sources)
+        .pipe(SourceMaps.init())
+        .pipe(Replace(/%%OKANJO_VERSION/, packageJson.version))
+        .pipe(Concat('okanjo.js'))
+        .pipe(Babel())
+        .pipe(UMD({
             exports: function() {
                 return 'okanjo';
             },
@@ -275,16 +327,16 @@ gulp.task('min', ['vendor'], function() {
             }
         }))
         .pipe(s1)
-        .pipe(insert.prepend(getHeader()))
-        .pipe(gulp.dest('dist'))
-        .pipe(uglify({
+        .pipe(Insert.prepend(getHeader()))
+        .pipe(Gulp.dest('dist'))
+        .pipe(Uglify({
             preserveComments: 'some'
         }))
-        .pipe(rename('okanjo.min.js'))
+        .pipe(Rename('okanjo.min.js'))
         .pipe(s2)
-        .pipe(sourcemaps.write('../dist', { sourceRoot: './' }))
-        .pipe(gulp.dest('dist'))
-        .pipe(notify({
+        .pipe(SourceMaps.write('../dist', { sourceRoot: './' }))
+        .pipe(Gulp.dest('dist'))
+        .pipe(Notify({
             onLast: true,
             message: function () {
                 //noinspection JSUnresolvedVariable
@@ -293,22 +345,22 @@ gulp.task('min', ['vendor'], function() {
         }));
 });
 
-gulp.task('bundle', ['min', 'templatesjs'], function() {
-    var s1 = size(), s2 = size();
-    return gulp.src(bundleSources)
-        .pipe(concat('okanjo-bundle.js'))
+Gulp.task('bundle', ['min', 'templatesjs'], function() {
+    let s1 = Size(), s2 = Size();
+    return Gulp.src(bundleSources)
+        .pipe(Concat('okanjo-bundle.js'))
         .pipe(s1)
-        .pipe(gulp.dest('dist'))
-        .pipe(uglify({
+        .pipe(Gulp.dest('dist'))
+        .pipe(Uglify({
             preserveComments: 'some'
         }))
-        .pipe(insert.prepend(getHeader()))
-        .pipe(sourcemaps.init())
-        .pipe(rename('okanjo-bundle.min.js'))
+        .pipe(Insert.prepend(getHeader()))
+        .pipe(SourceMaps.init())
+        .pipe(Rename('okanjo-bundle.min.js'))
         .pipe(s2)
-        .pipe(sourcemaps.write('../dist', { sourceRoot: './' }))
-        .pipe(gulp.dest('dist'))
-        .pipe(notify({
+        .pipe(SourceMaps.write('../dist', { sourceRoot: './' }))
+        .pipe(Gulp.dest('dist'))
+        .pipe(Notify({
             onLast: true,
             message: function () {
                 //noinspection JSUnresolvedVariable
@@ -317,10 +369,10 @@ gulp.task('bundle', ['min', 'templatesjs'], function() {
         }));
 });
 
-gulp.task('fix-maps', ['bundle'], function() {
-    return gulp.src('dist/*.min.js')
-        .pipe(replace(/sourceMappingURL=\.\.\/dist\//, 'sourceMappingURL='))
-        .pipe(gulp.dest('dist'));
+Gulp.task('fix-maps', ['bundle'], function() {
+    return Gulp.src('dist/*.min.js')
+        .pipe(Replace(/sourceMappingURL=\.\.\/dist\//, 'sourceMappingURL='))
+        .pipe(Gulp.dest('dist'));
 });
 
 //
@@ -328,57 +380,58 @@ gulp.task('fix-maps', ['bundle'], function() {
 //
 
 
-gulp.task('min-mustache-templates', function() {
-    return gulp.src('templates/*.mustache')
-        .pipe(minifyHTML({
+Gulp.task('min-mustache-templates', function() {
+    return Gulp.src('templates/*.mustache')
+        .pipe(MinifyHTML({
             conditionals: true,
             spare:true,
             cdata:true,
             empty:true,
             loose:false
         }))
-        .pipe(gulp.dest('./build/templates/'))
+        .pipe(Gulp.dest('./build/templates/'))
 });
 
 
-gulp.task('min-css-templates', function() {
-    return gulp.src('templates/*.less')
-        .pipe(less({
+Gulp.task('min-css-templates', function() {
+    return Gulp.src('templates/*.less')
+        .pipe(Less({
             plugins: [autoprefix],
-            paths: [ path.join(__dirname, 'templates' ) ]
+            paths: [ Path.join(__dirname, 'templates' ) ]
         }))
-        .pipe(gulp.dest('./build/templates/unminified'))
-        .pipe(minifyCSS({ compatibility: 'ie8,-units.pt' }))
-        .pipe(gulp.dest('./build/templates/'))
+        .pipe(Gulp.dest('./build/templates/unminified'))
+        .pipe(MinifyCSS({ compatibility: 'ie8,-units.pt' }))
+        .pipe(Gulp.dest('./build/templates/'))
 });
 
 
-gulp.task('join-templates', ['min-mustache-templates', 'min-css-templates'], function() {
-    return gulp.src("templates/*.js")
-        .pipe(fileinclude({
+Gulp.task('join-templates', ['min-mustache-templates', 'min-css-templates'], function() {
+    return Gulp.src("templates/*.js")
+        .pipe(FileInclude({
             filters: {
-                jsStringEscape: jsStringEscape
+                jsStringEscape: JSEscapeString
             },
             basepath: 'build/templates/'
         }))
-        .pipe(gulp.dest('build/templates'))
+        .pipe(Gulp.dest('build/templates'))
 });
 
 
-gulp.task('templatesjs', ['join-templates'], function() {
-    return gulp.src("build/templates/*.js")
-        .pipe(sourcemaps.init())
-        .pipe(concat('okanjo-templates.js'))
-        .pipe(wrap('(function(okanjo) {<%= contents %>})(okanjo);'))
-        .pipe(insert.prepend(getHeader()))
-        .pipe(gulp.dest('dist'))
-        .pipe(uglify({
+Gulp.task('templatesjs', ['join-templates'], function() {
+    return Gulp.src("build/templates/*.js")
+        .pipe(SourceMaps.init())
+        .pipe(Concat('okanjo-templates.js'))
+        .pipe(Babel())
+        .pipe(Wrap('(function(okanjo) {<%= contents %>})(okanjo);'))
+        .pipe(Insert.prepend(getHeader()))
+        .pipe(Gulp.dest('dist'))
+        .pipe(Uglify({
             preserveComments: 'some'
         }))
-        .pipe(insert.prepend(getHeader()))
-        .pipe(rename('okanjo-templates.min.js'))
-        .pipe(sourcemaps.write('../dist', { sourceRoot: './' }))
-        .pipe(gulp.dest('dist'))
+        .pipe(Insert.prepend(getHeader()))
+        .pipe(Rename('okanjo-templates.min.js'))
+        .pipe(SourceMaps.write('../dist', { sourceRoot: './' }))
+        .pipe(Gulp.dest('dist'))
 });
 
 // TODO - add separate builds for each individual widget instead of the complete okanjo.js package
@@ -387,18 +440,18 @@ gulp.task('templatesjs', ['join-templates'], function() {
 // DEPLOY
 //
 
-gulp.task('pre-deploy-bump', function() {
-    return gulp.src(versionFiles)
+Gulp.task('pre-deploy-bump', function() {
+    return Gulp.src(versionFiles)
 
         // Bump build version
-        .pipe(bump({ type: 'patch', key: 'version' }))
-        .pipe(gulp.dest('./'))
+        .pipe(Bump({ type: 'patch', key: 'version' }))
+        .pipe(Gulp.dest('./'))
 
 });
 
-gulp.task('pre-deploy-release', ['pre-deploy-bump', 'full-build'], function() {
+Gulp.task('pre-deploy-release', ['pre-deploy-bump', 'full-build'], function() {
 
-    var Stream = require('stream');
+    const Stream = require('stream');
     //function cb(obj) {
     //    var stream = new Stream.Transform({objectMode: true});
     //    stream._transform = function(file, unused, callback) {
@@ -409,7 +462,7 @@ gulp.task('pre-deploy-release', ['pre-deploy-bump', 'full-build'], function() {
     //}
 
     function wait(obj) {
-        var stream = new Stream.Transform({objectMode: true});
+        const stream = new Stream.Transform({objectMode: true});
         stream._transform = function(file, unused, callback) {
             obj(function() {
                 callback(null, file);
@@ -418,159 +471,159 @@ gulp.task('pre-deploy-release', ['pre-deploy-bump', 'full-build'], function() {
         return stream;
     }
 
-    return gulp.src(versionFiles.slice().concat(deployFiles))
+    return Gulp.src(versionFiles.slice().concat(deployFiles))
 
         // Tag git repo "release"
-        .pipe(git.commit(getVersionCommitMessage()))
-        .pipe(filter('package.json'))
-        .pipe(tagVersion({ push: true }))
+        .pipe(Git.commit(getVersionCommitMessage()))
+        .pipe(Filter('package.json'))
+        .pipe(TagVersion({ push: true }))
         .pipe(wait(function(cb) {
-            git.push('origin','master', {args: " --tags"}, function (err) {
+            Git.push('origin','master', {args: " --tags"}, function (err) {
                 if (err) throw err;
                 cb();
             });
         }));
 });
 
-gulp.task('deploy-s3-latest', function() {
+Gulp.task('deploy-s3-latest', function() {
 
-    var publisher = awspublish.create(require('./aws-credentials.json'));
+    const publisher = AWSPublish.create(require('./aws-credentials.json'));
 
-    return gulp.src(deployFiles)
+    return Gulp.src(deployFiles)
 
         // Deploy to Amazon S3 LATEST
-        .pipe(rename(function(path) {
+        .pipe(Rename(function(path) {
             path.dirname += '/js/latest';
         }))
         .pipe(publisher.publish({
             'Cache-Control': 'max-age=60, no-transform, public',
             'Content-Type': 'application/javascript; charset=utf-8'
         }, { force: true }))
-        .pipe(awspublish.reporter());
+        .pipe(AWSPublish.reporter());
 
 });
 
-gulp.task('deploy-s3-latest-gz', function() {
+Gulp.task('deploy-s3-latest-gz', function() {
 
-    var publisher = awspublish.create(require('./aws-credentials.json'));
+    const publisher = AWSPublish.create(require('./aws-credentials.json'));
 
-    return gulp.src(deployFiles)
+    return Gulp.src(deployFiles)
 
         // Deploy to Amazon S3 LATEST
-        .pipe(rename(function(path) {
+        .pipe(Rename(function(path) {
             path.dirname += '/js/latest';
         }))
-        .pipe(awspublish.gzip({ ext: '.gz' }))
+        .pipe(AWSPublish.gzip({ ext: '.gz' }))
         .pipe(publisher.publish({
             'Cache-Control': 'max-age=60, no-transform, public',
             'Content-Type': 'application/javascript; charset=utf-8'
         }, { force: true }))
-        .pipe(awspublish.reporter())
+        .pipe(AWSPublish.reporter())
 
 });
 
-gulp.task('deploy-s3-version', function() {
+Gulp.task('deploy-s3-version', function() {
 
-    var publisher = awspublish.create(require('./aws-credentials.json'));
+    const publisher = AWSPublish.create(require('./aws-credentials.json'));
 
-    return gulp.src(deployFiles)
+    return Gulp.src(deployFiles)
 
         // Deploy to Amazon S3 versioned directory
-        .pipe(rename(function(path) {
+        .pipe(Rename(function(path) {
             path.dirname += '/js/v' + require('./package.json').version;
         }))
         .pipe(publisher.publish({
             'Cache-Control': 'max-age=60, no-transform, public',
             'Content-Type': 'application/javascript; charset=utf-8'
         }, { force: true }))
-        .pipe(awspublish.reporter());
+        .pipe(AWSPublish.reporter());
 
 });
 
-gulp.task('deploy-s3-version-gz', function() {
+Gulp.task('deploy-s3-version-gz', function() {
 
-    var publisher = awspublish.create(require('./aws-credentials.json'));
+    const publisher = AWSPublish.create(require('./aws-credentials.json'));
 
-    return gulp.src(deployFiles)
+    return Gulp.src(deployFiles)
 
         // Deploy to Amazon S3 versioned directory
-        .pipe(rename(function(path) {
+        .pipe(Rename(function(path) {
             path.dirname += '/js/v' + require('./package.json').version;
         }))
-        .pipe(awspublish.gzip({ ext: '.gz' }))
+        .pipe(AWSPublish.gzip({ ext: '.gz' }))
         .pipe(publisher.publish({
             'Cache-Control': 'max-age=60, no-transform, public',
             'Content-Type': 'application/javascript; charset=utf-8'
         }, { force: true }))
-        .pipe(awspublish.reporter());
+        .pipe(AWSPublish.reporter());
 
 });
 
-gulp.task('deploy-s3-preview', function() {
+Gulp.task('deploy-s3-preview', function() {
 
-    var publisher = awspublish.create(require('./aws-credentials.json'));
+    const publisher = AWSPublish.create(require('./aws-credentials.json'));
 
-    return gulp.src(deployFiles)
+    return Gulp.src(deployFiles)
 
         // Deploy to Amazon S3 LATEST
-        .pipe(rename(function(path) {
+        .pipe(Rename(function(path) {
             path.dirname += '/js/preview';
         }))
         .pipe(publisher.publish({
             'Cache-Control': 'max-age=60, no-transform, public',
             'Content-Type': 'application/javascript; charset=utf-8'
         }, { force: true }))
-        .pipe(awspublish.reporter());
+        .pipe(AWSPublish.reporter());
 
 });
 
-gulp.task('deploy-s3-preview-gz', function() {
+Gulp.task('deploy-s3-preview-gz', function() {
 
-    var publisher = awspublish.create(require('./aws-credentials.json'));
+    const publisher = AWSPublish.create(require('./aws-credentials.json'));
 
-    return gulp.src(deployFiles)
+    return Gulp.src(deployFiles)
 
         // Deploy to Amazon S3 LATEST
-        .pipe(rename(function(path) {
+        .pipe(Rename(function(path) {
             path.dirname += '/js/preview';
         }))
-        .pipe(awspublish.gzip({ ext: '.gz' }))
+        .pipe(AWSPublish.gzip({ ext: '.gz' }))
         .pipe(publisher.publish({
             'Cache-Control': 'max-age=60, no-transform, public',
             'Content-Type': 'application/javascript; charset=utf-8'
         }, { force: true }))
-        .pipe(awspublish.reporter())
+        .pipe(AWSPublish.reporter())
 
 });
 
-//gulp.task('deploy-packages', function() {
-//    // NPM Publish
-//    // Bower Publish
-//    return null;
-//});
-
-
-
-gulp.task('watch', function() {
-    gulp.watch(['src/*.js', 'lib/*.js', 'lib/polyfill/*.js', 'lib/vendor.js.tpl'], ['lint', 'min', 'bundle', 'fix-maps']);
+Gulp.task('clean', () => {
+    return Del([
+        'build/**/*',
+        'dist/**/*'
+    ]);
 });
 
-gulp.task('watch-templates', function() {
-    gulp.watch(['templates/*.js', 'templates/*.mustache', 'templates/*.less'], ['templatesjs', 'fix-maps']);
+
+Gulp.task('watch', function() {
+    Gulp.watch(['src/**/*.js', 'lib/*.js', 'lib/polyfill/*.js', 'lib/vendor.js.tpl'], ['lint', 'min', 'bundle', 'fix-maps']);
 });
 
-gulp.task('watch-metrics', function() {
-    gulp.watch(metricsOnlyBuildFiles, ['metrics']);
+Gulp.task('watch-templates', function() {
+    Gulp.watch(['templates/*.js', 'templates/*.mustache', 'templates/*.less'], ['templatesjs', 'fix-maps']);
 });
 
-gulp.task('full-build', ['lint', 'min', 'templatesjs', 'bundle', 'fix-maps','metrics']);
+Gulp.task('watch-metrics', function() {
+    Gulp.watch(metricsOnlyBuildFiles, ['metrics']);
+});
 
-gulp.task('deploy-s3', ['deploy-s3-latest', 'deploy-s3-version', 'deploy-s3-latest-gz', 'deploy-s3-version-gz', 'deploy-s3-preview', 'deploy-s3-preview-gz']);
+Gulp.task('full-build', ['lint', 'min', 'templatesjs', 'bundle', 'fix-maps','metrics']);
 
-gulp.task('deploy-preview', ['deploy-s3-preview', 'deploy-s3-preview-gz']);
+Gulp.task('deploy-s3', ['deploy-s3-latest', 'deploy-s3-version', 'deploy-s3-latest-gz', 'deploy-s3-version-gz', 'deploy-s3-preview', 'deploy-s3-preview-gz']);
 
-gulp.task('deploy', ['pre-deploy-bump', 'deploy-s3']);
+Gulp.task('deploy-preview', ['deploy-s3-preview', 'deploy-s3-preview-gz']);
 
-gulp.task('metrics', ['lint', 'min-metrics']);
+Gulp.task('deploy', ['pre-deploy-bump', 'deploy-s3']);
 
-gulp.task('default', ['full-build', 'watch', 'watch-templates','watch-metrics']);
+Gulp.task('metrics', ['lint', 'min-metrics']);
+
+Gulp.task('default', ['full-build', 'watch', 'watch-templates','watch-metrics']);

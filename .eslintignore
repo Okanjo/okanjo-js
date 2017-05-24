@@ -1,0 +1,9 @@
+node_modules/**
+build/**
+dist/**
+lib/**
+test/**
+local-test/**
+coverage/**
+src/old/**
+gulpfile.js

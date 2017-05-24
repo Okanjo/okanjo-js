@@ -3,6 +3,31 @@
 
 When stuff changes, it's described here.
 
+## 2017-04-25 – v1.0.0
+Total refactor of the placement framework. Everything has changed.
+
+### Goals
+ * **New platform**: We've significantly beefed up our SmartServe tech, and have a brand new backend ready to handle content requests. 
+ * **One Placement to Rule Them All**: Instead of several different widgets, there is now a single widget: Placement.
+ * **Modernization**: The framework has been updated to ES6, using Babel to compile our classes back down to ES5 for the internet.
+ * **Fully Tested**: We need to be able to rapidly add enhancements to our placement tech, and that usually means we'll break something. Everything is now 100% unit tested covered. 
+
+### Deprecations
+ * The Product widget has been deprecated. It will convert the old configuration to the Placement configuration, but you should change your markup to use Placements instead.
+ * The Ad widget has been deprecated. It will now only show the dynamic product view, since support for creatives has been removed. You should update your markup to use Placements instead. 
+ * Caching has been removed. This always proved to be problematic and we didn't feel the need to keep it.
+ * Polyfills have been removed. As part of our modernization, we will only support browsers with 1% or more of world-wide traffic. Goodbye, IE 8, 9 and 10.
+ * Attributes: `data-page-start`, `data-page-size` have been removed. Use `data-skip` and `data-take` instead.
+
+### Updates
+ * Use of JSONP has been replaced with XHR.
+ * Placements can now be configured on the server. This allows dynamic changes to configurations to be made without contacting your devs.
+ * Placements can now serve different types of content depending on type.
+ * Template names should be prefixed with the content type they render.
+ * Metrics now report in batches and save locally in the event of network issues or navigation events.
+ * Widget configuration is substantially more flexible and robust.
+ * Tons of bug fixes and other enhancements.
+
 ## 2017-03-10 – v0.9.4
  * Added pixels to templates
 
