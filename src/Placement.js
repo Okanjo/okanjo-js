@@ -323,7 +323,7 @@
             // Article
             if (data.article) meta.aid = data.article.id;
 
-            if (data.test) {
+            if (data.test && data.test.enabled) {
                 meta.pten = 1;
                 meta.ptid = data.test.id;
                 meta.ptseed = data.test.seed;
