@@ -2653,7 +2653,7 @@ var okanjo = function (window, document) {
 
                     // Filter by relation to content
                     url: string().group(FILTERS),
-                    url_referrer: string().group(FILTERS),
+                    url_referrer: string().group(FILTERS).strip(),
                     url_selectors: string().group(FILTERS),
 
                     // Filter by hierarchy
