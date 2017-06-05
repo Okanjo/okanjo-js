@@ -127,6 +127,7 @@
                 url_keywords: array().group(ARTICLE_META),
 
                 // Functional settings
+                key: string().strip(), // don't need to resend key on all our requests
                 no_init: bool().strip(), // don't automatically load the placement, do it manually (e.g. (new Placement({no_init:true})).init()
                 proxy_url: string().strip(),
                 expandable: bool().strip().default(true),
@@ -254,8 +255,7 @@
             const query = this.getConfig();
 
             // Extract the key
-            const key = query.key;
-            delete query.key;
+            const key = this.config.key;
 
             // Attach sid and referrer
             if (okanjo.metrics.sid) query.sid = okanjo.metrics.msid;
@@ -410,6 +410,7 @@
                 .type(type, Metrics.Event.interaction)
                 .meta(this.getConfig())
                 .meta({ cid: clickId })
+                .meta({ bf: resource.backfill ? 1 : 0 })
                 .event(e)
                 .element(e.currentTarget)
                 .viewport();

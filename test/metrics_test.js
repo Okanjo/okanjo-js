@@ -120,9 +120,7 @@ describe('Metrics', () => {
                     vx2: '0',
                     vy2: '0',
                     d: '4',
-                    e_0: '5',
-                    e_1: '6',
-                    e_2: '7',
+                    e: '5,6,7',
                     pgid: pageId,
                     ok_ver: '%%OKANJO_VERSION' 
                 } 
@@ -158,9 +156,7 @@ describe('Metrics', () => {
                                     vx2: 0,
                                     vy2: 0,
                                     d: 4,
-                                    e_0: 5,
-                                    e_1: 6,
-                                    e_2: '7',
+                                    e: '5,6,7',
                                     pgid: pageId,
                                     ok_ver: '%%OKANJO_VERSION'
                                 },
@@ -237,6 +233,25 @@ describe('Metrics', () => {
             event = Metrics.addEventMeta(event, {a:1});
             event.should.be.ok();
             event.m.should.be.ok();
+
+        });
+
+        it('should not leak base data', () => {
+
+            const base = { a: 1, m: { b: 2 } };
+            const meta = { vx: 1, vy: 2 };
+            const meta2 = { x: 3, y: 4 };
+            const event = okanjo.metrics.create(base).type('obj', 'evt').meta(meta).meta(meta2);
+
+            should(event.m.vx).be.exactly(1);
+            should(event.m.vy).be.exactly(2);
+
+            should(base.m.vx).be.exactly(undefined);
+            should(base.m.vy).be.exactly(undefined);
+
+            should(meta.x).be.exactly(undefined);
+            should(meta.y).be.exactly(undefined);
+            should(meta.y).be.exactly(undefined);
 
         });
         

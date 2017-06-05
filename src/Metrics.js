@@ -270,7 +270,7 @@
             event.m.ok_ver = okanjo.version;
 
             // Finalize metadata
-            event.m = okanjo.util.flatten(event.m);
+            event.m = okanjo.util.flatten(event.m, { arrayToCsv: true });
 
             // Set page source reference
             if (document.referrer) {
@@ -482,8 +482,13 @@
         constructor(data, others) {
             // Merge the data and other data sets into this object
             data = data || {};
-            // others = others || []; // the only way to create this right now is via .create ^
-            Object.assign.apply(Object, [this, data].concat(others));
+            this.data(data);
+            /* istanbul ignore else: metrics.create is the only way to create this right now */
+            if (Array.isArray(others)) {
+                others.forEach((data) => {
+                    this.data(data);
+                });
+            }
         }
 
         /**
@@ -491,7 +496,7 @@
          * @param data
          */
         data(data) {
-            Object.assign(this, data);
+            Object.assign(this, okanjo.util.deepClone(data));
             return this;
         }
 

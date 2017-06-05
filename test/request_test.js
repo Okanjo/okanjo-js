@@ -198,7 +198,9 @@ describe('Request', () => {
                     deeper: {
                         drop: null,
                         dot: "."
-                    }
+                    },
+                    dumpster: {},
+                    dumpster_fire: []
                 },
                 u: undefined
             };
@@ -218,6 +220,11 @@ describe('Request', () => {
             mutation.d.deeper.drop = null;
             should(mutation.u).be.exactly(undefined);
             mutation.u = undefined;
+
+            should(mutation.d.dumpster).be.exactly(undefined);
+            should(mutation.d.dumpster_fire).be.exactly(undefined);
+            mutation.d.dumpster = source.d.dumpster;
+            mutation.d.dumpster_fire = source.d.dumpster_fire;
 
             mutation.should.deepEqual(source);
 

@@ -531,7 +531,7 @@ describe('Placements', () => {
                             aid: 'article_local_2gT3kBcwVQZ1kpEma',
                             pten: '0',
                             decl: '0',
-                            key: 'unit_test_key',
+                            // key: 'unit_test_key', // should be stripped now
                             pw: '0',
                             ph: '0',
                             x1: '0',
@@ -656,7 +656,7 @@ describe('Placements', () => {
                             display_size: 'half_page',
                             display_template_layout: 'list',
                             display_template_cta_style: 'link',
-                            key: 'unit_test_key',
+                            // key: 'unit_test_key',
                             pw: '0',
                             ph: '0',
                             x1: '0',
@@ -702,6 +702,94 @@ describe('Placements', () => {
                 new okanjo.Placement(target);
             });
 
+            it('should should set backfill flag if present', (done) => {
+                resetDocument();
+                let target = insertDropzone({ key: 'unit_test_key' });
+
+                // hack our sid too, just for some edge case stuff
+                okanjo.metrics.sid = null;
+
+                setMetricsBulkHandler(() => {
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    let productLink = target.querySelector('a');
+                    should(productLink).be.ok();
+
+                    let baitLink = target.href;
+
+                    let e = new window.Event('mousedown', {bubbles: true});
+                    e.pageX = 1;
+                    e.pageY = 2;
+                    productLink.dispatchEvent(e);
+
+                    // Verify that our link changed
+                    productLink.href.should.not.be.equal(baitLink);
+                    productLink.href.should.not.match(/\[bot]/);
+
+                    let parts = Url.parse(productLink.href);
+                    let args = Qs.parse(parts.query);
+
+                    console.log(JSON.stringify(args, null, '  '));
+
+                    args.should.containDeep({
+                        "ch": "pw",
+                        "cx": "auto",
+                        "key": "unit_test_key",
+                        "m": {
+                            // "wgid": "UkexAd-WkS",
+                            "aid": "article_local_2gT3kBcwVQZ1kpEma",
+                            "pten": "0",
+                            "decl": "0",
+                            // "cid": "L1kFZWyH",
+                            "bf": "1",
+                            "et": "Event",
+                            "ex": "1",
+                            "ey": "2",
+                            "pw": "0",
+                            "ph": "0",
+                            "x1": "0",
+                            "y1": "0",
+                            "x2": "0",
+                            "y2": "0",
+                            "vx1": "0",
+                            "vy1": "0",
+                            "vx2": "0",
+                            "vy2": "0",
+                            // "pgid": "LyTObbyS",
+                            "ok_ver": "%%OKANJO_VERSION"
+                        },
+                        "id": "product_test_2gT3kBcwVQZ1kpEma",
+                        "ea": "click",
+                        // "u": "http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=575333915&ok_cid=L1kFZWyH&afftrack=unknown%3AL1kFZWyH&ok_msid=unknown&ok_ch=pw&ok_cx=auto"
+                    });
+
+                    // check dynamic params to be present
+                    args.m.wgid.should.be.ok();
+                    args.m.cid.should.be.ok();
+                    args.m.pgid.should.be.ok();
+                    // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
+
+                    done();
+                });
+
+                // Make the server return articles
+                setAdsHandler(() => {
+                    const payload = TestResponses.getExampleProductResponse();
+
+                    payload.data.results[0].backfill = true;
+
+                    return {
+                        statusCode: 200,
+                        payload
+                    };
+                });
+
+                // Make that placement
+                new okanjo.Placement(target);
+            });
         });
 
         describe('_showProducts', () => {
@@ -1187,7 +1275,7 @@ describe('Placements', () => {
                         aid: 'article_local_2gT3kBcwVQZ1kpEma',
                         pten: '0',
                         decl: '0',
-                        key: 'unit_test_key',
+                        // key: 'unit_test_key',
                         pw: '0',
                         ph: '0',
                         x1: '0',
@@ -1218,7 +1306,7 @@ describe('Placements', () => {
                 setMetricsHandler();
             });
 
-            it('should should be ok with mousedown already occuring', () => {
+            it('should should be ok with mousedown already occurring', () => {
                 let anchor = target.querySelector('a');
                 let beforeLink = anchor.href;
 
@@ -1266,7 +1354,7 @@ describe('Placements', () => {
                         aid: 'article_local_2gT3kBcwVQZ1kpEma',
                         pten: '0',
                         decl: '0',
-                        key: 'unit_test_key',
+                        // key: 'unit_test_key',
                         pw: '0',
                         ph: '0',
                         x1: '0',
@@ -1348,7 +1436,7 @@ describe('Placements', () => {
                         aid: 'article_local_2gT3kBcwVQZ1kpEma',
                         pten: '0',
                         decl: '0',
-                        key: 'unit_test_key',
+                        // key: 'unit_test_key',
                         pw: '0',
                         ph: '0',
                         x1: '0',
@@ -1474,7 +1562,7 @@ describe('Placements', () => {
                             display_size: 'half_page',
                             display_template_layout: 'list',
                             display_template_cta_style: 'link',
-                            key: 'unit_test_key',
+                            // key: 'unit_test_key',
                             pw: '0',
                             ph: '0',
                             x1: '0',

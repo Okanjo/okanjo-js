@@ -328,6 +328,19 @@ describe('Okanjo Core', () => {
                     i: now
                 });
 
+                // with array to csv
+                pancake = okanjo.util.flatten(source, { arrayToCsv: true });
+                pancake.should.deepEqual({
+                    a: 1,
+                    b_c_d: 2,
+                    b_c_e: "3,4,5",
+                    b_f: 'f',
+                    b_g: null,
+                    h: null,
+                    i: now
+                });
+
+
             });
 
         });

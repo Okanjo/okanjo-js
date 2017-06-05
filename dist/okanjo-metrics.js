@@ -310,6 +310,8 @@ var okanjo = function (window, document) {
                     // Allow ignoring arrays if desired
                     if (Array.isArray(input[key]) && options.ignoreArrays === true) {
                         output[key] = input[key];
+                    } else if (Array.isArray(input[key]) && options.arrayToCsv === true) {
+                        output[key] = input[key].join(',');
                     } else {
                         // Make child objects flat too (always returns object so Object.keys is safe)
                         var childObject = okanjo.util.flatten(input[key], options);
@@ -1118,7 +1120,7 @@ var okanjo = function (window, document) {
                 event.m.ok_ver = okanjo.version;
 
                 // Finalize metadata
-                event.m = okanjo.util.flatten(event.m);
+                event.m = okanjo.util.flatten(event.m, { arrayToCsv: true });
 
                 // Set page source reference
                 if (document.referrer) {
@@ -1367,12 +1369,19 @@ var okanjo = function (window, document) {
 
     var MetricEvent = function () {
         function MetricEvent(data, others) {
+            var _this4 = this;
+
             _classCallCheck(this, MetricEvent);
 
             // Merge the data and other data sets into this object
             data = data || {};
-            // others = others || []; // the only way to create this right now is via .create ^
-            Object.assign.apply(Object, [this, data].concat(others));
+            this.data(data);
+            /* istanbul ignore else: metrics.create is the only way to create this right now */
+            if (Array.isArray(others)) {
+                others.forEach(function (data) {
+                    _this4.data(data);
+                });
+            }
         }
 
         /**
@@ -1384,7 +1393,7 @@ var okanjo = function (window, document) {
         _createClass(MetricEvent, [{
             key: "data",
             value: function data(_data) {
-                Object.assign(this, _data);
+                Object.assign(this, okanjo.util.deepClone(_data));
                 return this;
             }
 

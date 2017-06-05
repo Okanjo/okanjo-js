@@ -314,6 +314,8 @@ var okanjo = function (window, document) {
                     // Allow ignoring arrays if desired
                     if (Array.isArray(input[key]) && options.ignoreArrays === true) {
                         output[key] = input[key];
+                    } else if (Array.isArray(input[key]) && options.arrayToCsv === true) {
+                        output[key] = input[key].join(',');
                     } else {
                         // Make child objects flat too (always returns object so Object.keys is safe)
                         var childObject = okanjo.util.flatten(input[key], options);
@@ -1603,7 +1605,7 @@ var okanjo = function (window, document) {
                 event.m.ok_ver = okanjo.version;
 
                 // Finalize metadata
-                event.m = okanjo.util.flatten(event.m);
+                event.m = okanjo.util.flatten(event.m, { arrayToCsv: true });
 
                 // Set page source reference
                 if (document.referrer) {
@@ -1852,12 +1854,19 @@ var okanjo = function (window, document) {
 
     var MetricEvent = function () {
         function MetricEvent(data, others) {
+            var _this5 = this;
+
             _classCallCheck(this, MetricEvent);
 
             // Merge the data and other data sets into this object
             data = data || {};
-            // others = others || []; // the only way to create this right now is via .create ^
-            Object.assign.apply(Object, [this, data].concat(others));
+            this.data(data);
+            /* istanbul ignore else: metrics.create is the only way to create this right now */
+            if (Array.isArray(others)) {
+                others.forEach(function (data) {
+                    _this5.data(data);
+                });
+            }
         }
 
         /**
@@ -1869,7 +1878,7 @@ var okanjo = function (window, document) {
         _createClass(MetricEvent, [{
             key: "data",
             value: function data(_data) {
-                Object.assign(this, _data);
+                Object.assign(this, okanjo.util.deepClone(_data));
                 return this;
             }
 
@@ -2075,12 +2084,12 @@ var okanjo = function (window, document) {
             key: "once",
             value: function once(event, listener) {
                 var _arguments = arguments,
-                    _this5 = this;
+                    _this6 = this;
 
                 var callback = function callback() {
                     var args = [].slice.call(_arguments, 1);
-                    _this5.removeListener(event, callback);
-                    listener.apply(_this5, args);
+                    _this6.removeListener(event, callback);
+                    listener.apply(_this6, args);
                 };
 
                 this.on(event, callback);
@@ -2113,30 +2122,30 @@ var okanjo = function (window, document) {
             _classCallCheck(this, Widget);
 
             // Verify element was given (we can't load unless we have one)
-            var _this6 = _possibleConstructorReturn(this, (Widget.__proto__ || Object.getPrototypeOf(Widget)).call(this));
+            var _this7 = _possibleConstructorReturn(this, (Widget.__proto__ || Object.getPrototypeOf(Widget)).call(this));
 
             if (!element || element === null || element.nodeType === undefined) {
-                okanjo.report('Invalid or missing element on widget construction', { widget: _this6, element: element, options: options });
+                okanjo.report('Invalid or missing element on widget construction', { widget: _this7, element: element, options: options });
                 throw new Error('Okanjo: Invalid element - make sure to pass a valid DOM element when constructing Okanjo Widgets.');
             }
 
             // Verify configuration is OK
             if (options && (typeof options === "undefined" ? "undefined" : _typeof(options)) !== "object") {
                 // Warn and fix it
-                okanjo.report('Invalid widget options. Expected object, got: ' + (typeof options === "undefined" ? "undefined" : _typeof(options)), { widget: _this6, element: element, options: options });
+                okanjo.report('Invalid widget options. Expected object, got: ' + (typeof options === "undefined" ? "undefined" : _typeof(options)), { widget: _this7, element: element, options: options });
                 options = {};
             } else {
                 options = options || {};
             }
 
             // Store basics
-            _this6.name = 'Widget';
-            _this6.element = element;
-            _this6.instanceId = okanjo.util.shortid();
+            _this7.name = 'Widget';
+            _this7.element = element;
+            _this7.instanceId = okanjo.util.shortid();
 
             // Clone initial config, breaking the top-level reference
-            _this6.config = Object.assign({}, options);
-            return _this6;
+            _this7.config = Object.assign({}, options);
+            return _this7;
         }
 
         /**
@@ -2200,7 +2209,7 @@ var okanjo = function (window, document) {
         }, {
             key: "_applyConfiguration",
             value: function _applyConfiguration() {
-                var _this7 = this;
+                var _this8 = this;
 
                 // this.config was set to the options provided in the constructor
                 // so layer data attributes on top
@@ -2216,14 +2225,14 @@ var okanjo = function (window, document) {
                     if (settings[normalizedKey]) val = settings[normalizedKey].value(val, false);
 
                     if (!okanjo.util.isEmpty(val)) {
-                        _this7.config[normalizedKey] = val;
+                        _this8.config[normalizedKey] = val;
                     }
                 });
 
                 // Apply defaults from the widget settings
                 Object.keys(settings).forEach(function (key) {
-                    if (_this7.config[key] === undefined && settings[key]._default !== undefined) {
-                        _this7.config[key] = settings[key].value(undefined, false);
+                    if (_this8.config[key] === undefined && settings[key]._default !== undefined) {
+                        _this8.config[key] = settings[key].value(undefined, false);
                     }
                 });
             }
@@ -2237,13 +2246,13 @@ var okanjo = function (window, document) {
         }, {
             key: "getConfig",
             value: function getConfig() {
-                var _this8 = this;
+                var _this9 = this;
 
                 var settings = this.getSettings();
                 var out = {};
 
                 Object.keys(this.config).forEach(function (origKey) {
-                    var val = _this8.config[origKey];
+                    var val = _this9.config[origKey];
                     var key = origKey;
                     var group = null;
 
@@ -2619,15 +2628,15 @@ var okanjo = function (window, document) {
             // Flatten the options before passing on
             options = okanjo.util.flatten(options, { ignoreArrays: true });
 
-            var _this9 = _possibleConstructorReturn(this, (Placement.__proto__ || Object.getPrototypeOf(Placement)).call(this, element, options));
+            var _this10 = _possibleConstructorReturn(this, (Placement.__proto__ || Object.getPrototypeOf(Placement)).call(this, element, options));
 
-            _this9.name = 'Placement';
-            _this9._metricBase = {}; // placeholder for metrics
-            _this9._response = null;
+            _this10.name = 'Placement';
+            _this10._metricBase = {}; // placeholder for metrics
+            _this10._response = null;
 
             // Start loading content
-            if (!options.no_init) _this9.init();
-            return _this9;
+            if (!options.no_init) _this10.init();
+            return _this10;
         }
 
         //noinspection JSMethodCanBeStatic,JSUnusedGlobalSymbols
@@ -2719,6 +2728,7 @@ var okanjo = function (window, document) {
                     url_keywords: array().group(ARTICLE_META),
 
                     // Functional settings
+                    key: string().strip(), // don't need to resend key on all our requests
                     no_init: bool().strip(), // don't automatically load the placement, do it manually (e.g. (new Placement({no_init:true})).init()
                     proxy_url: string().strip(),
                     expandable: bool().strip().default(true),
@@ -2736,14 +2746,14 @@ var okanjo = function (window, document) {
         }, {
             key: "getConfig",
             value: function getConfig() {
-                var _this10 = this;
+                var _this11 = this;
 
                 var settings = this.getSettings();
                 var out = { filters: {}, display: {}, backfill: {}, article_meta: {} };
                 var backfillPattern = /^backfill_(.+)$/; // backfill_property
 
                 Object.keys(this.config).forEach(function (origKey) {
-                    var val = _this10.config[origKey];
+                    var val = _this11.config[origKey];
                     var key = origKey;
                     var isBackfill = false;
                     var group = null;
@@ -2787,7 +2797,7 @@ var okanjo = function (window, document) {
         }, {
             key: "load",
             value: function load() {
-                var _this11 = this;
+                var _this12 = this;
 
                 // Set metric base data (stub for all future events emitted by the widget)
                 this._setMetricBase();
@@ -2796,16 +2806,16 @@ var okanjo = function (window, document) {
                 this._fetchContent(function (err) {
                     if (err) {
                         // Report the widget load as declined
-                        _this11._reportWidgetLoad(err);
+                        _this12._reportWidgetLoad(err);
                     } else {
                         // Merge display settings from response
-                        _this11._mergeResponseSettings();
+                        _this12._mergeResponseSettings();
 
                         // Merge the referential data from the response
-                        _this11._updateBaseMetaFromResponse();
+                        _this12._updateBaseMetaFromResponse();
 
                         // Handle rendering based on output type
-                        _this11._showContent();
+                        _this12._showContent();
                     }
                 });
             }
@@ -2857,14 +2867,13 @@ var okanjo = function (window, document) {
         }, {
             key: "_fetchContent",
             value: function _fetchContent(callback) {
-                var _this12 = this;
+                var _this13 = this;
 
                 // Build request to api, starting with this placement config params
                 var query = this.getConfig();
 
                 // Extract the key
-                var key = query.key;
-                delete query.key;
+                var key = this.config.key;
 
                 // Attach sid and referrer
                 if (okanjo.metrics.sid) query.sid = okanjo.metrics.msid;
@@ -2875,17 +2884,17 @@ var okanjo = function (window, document) {
                 // Send it
                 okanjo.net.request.post(okanjo.net.getRoute(okanjo.net.routes.ads, null, this.config.sandbox ? 'sandbox' : 'live') + "?key=" + encodeURIComponent(key), query, function (err, res) {
                     if (err) {
-                        okanjo.report('Failed to retrieve placement content', err, { placement: _this12 });
-                        _this12.setMarkup(''); // Don't show anything
-                        _this12.emit('error', err);
+                        okanjo.report('Failed to retrieve placement content', err, { placement: _this13 });
+                        _this13.setMarkup(''); // Don't show anything
+                        _this13.emit('error', err);
                         callback && callback(err);
                     } else {
 
                         // Store the raw response
-                        _this12._response = res;
+                        _this13._response = res;
 
                         // Hook point for response handling
-                        _this12.emit('data');
+                        _this13.emit('data');
 
                         // Return
                         callback && callback();
@@ -2901,7 +2910,7 @@ var okanjo = function (window, document) {
         }, {
             key: "_mergeResponseSettings",
             value: function _mergeResponseSettings() {
-                var _this13 = this;
+                var _this14 = this;
 
                 var res = this._response;
                 var data = res.data || {};
@@ -2909,13 +2918,13 @@ var okanjo = function (window, document) {
 
                 if (settings.filters) {
                     Object.keys(settings.filters).forEach(function (key) {
-                        _this13.config[key] = settings.filters[key];
+                        _this14.config[key] = settings.filters[key];
                     });
                 }
 
                 if (settings.display) {
                     Object.keys(settings.display).forEach(function (key) {
-                        _this13.config[key] = settings.display[key];
+                        _this14.config[key] = settings.display[key];
                     });
                 }
             }
@@ -3028,7 +3037,7 @@ var okanjo = function (window, document) {
                 // Start building the event
                 var event = okanjo.metrics.create(this._metricBase, {
                     id: resource.id
-                }).type(type, Metrics.Event.interaction).meta(this.getConfig()).meta({ cid: clickId }).event(e).element(e.currentTarget).viewport();
+                }).type(type, Metrics.Event.interaction).meta(this.getConfig()).meta({ cid: clickId }).meta({ bf: resource.backfill ? 1 : 0 }).event(e).element(e.currentTarget).viewport();
 
                 // Pull the proper params out of the resource depending on it's type
                 var trackParam = 'url_track_param';
@@ -3122,7 +3131,7 @@ var okanjo = function (window, document) {
         }, {
             key: "_showProducts",
             value: function _showProducts() {
-                var _this14 = this;
+                var _this15 = this;
 
                 var data = (this._response || { data: { results: [] } }).data || { results: [] };
 
@@ -3143,7 +3152,7 @@ var okanjo = function (window, document) {
                 // Format products
                 data.results.forEach(function (offer, index) {
                     // Disable inline buy if configured to do so
-                    if (_this14.config.disable_inline_buy) offer.inline_buy_url = null;
+                    if (_this15.config.disable_inline_buy) offer.inline_buy_url = null;
                     if (offer.inline_buy_url) offer._escaped_inline_buy_url = encodeURIComponent(offer.inline_buy_url);
 
                     // Set primary image
@@ -3169,16 +3178,16 @@ var okanjo = function (window, document) {
                     // Don't bind links that are not tile links
                     /* istanbul ignore else: custom templates could break it */
                     if (id && index >= 0) {
-                        var product = _this14._response.data.results[index];
+                        var product = _this15._response.data.results[index];
                         /* istanbul ignore else: custom templates could break it */
                         if (product) {
 
                             // Bind interaction listener
-                            a.addEventListener('mousedown', _this14._handleResourceMouseDown.bind(_this14, Metrics.Object.product, product));
-                            a.addEventListener('click', _this14._handleProductClick.bind(_this14, product));
+                            a.addEventListener('mousedown', _this15._handleResourceMouseDown.bind(_this15, Metrics.Object.product, product));
+                            a.addEventListener('click', _this15._handleProductClick.bind(_this15, product));
 
                             // Track impression
-                            okanjo.metrics.create(_this14._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this14.getConfig()).meta({ bf: product.backfill ? 1 : 0 }).element(a).send();
+                            okanjo.metrics.create(_this15._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this15.getConfig()).meta({ bf: product.backfill ? 1 : 0 }).element(a).send();
                         }
                     }
                 });
@@ -3318,7 +3327,7 @@ var okanjo = function (window, document) {
         }, {
             key: "_showArticles",
             value: function _showArticles() {
-                var _this15 = this;
+                var _this16 = this;
 
                 var data = (this._response || { data: { results: [] } }).data || { results: [] };
 
@@ -3355,16 +3364,16 @@ var okanjo = function (window, document) {
                     // Don't bind links that are not tile links
                     /* istanbul ignore else: custom templates could break this */
                     if (id && index >= 0) {
-                        var article = _this15._response.data.results[index];
+                        var article = _this16._response.data.results[index];
                         /* istanbul ignore else: custom templates could break this */
                         if (article) {
 
                             // Bind interaction listener
-                            a.addEventListener('mousedown', _this15._handleResourceMouseDown.bind(_this15, Metrics.Object.article, article));
-                            a.addEventListener('click', _this15._handleArticleClick.bind(_this15, article));
+                            a.addEventListener('mousedown', _this16._handleResourceMouseDown.bind(_this16, Metrics.Object.article, article));
+                            a.addEventListener('click', _this16._handleArticleClick.bind(_this16, article));
 
                             // Track impression
-                            okanjo.metrics.create(_this15._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this15.getConfig()).meta({ bf: article.backfill ? 1 : 0 }).element(a).send();
+                            okanjo.metrics.create(_this16._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this16.getConfig()).meta({ bf: article.backfill ? 1 : 0 }).element(a).send();
                         }
                     }
                 });
@@ -3417,7 +3426,7 @@ var okanjo = function (window, document) {
         }, {
             key: "_showADX",
             value: function _showADX() {
-                var _this16 = this;
+                var _this17 = this;
 
                 var data = (this._response || { data: { settings: {} } }).data || { settings: {} };
 
@@ -3499,7 +3508,7 @@ var okanjo = function (window, document) {
                     // frame.contentWindow.okanjo = okanjo;
                     // frame.contentWindow.placement = this;
                     frame.contentWindow.trackImpression = function () {
-                        okanjo.metrics.create(_this16._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.impression).meta(_this16.getConfig()).meta({
+                        okanjo.metrics.create(_this17._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.impression).meta(_this17.getConfig()).meta({
                             ta_s: adUnitPath,
                             ta_w: size.width,
                             ta_h: size.height
@@ -3627,16 +3636,16 @@ var okanjo = function (window, document) {
             var no_init = options.no_init; // hold original no_init flag, if set
             options.no_init = true;
 
-            var _this17 = _possibleConstructorReturn(this, (Product.__proto__ || Object.getPrototypeOf(Product)).call(this, element, options));
+            var _this18 = _possibleConstructorReturn(this, (Product.__proto__ || Object.getPrototypeOf(Product)).call(this, element, options));
 
-            okanjo.warn('Product widget has been deprecated. Use Placement instead (may require configuration changes)', { widget: _this17 });
+            okanjo.warn('Product widget has been deprecated. Use Placement instead (may require configuration changes)', { widget: _this18 });
 
             // Start loading content
             if (!no_init) {
-                delete _this17.config.no_init;
-                _this17.init();
+                delete _this18.config.no_init;
+                _this18.init();
             }
-            return _this17;
+            return _this18;
         }
 
         //noinspection JSUnusedGlobalSymbols
@@ -3732,16 +3741,16 @@ var okanjo = function (window, document) {
             var no_init = options.no_init; // hold original no_init flag, if set
             options.no_init = true;
 
-            var _this18 = _possibleConstructorReturn(this, (Ad.__proto__ || Object.getPrototypeOf(Ad)).call(this, element, options));
+            var _this19 = _possibleConstructorReturn(this, (Ad.__proto__ || Object.getPrototypeOf(Ad)).call(this, element, options));
 
-            okanjo.warn('Ad widget has been deprecated. Use Placement instead (may require configuration changes)', { widget: _this18 });
+            okanjo.warn('Ad widget has been deprecated. Use Placement instead (may require configuration changes)', { widget: _this19 });
 
             // Start loading content
             if (!no_init) {
-                delete _this18.config.no_init;
-                _this18.init();
+                delete _this19.config.no_init;
+                _this19.init();
             }
-            return _this18;
+            return _this19;
         }
 
         //noinspection JSUnusedGlobalSymbols

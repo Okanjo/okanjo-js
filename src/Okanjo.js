@@ -272,6 +272,8 @@ const okanjo = (function(window, document) {
                         // Allow ignoring arrays if desired
                         if (Array.isArray(input[key]) && options.ignoreArrays === true) {
                             output[key] = input[key];
+                        } else if (Array.isArray(input[key]) && options.arrayToCsv === true) {
+                            output[key] = input[key].join(',');
                         } else {
                             // Make child objects flat too (always returns object so Object.keys is safe)
                             const childObject = okanjo.util.flatten(input[key], options);
