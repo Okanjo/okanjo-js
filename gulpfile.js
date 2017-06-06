@@ -90,13 +90,6 @@ const getVersionCommitMessage = function() {
 // Global Okanjo sources, dependencies and polyfills
 const sources = [
 
-
-    // Core
-    /// 'src/old/core.js',
-    /// 'src/old/config.js',
-    // 'src/old/template.js',
-    /// 'src/old/jsonp.js',
-
     'src/Okanjo.js',
     'src/Request.js',
     'src/Cookie.js',
@@ -105,6 +98,7 @@ const sources = [
     'src/Modal.js',
 
     'src/Metrics.js',
+    'src/AutoPageView.js',
 
     'src/EventEmitter.js',
     'src/Widget.js',
@@ -112,24 +106,8 @@ const sources = [
     'src/Product.js',
     'src/Ad.js',
 
-    /// Internal dependencies & polyfills
-    /// 'lib/polyfill/ie.js',
-    /// 'lib/polyfill/console.js',
-    /// 'src/old/cache.js',
-    /// 'src/old/cookie.js',
-    /// 'lib/polyfill/json2.js',
-
     // External  dependencies & polyfills
     'build/vendor.js',
-
-    // Apps & Widgets
-    // 'src/old/metrics.js',
-    // 'src/old/pageview.js',
-    /// 'src/old/emitter.js',
-    /// 'src/old/widget.js',
-    // 'src/old/modal.js',
-    // 'src/old/product.js',
-    // 'src/old/ad.js'
 ];
 
 const metricsOnlyBuildFiles = [
@@ -140,23 +118,8 @@ const metricsOnlyBuildFiles = [
 
     'src/Metrics.js',
 
-    /// 'src/old/core.js',
-    /// 'src/old/config.js',
-    /// 'src/old/jsonp.js',
-
-    // Internal dependencies & polyfills
-    /// 'lib/polyfill/ie.js',
-    /// 'lib/polyfill/console.js',
-    // 'src/old/cache.js',
-    /// 'src/old/cookie.js',
-    /// 'lib/polyfill/json2.js',
-
     // External  dependencies & polyfills
     'build/vendor-metrics.js',
-
-
-    // Apps & Widgets
-    // 'src/old/metrics.js'
 ];
 
 // Things that normally expose themselves to the root context, but shouldn't because we need them to not conflict

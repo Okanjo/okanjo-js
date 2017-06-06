@@ -3,7 +3,10 @@
 
 When stuff changes, it's described here.
 
-## 2017-04-25 – v1.0.0
+## 2017-06-06 - v1.0.1
+ * Fixed: Missing automatic page view metrics 
+
+## 2017-06-05 – v1.0.0
 Total refactor of the placement framework. Everything has changed.
 
 ### Goals
