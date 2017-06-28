@@ -7,9 +7,6 @@
 
     okanjo.ui.engine.registerTemplate("products.block2", product_block2, function(model) {
 
-        // Set template class name
-        model.template_name = 'okanjo-product-block2';
-
         // Attach placement properties
         const data = (this._response || { data: { results: [] } }).data || { results: [] };
         model.products = data.results;
@@ -27,6 +24,6 @@
 
         return model;
     }, {
-        css: [ /*'okanjo.core',*/ 'products.block2', 'okanjo.modal']
+        css: [ /*'okanjo.core',*/ 'products.block2', 'okanjo.block2', 'okanjo.modal']
     });
 })(window);

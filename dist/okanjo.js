@@ -1,4 +1,4 @@
-/*! okanjo-js v1.0.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.1.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -60,7 +60,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.0.1",
+        version: "1.1.0",
 
         /**
          * Placeholder
@@ -2821,7 +2821,7 @@ var okanjo = function (window, document) {
                 this._fetchContent(function (err) {
                     if (err) {
                         // Report the widget load as declined
-                        _this12._reportWidgetLoad(err);
+                        _this12._reportWidgetLoad("fetch failed: " + err.statusCode || err.toString());
                     } else {
                         // Merge display settings from response
                         _this12._mergeResponseSettings();

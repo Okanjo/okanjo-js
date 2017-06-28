@@ -7,9 +7,6 @@
 
     okanjo.ui.engine.registerTemplate("articles.block2", article_block2, function (model) {
 
-        // Set template class name
-        model.template_name = 'okanjo-article-block2';
-
         const data = (this._response || { data: { results: [] } }).data || { results: [] };
         model.articles = data.results;
         model.config = this.config;
@@ -26,7 +23,7 @@
 
         return model;
     }, {
-        css: [/*'okanjo.core',*/ 'articles.block2' /*, 'okanjo.modal'*/]
+        css: [/*'okanjo.core',*/ 'articles.block2', 'okanjo.block2' /*, 'okanjo.modal'*/]
     });
 
 })(window);

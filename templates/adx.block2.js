@@ -5,9 +5,6 @@
 
     okanjo.ui.engine.registerTemplate("adx.block2", "@@include(jsStringEscape('adx.block2.mustache'))", function (model) {
 
-        // Set template class name
-        model.template_name = 'okanjo-adx-block2';
-
         // Attach required properties
         model.config = this.config;
         model.instanceId = this.instanceId;
@@ -15,7 +12,7 @@
 
         return model;
     }, {
-        css: ['adx.block2']
+        css: ['adx.block2','okanjo.block2']
     });
 
 })(window);

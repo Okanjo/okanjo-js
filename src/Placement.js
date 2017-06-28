@@ -195,7 +195,7 @@
             this._fetchContent((err) => {
                 if (err) {
                     // Report the widget load as declined
-                    this._reportWidgetLoad(err);
+                    this._reportWidgetLoad("fetch failed: " + err.statusCode || err.toString());
                 } else {
                     // Merge display settings from response
                     this._mergeResponseSettings();
