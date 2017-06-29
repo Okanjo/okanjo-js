@@ -1,6 +1,6 @@
-<!-- Define the container that will contain the contents of the Ad creative and ultimately hold the Okanjo widget. -->
-<div id="okanjo-dropzone">
-    <img style="margin:0;height:100%;width:auto;cursor:pointer;" src="https://shop.okanjo.com/brand/walmart/img/Bears.png"/>
+<!-- Define the container placement tag container -->
+<div id="okanjo-placement-container">
+    <div class="okanjo-placement" data-key="PUT_YOUR_WIDGET_KEY_HERE"></div>
 </div>
 
 <!--
@@ -8,31 +8,13 @@ This script will asynchronously load the Ad or Product widget as configured. It 
 outside of the iframe (when able to do so) to enable expandable functionality.
 -->
 <script>
-    /*! Okanjo Ad Loader v2.0.0 - https://developer.okanjo.com/okanjo-js */
-    !function(a){var b=document,c=window,d=b.getElementById("okanjo-dropzone"),e=c.top===c.self,f=!1;try{if(!e)for(var i,j,g=c.top.document.getElementsByTagName("iframe"),h=0;h<g.length;h++){i=g[h];try{if(j=i.contentDocument||g.contentWindow.document,j===document){d.removeAttribute("id"),i.parentNode.appendChild(d),i.style.display="none",b=c.top.document,c=c.top,f=!0;break}}catch(k){}}}catch(k){console.warn("[Okanjo]","There was a problem jumping contexts!",k)}e||f||(console.warn("[Okanjo]","Could not locate our container iFrame on the top-level page! Forcing non-expandable functionality."),a.ad&&(a.ad.expandable=!1),a.match&&(a.match.expandable=!1)),function(b){var c=this,d=c.document,e=d.getElementsByTagName("body")[0],f=d.createElement("script"),g=!1;f.type="text/javascript",f.async=!0,f.setAttribute("crossorigin","anonymous"),f.onload=f.onreadystatechange=function(){g||this.readyState&&"complete"!=this.readyState&&"loaded"!=this.readyState||(g=!0,b.call(c))},f.src=a.src||"//cdn.okanjo.com/js/latest/okanjo-bundle.min.js",e.parentNode.insertBefore(f,e)}.call(c,function(){var b=this;b.okanjo._widgets||(b.okanjo._widgets=[]),a.ad?b.okanjo._widgets.push(new b.okanjo.Ad(d,a.ad)):a.match?b.okanjo._widgets.push(new b.okanjo.Product(d,a.match)):console.warn("[Okanjo]","No ad or product configuration given, so there are no widgets to load!")})
+    /*! Okanjo Placement Loader v3.0.1 - https://developer.okanjo.com/okanjo-js */
+    !function(e){var t=document,n=window,a=t.getElementById("okanjo-placement-container"),o=n.top===n.self,c=!1;try{if(!o)for(var l,r,s=n.top.document.getElementsByTagName("iframe"),i=0;i<s.length;i++){l=s[i];try{if(r=l.contentDocument||s.contentWindow.document,r===document){a.removeAttribute("id"),l.parentNode.appendChild(a),l.style.display="none",t=n.top.document,n=n.top,c=!0;break}}catch(d){}}}catch(d){console.warn("[Okanjo]","Failed to locating parent frame.",d)}o||c||(console.warn("[Okanjo]","Forcing non-expandable functionality."),e.placement&&(e.placement.expandable=!1)),function(t){if(this.okanjo)t.call(this);else{var n=this,a=n.document,o=a.getElementsByTagName("body")[0],c=a.createElement("script"),l=!1;c.type="text/javascript",c.async=!0,c.setAttribute("crossorigin","anonymous"),c.onload=c.onreadystatechange=function(){l||this.readyState&&"complete"!==this.readyState&&"loaded"!==this.readyState||(l=!0,t.call(n))},c.src=e.src||"//cdn.okanjo.com/js/latest/okanjo-bundle.min.js",o.parentNode.insertBefore(c,o)}}.call(n,function(){var t=this,n=t.okanjo.qwery(".okanjo-placement:not(.loaded)",a),o=0;for(t.__okanjoPlacements=t.__okanjoPlacements||[];o<n.length;o++)n[o].className+=" loaded",t.__okanjoPlacements.push(new t.okanjo.Placement(n[o],e.placement))})
     }({
-
-        // Include either the `ad` OR `match` configuration section, but not both!
-
-        // Uncomment the proxy_url line to enable click-tracking through your ad server (e.g. DFP, AppNexus, etc)
-
-        ad: {
-            key: "PUT_YOUR_WIDGET_KEY_HERE",
-            id: 'PR2cKR3AitaHebMAe6g',
-            size: 'medium_rectangle',
-            type: 'product',
-//            proxy_url: '%%CLICK_URL_UNESC%%', // (Google DFP macro)
-            expandable: true
-        },
-
-        match: {
-            key: "PUT_YOUR_WIDGET_KEY_HERE",
-            mode: 'browse',
-            take: 2,
-            q: 'brew city',
-            template_product_main: 'product.sidebar',
-//            proxy_url: '%%CLICK_URL_UNESC%%', // (Google DFP macro)
-            expandable: true
+        placement: {
+            // key: 'PUT_YOUR_PLACEMENT_KEY_HERE',
+            // expandable: true,
+            proxy_url: '%%CLICK_URL_UNESC%%', // (Google DFP macro, change for your ad server)
         }
     });
 </script>

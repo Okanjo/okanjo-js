@@ -7,61 +7,52 @@
 <body>
 <h1>Async Usage</h1>
 <p>Load Okanjo dynamically, during or after page load.</p>
-<div id="product-target"></div>
+
+<div
+    class="okanjo-placement"
+    data-key="PUT_YOUR_WIDGET_KEY_HERE">
+</div>
 <script>
 
     /**
-     * Okanjo Async Loader
+     * Okanjo Async Loader v3.0.0
      */
     (function(callback) {
 
-        var d = document,
-            h = d.getElementsByTagName('head')[0],
-            o = d.createElement('script'), t = d.createElement('script'),
-            ro = false, rt = false;
+        var doc = document,
+            head = doc.getElementsByTagName('head')[0],
+            scriptTag = doc.createElement('script'),
+            scriptLoaded = false;
 
-        o.type = t.type = 'text/javascript';
-        o.setAttribute('crossorigin', "anonymous");
-        t.setAttribute('crossorigin', "anonymous");
-        o.async = t.async = true; // <-- templates need to load after okanjo does, so either bundle both or do this
-        o.onload = o.onreadystatechange = function() {
-            if ( !ro && (!this.readyState || this.readyState == 'complete' || this.readyState == 'loaded') ) {
-                ro = true;
-                t.onload = t.onreadystatechange = function() {
-                    //noinspection JSPotentiallyInvalidUsageOfThis
-                    if ( !rt && (!this.readyState || this.readyState == 'complete' || this.readyState == 'loaded') ) {
-                        callback && callback();
-                    }
-                };
-                t.src = '../dist/okanjo-templates.js';
-                h.appendChild(t);
+        scriptTag.type = 'text/javascript';
+        scriptTag.setAttribute('crossorigin', "anonymous");
+        scriptTag.async = true;
+        scriptTag.onload = scriptTag.onreadystatechange = function() {
+            if (!scriptLoaded &&
+                (!this.readyState || this.readyState === 'complete' || this.readyState === 'loaded')) {
+                scriptLoaded = true;
+                callback && callback();
             }
         };
 
-        o.src = '../dist/okanjo.js';
-        h.appendChild(o);
+        scriptTag.src = 'https://cdn.okanjo.com/js/latest/okanjo-bundle.min.js';
+        head.appendChild(scriptTag);
 
     }).call(window, function() {
 
-                // Set global widget key
-                okanjo.key = "PUT_YOUR_WIDGET_KEY_HERE";
+        // Set global widget key
+        okanjo.key = "PUT_YOUR_WIDGET_KEY_HERE"; // catch-all attribution
 
-                // Create an element to load some products into and identify the page element it reside
-                var test = document.createElement("div"),
-                    container = document.getElementById('product-target');
+        window.__okanjoPlacements = window.__okanjoPlacements || [];
+        var targets = okanjo.qwery('.okanjo-placement:not(.loaded)'), i = 0;
+        for ( ; i < targets.length; i++) {
+            targets[i].className += ' loaded';
+            window.__okanjoPlacements.push(new okanjo.Placement(targets[i], {
+                // additional config options here
+            }));
+        }
 
-                // Customize some properties
-                test.setAttribute('data-mode', 'browse');
-                test.setAttribute('data-take', '6');
-                test.id = 'test-browse';
-
-                // Stick our element on the DOM
-                container.appendChild(test);
-
-                // Or use the options of the Product widget constructor to assign options
-                window.ps = new okanjo.Product(test, { mode: 'browse', take: 6 });
-
-            });
+    });
 
 </script>
 </body>
