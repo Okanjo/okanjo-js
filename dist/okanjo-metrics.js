@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v1.1.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v1.1.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -56,7 +56,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.1.0",
+        version: "1.1.1",
 
         /**
          * Placeholder
@@ -1121,6 +1121,13 @@ var okanjo = function (window, document) {
 
                 // Finalize metadata
                 event.m = okanjo.util.flatten(event.m, { arrayToCsv: true });
+
+                // Ensure metadata strings won't exceed the imposed limit
+                Object.keys(event.m).forEach(function (key) {
+                    if (typeof event.m[key] === "string") {
+                        event.m[key] = event.m[key].substr(0, 255);
+                    }
+                });
 
                 // Set page source reference
                 if (document.referrer) {

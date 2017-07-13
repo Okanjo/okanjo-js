@@ -3,6 +3,11 @@
 
 When stuff changes, it's described here.
 
+## 2017-07-13 – v1.1.1
+ * Fixed: metadata values with long values would cause api error (they're truncated now)
+ * Fixed: placement title truncation was not updated to work with the new resource selector names
+ * Added: test to ensure long meta values are truncated 
+
 ## 2017-06-28 - v1.1.0
  * Changed: Refactored product, article and adx block2 styles into a common block2 stylesheet. Products/Articles/Adx will offer their own extensions to the core block2 styles, reducing overall code payload and improves ease of customization  
  * Fixed: inconsistent declined meta tagging

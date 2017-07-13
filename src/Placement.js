@@ -195,7 +195,7 @@
             this._fetchContent((err) => {
                 if (err) {
                     // Report the widget load as declined
-                    this._reportWidgetLoad("fetch failed: " + err.statusCode || err.toString());
+                    this._reportWidgetLoad("fetch failed: " + err.statusCode /* istanbul ignore next: out of scope */ || err.toString());
                 } else {
                     // Merge display settings from response
                     this._mergeResponseSettings();
@@ -565,7 +565,7 @@
             });
 
             // Truncate product name to fit the space
-            this.element.querySelectorAll('.okanjo-product-title').forEach((element) => {
+            this.element.querySelectorAll('.okanjo-resource-title').forEach((element) => {
                 okanjo.ui.ellipsify(element);
             });
 
@@ -754,7 +754,7 @@
             });
 
             // Truncate product name to fit the space
-            this.element.querySelectorAll('.okanjo-article-title').forEach((element) => {
+            this.element.querySelectorAll('.okanjo-resource-title').forEach((element) => {
                 okanjo.ui.ellipsify(element);
             });
 

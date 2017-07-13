@@ -529,9 +529,27 @@ describe('Metrics', () => {
             });
 
         });
+
+        describe('_normalizeEvent', () => {
+
+            it('should truncate values that are too long', () => {
+
+                // Too long of a value
+                const event = okanjo.metrics.create({ a: 1 }, { b: 2 })
+                    .meta({
+                        keywords: 'foo,bar,baz.,lorem,ipsum dolor,sit amet,consectetur adipiscing elit,sed a rutrum felis,aliquam nec m,in diam sagittis ultricies,sed eget magna,cras mollis,nisl in mattis,nisl erat tempus nulla,sed vulputate ipsum,convallis tortor,sed eu tincidunt,id semper justo,proin id eros diam,aenean facilisis aliquet,tellus sit amet euismod,donec ut laoreet felis'
+                    })
+                    .type('unit', 'test');
+
+                // Normalize it
+                okanjo.metrics._normalizeEvent(event);
+
+                event.m.keywords.length.should.be.exactly(255);
+
+            });
+
+        });
         
     });
-    
-
 
 });

@@ -272,6 +272,13 @@
             // Finalize metadata
             event.m = okanjo.util.flatten(event.m, { arrayToCsv: true });
 
+            // Ensure metadata strings won't exceed the imposed limit
+            Object.keys(event.m).forEach((key) => {
+                if (typeof event.m[key] === "string") {
+                    event.m[key] = event.m[key].substr(0, 255);
+                }
+            });
+
             // Set page source reference
             if (document.referrer) {
                 event.ref = document.referrer;
