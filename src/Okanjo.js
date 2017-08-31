@@ -135,7 +135,7 @@ const okanjo = (function(window, document) {
          * API routes
          */
         routes: {
-            ads: '/ads',
+            ads: '/content',
             metrics: '/metrics/:object_type/:event_type',
             metrics_batch: '/metrics'
         },

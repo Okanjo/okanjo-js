@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2017-08-31 – v1.1.2
+ * Changed: Moved placement content route
+
 ## 2017-07-13 – v1.1.1
  * Fixed: metadata values with long values would cause api error (they're truncated now)
  * Fixed: placement title truncation was not updated to work with the new resource selector names
