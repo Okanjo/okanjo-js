@@ -122,8 +122,9 @@ describe('Metrics', () => {
                     d: '4',
                     e: '5,6,7',
                     pgid: pageId,
-                    ok_ver: '%%OKANJO_VERSION' 
-                } 
+                    ok_ver: '%%OKANJO_VERSION',
+                },
+                win: 'about:blank'
             });
 
 
@@ -163,7 +164,8 @@ describe('Metrics', () => {
                                 object_type: 'unit',
                                 event_type: 'test' 
                             } 
-                        ] 
+                        ],
+                        win: 'about:blank'
                     });
                     
                     reply({
@@ -356,10 +358,11 @@ describe('Metrics', () => {
                                         ref_cx: 'mymode'
                                     },
                                     ref: 'http://unit.test/my/referrer/here',
-                                    sid: 'MTunittesting1'
+                                    // sid: 'MTunittesting1'
                                 }
                             ],
-                            sid: 'MTunittesting1'
+                            sid: 'MTunittesting1',
+                            win: `https://okanjo.com/test?${Metrics.Params.name}=MTremotesid&${Metrics.Params.channel}=myapp&${Metrics.Params.context}=mymode`
                         });
 
                         server.routes.pop();
@@ -432,6 +435,7 @@ describe('Metrics', () => {
                                     // sid: 'MTunittesting1' // doesn't have the sid yet
                                 }
                             ],
+                            win: 'about:blank'
                             // sid: 'MTunittesting1'
                         });
 

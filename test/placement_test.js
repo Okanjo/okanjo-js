@@ -116,6 +116,8 @@ describe('Placements', () => {
                 loadEventFired.should.be.exactly(true);
                 dataEventFired.should.be.exactly(true);
 
+                req.payload.win.should.be.ok();
+
                 // Cleanup
                 setAdsHandler();
                 setMetricsBulkHandler();
@@ -732,8 +734,7 @@ describe('Placements', () => {
                     let parts = Url.parse(productLink.href);
                     let args = Qs.parse(parts.query);
 
-                    console.log(JSON.stringify(args, null, '  '));
-
+                    // console.log(JSON.stringify(args, null, '  '));
                     args.should.containDeep({
                         "ch": "pw",
                         "cx": "auto",
@@ -1302,6 +1303,7 @@ describe('Placements', () => {
 
                 args.u.should.be.ok();
                 args.m.cid.should.be.ok();
+                args.win.should.be.ok();
 
                 setMetricsHandler();
             });
@@ -1381,6 +1383,7 @@ describe('Placements', () => {
                 });
 
                 args.u.should.be.ok();
+                args.win.should.be.ok();
                 args.m.cid.should.be.ok();
 
                 parts = Url.parse(args.u);

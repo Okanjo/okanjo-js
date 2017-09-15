@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2017-09-15 – v1.2.1
+ * Added: metrics include window location to disambiguate referral traffic
+ * Fixed: sid does not need to be included on every event in a bulk report
+
 ## 2017-08-31 – v1.1.2
  * Changed: Moved placement content route
 

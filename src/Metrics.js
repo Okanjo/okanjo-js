@@ -208,11 +208,17 @@
             // Normalize event data
             const events = items.map((item) => {
                 this._normalizeEvent(item.event);
+
+                // Strip duplicated data from event batch
+                delete item.event.sid;
+                delete item.event.win;
+
                 return item.event;
             });
 
             const payload = {
-                events
+                events,
+                win: window.location.href
             };
 
             const route = okanjo.net.getRoute(okanjo.net.routes.metrics_batch);
@@ -283,6 +289,9 @@
             if (document.referrer) {
                 event.ref = document.referrer;
             }
+
+             // Set the window location
+            event.win = window.location.href;
         }
 
         /**
