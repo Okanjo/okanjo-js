@@ -1,4 +1,4 @@
-/*! okanjo-js v1.2.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.3.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -12,7 +12,7 @@
 
 /* exported okanjo */
 
-//noinspection ThisExpressionReferencesGlobalObjectJS
+//noinspection ThisExpressionReferencesGlobalObjectJS,JSUnusedLocalSymbols
 /**
  * Okanjo widget framework namespace
  * @global okanjo
@@ -60,7 +60,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.2.1",
+        version: "1.3.0",
 
         /**
          * Placeholder
@@ -523,9 +523,61 @@ var okanjo = function (window, document) {
                     x1: 0,
                     y1: 0,
                     x2: 0,
-                    y2: 0
+                    y2: 0,
+                    err: 1
                 };
             }
+        },
+
+        /**
+         * Gets the intersection information given the element, viewport and scroll positions
+         * @param e – Element position
+         * @param s - Scroll position
+         * @param v - Viewport size
+         * @return {{intersectionArea: number, elementArea: number}}
+         * @private
+         */
+        _getIntersection: function _getIntersection(e, s, v) {
+            var iLeft = Math.max(e.x1, s.x),
+                iRight = Math.min(e.x2, s.x + v.vw),
+                iTop = Math.max(e.y1, s.y),
+                iBottom = Math.min(e.y2, s.y + v.vh),
+                intersectionArea = Math.max(0, iRight - iLeft) * Math.max(0, iBottom - iTop),
+                elementArea = (e.x2 - e.x1) * (e.y2 - e.y1);
+
+            return {
+                intersectionArea: intersectionArea,
+                elementArea: elementArea
+            };
+        },
+
+        /**
+         * Gets the percentage of the element pixels currently within the viewport
+         * @param {HTMLElement|Node} element
+         * @return {number}
+         */
+        getPercentageInViewport: function getPercentageInViewport(element) {
+            var e = okanjo.ui.getElementPosition(element),
+                s = okanjo.ui.getScrollPosition(),
+                v = okanjo.ui.getViewportSize();
+
+            // If there was a problem getting the element position, fail fast
+            if (e.err) return 0;
+
+            // Get intersection rectangle
+
+            var _okanjo$ui$_getInters = okanjo.ui._getIntersection(e, s, v),
+                intersectionArea = _okanjo$ui$_getInters.intersectionArea,
+                elementArea = _okanjo$ui$_getInters.elementArea;
+
+            // Don't let it return NaN
+            /* istanbul ignore else: jsdom no love positional data */
+
+
+            if (elementArea <= 0) return 0;
+
+            /* istanbul ignore next: jsdom no love positional data, area tested with helper fn tho */
+            return intersectionArea / elementArea;
         }
     };
 
@@ -2635,6 +2687,10 @@ var okanjo = function (window, document) {
     var DISPLAY = 'display';
     var ARTICLE_META = 'article_meta';
 
+    var MINIMUM_VIEW_PX = 0.5; // 50% of pixels must be in viewport
+    var MINIMUM_VIEW_TIME = 1000; // for 1 full second
+    var MINIMUM_VIEW_FREQ = 2; // time / freq = interval
+
     //endregion
 
     /**
@@ -2664,6 +2720,10 @@ var okanjo = function (window, document) {
             _this10.name = 'Placement';
             _this10._metricBase = {}; // placeholder for metrics
             _this10._response = null;
+
+            // Aggregate view watchers into a single interval fn
+            _this10._viewWatcherIv = null;
+            _this10._viewedWatchers = [];
 
             // Start loading content
             if (!options.no_init) _this10.init();
@@ -2880,6 +2940,7 @@ var okanjo = function (window, document) {
         }, {
             key: "_reportWidgetLoad",
             value: function _reportWidgetLoad(declined) {
+                var _this13 = this;
 
                 // If this is declined, mark future events as declined too
                 this._metricBase.m.decl = declined || '0';
@@ -2887,6 +2948,11 @@ var okanjo = function (window, document) {
                 // Track impression
                 okanjo.metrics.create(this._metricBase).type(Metrics.Object.widget, Metrics.Event.impression).meta(this.getConfig()).element(this.element) // this might not be all that useful cuz the content hasn't been rendered yet
                 .viewport().send();
+
+                // Start watching for a viewable impression
+                this._addOnceViewedHandler(this.element, function () {
+                    okanjo.metrics.create(_this13._metricBase).type(Metrics.Object.widget, Metrics.Event.view).meta(_this13.getConfig()).element(_this13.element).viewport().send();
+                });
             }
 
             /**
@@ -2898,7 +2964,7 @@ var okanjo = function (window, document) {
         }, {
             key: "_fetchContent",
             value: function _fetchContent(callback) {
-                var _this13 = this;
+                var _this14 = this;
 
                 // Build request to api, starting with this placement config params
                 var query = this.getConfig();
@@ -2908,24 +2974,24 @@ var okanjo = function (window, document) {
 
                 // Attach sid and referrer
                 if (okanjo.metrics.sid) query.sid = okanjo.metrics.msid;
-                query.filters.url_referrer = window.location.href;
+                query.filters.url_referrer = this.config.url_referrer || window.location.href;
                 query.wgid = this.instanceId;
                 query.pgid = okanjo.metrics.pageId;
 
                 // Send it
                 okanjo.net.request.post(okanjo.net.getRoute(okanjo.net.routes.ads, null, this.config.sandbox ? 'sandbox' : 'live') + "?key=" + encodeURIComponent(key), query, function (err, res) {
                     if (err) {
-                        okanjo.report('Failed to retrieve placement content', err, { placement: _this13 });
-                        _this13.setMarkup(''); // Don't show anything
-                        _this13.emit('error', err);
+                        okanjo.report('Failed to retrieve placement content', err, { placement: _this14 });
+                        _this14.setMarkup(''); // Don't show anything
+                        _this14.emit('error', err);
                         callback && callback(err);
                     } else {
 
                         // Store the raw response
-                        _this13._response = res;
+                        _this14._response = res;
 
                         // Hook point for response handling
-                        _this13.emit('data');
+                        _this14.emit('data');
 
                         // Return
                         callback && callback();
@@ -2941,7 +3007,7 @@ var okanjo = function (window, document) {
         }, {
             key: "_mergeResponseSettings",
             value: function _mergeResponseSettings() {
-                var _this14 = this;
+                var _this15 = this;
 
                 var res = this._response;
                 var data = res.data || {};
@@ -2949,13 +3015,13 @@ var okanjo = function (window, document) {
 
                 if (settings.filters) {
                     Object.keys(settings.filters).forEach(function (key) {
-                        _this14.config[key] = settings.filters[key];
+                        _this15.config[key] = settings.filters[key];
                     });
                 }
 
                 if (settings.display) {
                     Object.keys(settings.display).forEach(function (key) {
-                        _this14.config[key] = settings.display[key];
+                        _this15.config[key] = settings.display[key];
                     });
                 }
             }
@@ -3150,6 +3216,79 @@ var okanjo = function (window, document) {
                 }
             }
 
+            /**
+             * When element is in view per viewability constants (50% for 1s) trigger handler once
+             * @param element
+             * @param handler
+             * @private
+             */
+
+        }, {
+            key: "_addOnceViewedHandler",
+            value: function _addOnceViewedHandler(element, handler) {
+                var controller = {
+                    element: element,
+                    successfulCount: 0,
+                    handler: handler
+                };
+
+                // Add our element to the watch list and turn on the watcher if not already on
+                this._viewedWatchers.push(controller);
+                this._toggleViewWatcher(true);
+            }
+
+            /**
+             * Interval function to check viewability of registered elements
+             * @private
+             */
+
+        }, {
+            key: "_checkViewWatchers",
+            value: function _checkViewWatchers() {
+
+                // Check each registered watcher
+                for (var i = 0, controller; i < this._viewedWatchers.length; i++) {
+                    controller = this._viewedWatchers[i];
+
+                    // Check if watcher is complete, then remove it from the list
+                    /* istanbul ignore if: jsdom won't trigger this */
+                    if (okanjo.ui.getPercentageInViewport(controller.element) >= MINIMUM_VIEW_PX) {
+                        controller.successfulCount++;
+                    }
+
+                    // While this could more optimally be contained within the former condition, unit-testing blocks on this
+                    if (controller.successfulCount >= MINIMUM_VIEW_FREQ) {
+                        controller.handler();
+                        this._viewedWatchers.splice(i, 1);
+                        i--;
+                    }
+                }
+
+                // Turn off if nobody is watching
+                if (this._viewedWatchers.length === 0) {
+                    this._toggleViewWatcher(false);
+                }
+            }
+
+            /**
+             * Turns the viewability watcher on and off
+             * @param enabled
+             * @private
+             */
+
+        }, {
+            key: "_toggleViewWatcher",
+            value: function _toggleViewWatcher(enabled) {
+                if (enabled) {
+                    if (this._viewWatcherIv === null) {
+                        this._viewWatcherIv = setInterval(this._checkViewWatchers.bind(this), MINIMUM_VIEW_TIME / MINIMUM_VIEW_FREQ);
+                    }
+                } else {
+                    clearInterval(this._viewWatcherIv);
+                    this._viewWatcherIv = null;
+                }
+            }
+
             //endregion
 
             //region Product Handling
@@ -3162,7 +3301,7 @@ var okanjo = function (window, document) {
         }, {
             key: "_showProducts",
             value: function _showProducts() {
-                var _this15 = this;
+                var _this16 = this;
 
                 var data = (this._response || { data: { results: [] } }).data || { results: [] };
 
@@ -3183,7 +3322,7 @@ var okanjo = function (window, document) {
                 // Format products
                 data.results.forEach(function (offer, index) {
                     // Disable inline buy if configured to do so
-                    if (_this15.config.disable_inline_buy) offer.inline_buy_url = null;
+                    if (_this16.config.disable_inline_buy) offer.inline_buy_url = null;
                     if (offer.inline_buy_url) offer._escaped_inline_buy_url = encodeURIComponent(offer.inline_buy_url);
 
                     // Set primary image
@@ -3209,16 +3348,21 @@ var okanjo = function (window, document) {
                     // Don't bind links that are not tile links
                     /* istanbul ignore else: custom templates could break it */
                     if (id && index >= 0) {
-                        var product = _this15._response.data.results[index];
+                        var product = _this16._response.data.results[index];
                         /* istanbul ignore else: custom templates could break it */
                         if (product) {
 
                             // Bind interaction listener
-                            a.addEventListener('mousedown', _this15._handleResourceMouseDown.bind(_this15, Metrics.Object.product, product));
-                            a.addEventListener('click', _this15._handleProductClick.bind(_this15, product));
+                            a.addEventListener('mousedown', _this16._handleResourceMouseDown.bind(_this16, Metrics.Object.product, product));
+                            a.addEventListener('click', _this16._handleProductClick.bind(_this16, product));
 
                             // Track impression
-                            okanjo.metrics.create(_this15._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this15.getConfig()).meta({ bf: product.backfill ? 1 : 0 }).element(a).send();
+                            okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this16.getConfig()).meta({ bf: product.backfill ? 1 : 0 }).element(a).send();
+
+                            // Start watching for a viewable impression
+                            _this16._addOnceViewedHandler(a, function () {
+                                okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.view).meta(_this16.getConfig()).meta({ bf: product.backfill ? 1 : 0 }).element(a).send();
+                            });
                         }
                     }
                 });
@@ -3358,7 +3502,7 @@ var okanjo = function (window, document) {
         }, {
             key: "_showArticles",
             value: function _showArticles() {
-                var _this16 = this;
+                var _this17 = this;
 
                 var data = (this._response || { data: { results: [] } }).data || { results: [] };
 
@@ -3395,16 +3539,21 @@ var okanjo = function (window, document) {
                     // Don't bind links that are not tile links
                     /* istanbul ignore else: custom templates could break this */
                     if (id && index >= 0) {
-                        var article = _this16._response.data.results[index];
+                        var article = _this17._response.data.results[index];
                         /* istanbul ignore else: custom templates could break this */
                         if (article) {
 
                             // Bind interaction listener
-                            a.addEventListener('mousedown', _this16._handleResourceMouseDown.bind(_this16, Metrics.Object.article, article));
-                            a.addEventListener('click', _this16._handleArticleClick.bind(_this16, article));
+                            a.addEventListener('mousedown', _this17._handleResourceMouseDown.bind(_this17, Metrics.Object.article, article));
+                            a.addEventListener('click', _this17._handleArticleClick.bind(_this17, article));
 
                             // Track impression
-                            okanjo.metrics.create(_this16._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this16.getConfig()).meta({ bf: article.backfill ? 1 : 0 }).element(a).send();
+                            okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this17.getConfig()).meta({ bf: article.backfill ? 1 : 0 }).element(a).send();
+
+                            // Start watching for a viewable impression
+                            _this17._addOnceViewedHandler(a, function () {
+                                okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.view).meta(_this17.getConfig()).meta({ bf: article.backfill ? 1 : 0 }).element(a).send();
+                            });
                         }
                     }
                 });
@@ -3457,7 +3606,7 @@ var okanjo = function (window, document) {
         }, {
             key: "_showADX",
             value: function _showADX() {
-                var _this17 = this;
+                var _this18 = this;
 
                 var data = (this._response || { data: { settings: {} } }).data || { settings: {} };
 
@@ -3539,11 +3688,20 @@ var okanjo = function (window, document) {
                     // frame.contentWindow.okanjo = okanjo;
                     // frame.contentWindow.placement = this;
                     frame.contentWindow.trackImpression = function () {
-                        okanjo.metrics.create(_this17._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.impression).meta(_this17.getConfig()).meta({
+                        okanjo.metrics.create(_this18._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.impression).meta(_this18.getConfig()).meta({
                             ta_s: adUnitPath,
                             ta_w: size.width,
                             ta_h: size.height
                         }).element(frame).send();
+
+                        // Start watching for a viewable impression
+                        _this18._addOnceViewedHandler(frame, function () {
+                            okanjo.metrics.create(_this18._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.view).meta(_this18.getConfig()).meta({
+                                ta_s: adUnitPath,
+                                ta_w: size.width,
+                                ta_h: size.height
+                            }).element(frame).send();
+                        });
                     };
 
                     // Load Google ad!
@@ -3667,16 +3825,16 @@ var okanjo = function (window, document) {
             var no_init = options.no_init; // hold original no_init flag, if set
             options.no_init = true;
 
-            var _this18 = _possibleConstructorReturn(this, (Product.__proto__ || Object.getPrototypeOf(Product)).call(this, element, options));
+            var _this19 = _possibleConstructorReturn(this, (Product.__proto__ || Object.getPrototypeOf(Product)).call(this, element, options));
 
-            okanjo.warn('Product widget has been deprecated. Use Placement instead (may require configuration changes)', { widget: _this18 });
+            okanjo.warn('Product widget has been deprecated. Use Placement instead (may require configuration changes)', { widget: _this19 });
 
             // Start loading content
             if (!no_init) {
-                delete _this18.config.no_init;
-                _this18.init();
+                delete _this19.config.no_init;
+                _this19.init();
             }
-            return _this18;
+            return _this19;
         }
 
         //noinspection JSUnusedGlobalSymbols
@@ -3772,16 +3930,16 @@ var okanjo = function (window, document) {
             var no_init = options.no_init; // hold original no_init flag, if set
             options.no_init = true;
 
-            var _this19 = _possibleConstructorReturn(this, (Ad.__proto__ || Object.getPrototypeOf(Ad)).call(this, element, options));
+            var _this20 = _possibleConstructorReturn(this, (Ad.__proto__ || Object.getPrototypeOf(Ad)).call(this, element, options));
 
-            okanjo.warn('Ad widget has been deprecated. Use Placement instead (may require configuration changes)', { widget: _this19 });
+            okanjo.warn('Ad widget has been deprecated. Use Placement instead (may require configuration changes)', { widget: _this20 });
 
             // Start loading content
             if (!no_init) {
-                delete _this19.config.no_init;
-                _this19.init();
+                delete _this20.config.no_init;
+                _this20.init();
             }
-            return _this19;
+            return _this20;
         }
 
         //noinspection JSUnusedGlobalSymbols

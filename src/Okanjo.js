@@ -2,7 +2,7 @@
 
 /* exported okanjo */
 
-//noinspection ThisExpressionReferencesGlobalObjectJS
+//noinspection ThisExpressionReferencesGlobalObjectJS,JSUnusedLocalSymbols
 /**
  * Okanjo widget framework namespace
  * @global okanjo
@@ -499,9 +499,57 @@ const okanjo = (function(window, document) {
                     x1: 0,
                     y1: 0,
                     x2: 0,
-                    y2: 0
+                    y2: 0,
+                    err: 1
                 };
             }
+        },
+
+        /**
+         * Gets the intersection information given the element, viewport and scroll positions
+         * @param e – Element position
+         * @param s - Scroll position
+         * @param v - Viewport size
+         * @return {{intersectionArea: number, elementArea: number}}
+         * @private
+         */
+        _getIntersection: (e, s, v) => {
+            let iLeft = Math.max(e.x1, s.x),
+                iRight = Math.min(e.x2, s.x+v.vw),
+                iTop = Math.max(e.y1, s.y),
+                iBottom = Math.min(e.y2, s.y+v.vh),
+
+                intersectionArea = Math.max(0, iRight - iLeft) * Math.max(0, iBottom - iTop),
+                elementArea = (e.x2 - e.x1) * (e.y2 - e.y1);
+
+            return {
+                intersectionArea,
+                elementArea
+            };
+        },
+
+        /**
+         * Gets the percentage of the element pixels currently within the viewport
+         * @param {HTMLElement|Node} element
+         * @return {number}
+         */
+        getPercentageInViewport: (element) => {
+            let e = okanjo.ui.getElementPosition(element),
+                s = okanjo.ui.getScrollPosition(),
+                v = okanjo.ui.getViewportSize();
+
+            // If there was a problem getting the element position, fail fast
+            if (e.err) return 0;
+
+            // Get intersection rectangle
+            let { intersectionArea, elementArea } = okanjo.ui._getIntersection(e,s,v);
+
+            // Don't let it return NaN
+            /* istanbul ignore else: jsdom no love positional data */
+            if (elementArea <= 0) return 0;
+
+            /* istanbul ignore next: jsdom no love positional data, area tested with helper fn tho */
+            return intersectionArea / elementArea;
         }
     };
 

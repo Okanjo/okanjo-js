@@ -14,6 +14,10 @@
     const DISPLAY = 'display';
     const ARTICLE_META = 'article_meta';
 
+    const MINIMUM_VIEW_PX = 0.5;    // 50% of pixels must be in viewport
+    const MINIMUM_VIEW_TIME = 1000; // for 1 full second
+    const MINIMUM_VIEW_FREQ = 2;    // time / freq = interval
+
     //endregion
 
     /**
@@ -37,6 +41,10 @@
             this.name = 'Placement';
             this._metricBase = {}; // placeholder for metrics
             this._response = null;
+
+            // Aggregate view watchers into a single interval fn
+            this._viewWatcherIv = null;
+            this._viewedWatchers = [];
 
             // Start loading content
             if (!options.no_init) this.init();
@@ -243,6 +251,16 @@
                 .element(this.element) // this might not be all that useful cuz the content hasn't been rendered yet
                 .viewport()
                 .send();
+
+            // Start watching for a viewable impression
+            this._addOnceViewedHandler(this.element, () => {
+                okanjo.metrics.create(this._metricBase)
+                    .type(Metrics.Object.widget, Metrics.Event.view)
+                    .meta(this.getConfig())
+                    .element(this.element)
+                    .viewport()
+                    .send();
+            });
         }
 
         /**
@@ -259,7 +277,7 @@
 
             // Attach sid and referrer
             if (okanjo.metrics.sid) query.sid = okanjo.metrics.msid;
-            query.filters.url_referrer = window.location.href;
+            query.filters.url_referrer = this.config.url_referrer || window.location.href;
             query.wgid = this.instanceId;
             query.pgid = okanjo.metrics.pageId;
 
@@ -491,6 +509,70 @@
             }
         }
 
+        /**
+         * When element is in view per viewability constants (50% for 1s) trigger handler once
+         * @param element
+         * @param handler
+         * @private
+         */
+        _addOnceViewedHandler(element, handler) {
+            let controller = {
+                element,
+                successfulCount: 0,
+                handler
+            };
+
+            // Add our element to the watch list and turn on the watcher if not already on
+            this._viewedWatchers.push(controller);
+            this._toggleViewWatcher(true);
+        }
+
+        /**
+         * Interval function to check viewability of registered elements
+         * @private
+         */
+        _checkViewWatchers() {
+
+            // Check each registered watcher
+            for (let i = 0, controller; i < this._viewedWatchers.length; i++) {
+                controller = this._viewedWatchers[i];
+
+                // Check if watcher is complete, then remove it from the list
+                /* istanbul ignore if: jsdom won't trigger this */
+                if (okanjo.ui.getPercentageInViewport(controller.element) >= MINIMUM_VIEW_PX) {
+                    controller.successfulCount++;
+                }
+
+                // While this could more optimally be contained within the former condition, unit-testing blocks on this
+                if (controller.successfulCount >= MINIMUM_VIEW_FREQ) {
+                    controller.handler();
+                    this._viewedWatchers.splice(i, 1);
+                    i--;
+                }
+            }
+
+            // Turn off if nobody is watching
+            if (this._viewedWatchers.length === 0) {
+                this._toggleViewWatcher(false);
+            }
+        }
+
+        /**
+         * Turns the viewability watcher on and off
+         * @param enabled
+         * @private
+         */
+        _toggleViewWatcher(enabled) {
+            if (enabled) {
+                if (this._viewWatcherIv === null) {
+                    this._viewWatcherIv = setInterval(this._checkViewWatchers.bind(this), MINIMUM_VIEW_TIME / MINIMUM_VIEW_FREQ);
+                }
+            } else {
+                clearInterval(this._viewWatcherIv);
+                this._viewWatcherIv = null;
+            }
+        }
+
         //endregion
 
         //region Product Handling
@@ -560,6 +642,16 @@
                             .meta({ bf: product.backfill ? 1 : 0 })
                             .element(a)
                             .send();
+
+                        // Start watching for a viewable impression
+                        this._addOnceViewedHandler(a, () => {
+                            okanjo.metrics.create(this._metricBase, { id: product.id })
+                                .type(Metrics.Object.product, Metrics.Event.view)
+                                .meta(this.getConfig())
+                                .meta({ bf: product.backfill ? 1 : 0 })
+                                .element(a)
+                                .send();
+                        });
                     }
                 }
             });
@@ -749,6 +841,17 @@
                             .meta({ bf: article.backfill ? 1 : 0 })
                             .element(a)
                             .send();
+
+                        // Start watching for a viewable impression
+                        this._addOnceViewedHandler(a, () => {
+                            okanjo.metrics.create(this._metricBase, { id: article.id })
+                                .type(Metrics.Object.article, Metrics.Event.view)
+                                .meta(this.getConfig())
+                                .meta({ bf: article.backfill ? 1 : 0 })
+                                .element(a)
+                                .send();
+                        });
+
                     }
                 }
             });
@@ -891,6 +994,21 @@
                         .element(frame)
                         .send()
                     ;
+
+                    // Start watching for a viewable impression
+                    this._addOnceViewedHandler(frame, () => {
+                        okanjo.metrics.create(this._metricBase)
+                            .type(Metrics.Object.thirdparty_ad, Metrics.Event.view)
+                            .meta(this.getConfig())
+                            .meta({
+                                ta_s: adUnitPath,
+                                ta_w: size.width,
+                                ta_h: size.height
+                            })
+                            .element(frame)
+                            .send()
+                        ;
+                    });
                 };
 
                 // Load Google ad!

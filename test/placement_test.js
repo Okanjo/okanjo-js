@@ -185,7 +185,8 @@ describe('Placements', () => {
                 });
 
                 // Make the server return an error
-                setAdsHandler(() => {
+                setAdsHandler((req) => {
+                    req.payload.filters.url_referrer.should.be.exactly('about:blank');
                     return {
                         statusCode: 500,
                         payload: {
@@ -205,6 +206,37 @@ describe('Placements', () => {
                     gotErrorEvent = true;
                 });
 
+            });
+
+            it('should use url_referrer if given', (done) => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    url_referrer: 'http://unit.test/another/url'
+                });
+
+                setMetricsBulkHandler(() => {
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    done();
+                });
+
+                setAdsHandler((req) => {
+                    const payload = TestResponses.getExampleProductResponse();
+
+                    req.payload.filters.url_referrer.should.be.exactly('http://unit.test/another/url');
+
+                    return {
+                        statusCode: 200,
+                        payload
+                    };
+                });
+
+                // Make that placement
+                new okanjo.Placement(target);
             });
 
         });
@@ -1745,6 +1777,212 @@ describe('Placements', () => {
                 document.documentElement.innerHTML.should.containEql('.okanjo-product-buy-button { color: #ff0000;');
             });
 
+        });
+
+    });
+
+    describe('Viewability', () => {
+
+        it('can track basic viewability on products ', (done) => {
+
+            resetDocument();
+            let target = insertDropzone({ key: 'unit_test_key' });
+            let placement;
+
+            setMetricsBulkHandler((req) => {
+
+                // widget + 2 product impressions
+                req.payload.events.length.should.be.exactly(3);
+
+                setMetricsBulkHandler((req) => {
+
+
+                    // widget + 2 product impressions
+                    req.payload.events.length.should.be.exactly(3);
+                    req.payload.events.forEach((e) => {
+                        e.event_type.should.be.exactly('vw');
+                    });
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    // should(placement._response.data.results[0]._escaped_inline_buy_url).be.ok();
+                    // placement._response.data.results[1].backfill.should.be.exactly(true);
+                    // placement._response.data.results[1]._image_url.should.be.exactly('');
+
+                    done();
+
+                });
+
+                // Fake some scrolling into view action
+                setTimeout(() => {
+
+                    // First, make sure we have 3 active view impression watchers (widget + 2 products)
+                    placement._viewedWatchers.length.should.be.exactly(3);
+
+                    // Fake that they entered the view
+                    placement._viewedWatchers.forEach((controller) => {
+                        controller.successfulCount = 2; // MINIMUM_VIEW_FREQ
+                    });
+
+                    // Now we wait for the next tick to deliver another bulk metrics report of views
+
+                }, 10);
+            });
+
+            setAdsHandler(() => {
+                const payload = TestResponses.getExampleProductResponse();
+
+                // edge case for view events
+                payload.data.results[1].backfill = true;
+
+                return {
+                    statusCode: 200,
+                    payload
+                };
+            });
+
+            // Make that placement
+            placement = new okanjo.Placement(target);
+
+        });
+
+        it('can track basic viewability on articles ', (done) => {
+
+            resetDocument();
+            let target = insertDropzone({ key: 'unit_test_key' });
+            let placement;
+
+            setMetricsBulkHandler((req) => {
+
+                // widget + 2 product impressions
+                req.payload.events.length.should.be.exactly(6);
+
+                setMetricsBulkHandler((req) => {
+
+
+                    // widget + 2 product impressions
+                    req.payload.events.length.should.be.exactly(6);
+                    req.payload.events.forEach((e) => {
+                        e.event_type.should.be.exactly('vw');
+                    });
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    // should(placement._response.data.results[0]._escaped_inline_buy_url).be.ok();
+                    // placement._response.data.results[1].backfill.should.be.exactly(true);
+                    // placement._response.data.results[1]._image_url.should.be.exactly('');
+
+                    done();
+
+                });
+
+                // Fake some scrolling into view action
+                setTimeout(() => {
+
+                    // First, make sure we have 3 active view impression watchers (widget + 2 products)
+                    placement._viewedWatchers.length.should.be.exactly(6);
+
+                    // Fake that they entered the view
+                    placement._viewedWatchers.forEach((controller) => {
+                        controller.successfulCount = 2; // MINIMUM_VIEW_FREQ
+                    });
+
+                    // Now we wait for the next tick to deliver another bulk metrics report of views
+
+                }, 10);
+            });
+
+            setAdsHandler(() => {
+                const payload = TestResponses.getExampleArticlesResponse();
+
+                // edge case for view events
+                payload.data.results[0].backfill = true;
+
+                return {
+                    statusCode: 200,
+                    payload
+                };
+            });
+
+            // Make that placement
+            placement = new okanjo.Placement(target);
+
+        });
+
+        it('should track an viewability on adx', (done) => {
+            resetDocument();
+            let target = insertDropzone({ key: 'unit_test_key' });
+            let placement;
+
+            setMetricsBulkHandler(() => {
+
+                let iframe = target.querySelector('iframe');
+                should(iframe).be.ok();
+
+                setAdsHandler();
+                setMetricsBulkHandler((req) => {
+                    req.payload.events.length.should.be.exactly(1);
+                    req.payload.events[0].event_type.should.be.exactly(okanjo.metrics.constructor.Event.impression);
+                    req.payload.events[0].object_type.should.be.exactly(okanjo.metrics.constructor.Object.thirdparty_ad);
+
+                    setMetricsBulkHandler((req) => {
+
+                        // widget + adx view
+                        req.payload.events.length.should.be.exactly(2);
+                        req.payload.events.forEach((e) => {
+                            e.event_type.should.be.exactly('vw');
+                        });
+
+                        // Clean up
+                        setMetricsBulkHandler();
+                        setAdsHandler();
+
+                        // should(placement._response.data.results[0]._escaped_inline_buy_url).be.ok();
+                        // placement._response.data.results[1].backfill.should.be.exactly(true);
+                        // placement._response.data.results[1]._image_url.should.be.exactly('');
+
+                        done();
+
+                    });
+
+                    // Fake some scrolling into view action
+                    setTimeout(() => {
+
+                        // First, make sure we have 3 active view impression watchers (widget + 2 products)
+                        placement._viewedWatchers.length.should.be.exactly(2);
+
+                        // Fake that they entered the view
+                        placement._viewedWatchers.forEach((controller) => {
+                            controller.successfulCount = 2; // MINIMUM_VIEW_FREQ
+                        });
+
+                        // Now we wait for the next tick to deliver another bulk metrics report of views
+
+                    }, 10);
+
+                    done();
+                });
+
+                // jsDom isn't going to actually load the google ad, so fake it
+                iframe.contentWindow.trackImpression();
+            });
+
+            setAdsHandler(() => {
+                const payload = TestResponses.getExampleAdxResponse();
+
+                return {
+                    statusCode: 200,
+                    payload
+                };
+
+            });
+
+            // We don't need to fully load to test this
+            placement = new okanjo.Placement(target);
         });
 
     });

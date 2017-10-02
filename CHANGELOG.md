@@ -3,6 +3,13 @@
 
 When stuff changes, it's described here.
 
+## 2017-10-02 – v1.3.1
+Added support for viewable impression events
+ * Added: okanjo.ui.getElementPosition will include `err` if the element position is unavailable
+ * Added: okanjo.ui.getPercentageInViewport to return what % (0-1) of the element is in the viewport
+ * Added: Placement constants and handlers for tracking viewable impressions on widgets, products, articles, and adx
+ * Fixed: Placement configuration `url_referrer` was ignored if manually configured
+
 ## 2017-09-15 – v1.2.1
  * Added: metrics include window location to disambiguate referral traffic
  * Fixed: sid does not need to be included on every event in a bulk report

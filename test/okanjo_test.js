@@ -452,6 +452,123 @@ describe('Okanjo Core', () => {
                 res.y1.should.equal(0);
                 res.x2.should.equal(0);
                 res.y2.should.equal(0);
+                res.err.should.equal(1);
+            });
+
+        });
+
+        describe('okanjo.ui._getIntersection', () => {
+
+            // Since jsdom won't give us real positional info, let's make sure this logic works
+
+            it('should return 0% when element is below the viewport', () => {
+                let test = {
+                    "e": {
+                        "x1": 8,
+                        "y1": 1280,
+                        "x2": 757,
+                        "y2": 1530
+                    },
+                    "s": {
+                        "x": 0,
+                        "y": 276
+                    },
+                    "v": {
+                        "vw": 765,
+                        "vh": 593
+                    }
+                };
+
+                // noinspection JSAccessibilityCheck
+                let res = okanjo.ui._getIntersection(test.e, test.s, test.v);
+                let { intersectionArea, elementArea } = res;
+                should(intersectionArea / elementArea).be.equal(0);
+            });
+
+            it('should return 0% when element is above the viewport', () => {
+                let test = {
+                    "e": {
+                        "x1": 8,
+                        "y1": 1280,
+                        "x2": 757,
+                        "y2": 1530
+                    },
+                    "s": {
+                        "x": 0,
+                        "y": 1559
+                    },
+                    "v": {
+                        "vw": 765,
+                        "vh": 593
+                    }
+                };
+
+                // noinspection JSAccessibilityCheck
+                let res = okanjo.ui._getIntersection(test.e, test.s, test.v);
+                let { intersectionArea, elementArea } = res;
+                should(intersectionArea / elementArea).be.equal(0);
+            });
+
+            it('should return a partial % when partially contained', () => {
+                let test = {
+                    "e": {
+                        "x1": 8,
+                        "y1": 1280,
+                        "x2": 757,
+                        "y2": 1530
+                    },
+                    "s": {
+                        "x": 0,
+                        "y": 1390
+                    },
+                    "v": {
+                        "vw": 765,
+                        "vh": 593
+                    }
+                };
+
+                // noinspection JSAccessibilityCheck
+                let res = okanjo.ui._getIntersection(test.e, test.s, test.v);
+                let { intersectionArea, elementArea } = res;
+                should(intersectionArea / elementArea).be.equal(0.56);
+            });
+
+            it('should return a 100% when fully contained', () => {
+                let test = {
+                    "e": {
+                        "x1": 8,
+                        "y1": 1280,
+                        "x2": 757,
+                        "y2": 1530
+                    },
+                    "s": {
+                        "x": 0,
+                        "y": 1166
+                    },
+                    "v": {
+                        "vw": 765,
+                        "vh": 593
+                    }
+                };
+
+                // noinspection JSAccessibilityCheck
+                let res = okanjo.ui._getIntersection(test.e, test.s, test.v);
+                let { intersectionArea, elementArea } = res;
+                should(intersectionArea / elementArea).be.equal(1);
+            });
+
+        });
+
+        describe('okanjo.ui.getPercentageInViewport', () => {
+
+            it('should return a value', () => {
+                let res = okanjo.ui.getPercentageInViewport(document.body);
+                res.should.be.exactly(0);
+            });
+
+            it('should deal with element position errors', () => {
+                let res = okanjo.ui.getPercentageInViewport(null);
+                res.should.be.exactly(0);
             });
 
         });
