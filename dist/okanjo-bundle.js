@@ -2942,8 +2942,17 @@ var okanjo = function (window, document) {
             value: function _reportWidgetLoad(declined) {
                 var _this13 = this;
 
+                var res = this._response || {};
+                var data = res.data || { results: [] };
+
                 // If this is declined, mark future events as declined too
                 this._metricBase.m.decl = declined || '0';
+
+                // Attach other main response attributes to all future events
+                this._metricBase.m.res_bf = data.backfilled ? 1 : 0; // whether the response used the backup fill flow
+                this._metricBase.m.res_total = data.total || 0; // how many total candidate results were available given filters
+                this._metricBase.m.res_type = data.type; // what the given resource type was
+                this._metricBase.m.res_length = data.results.length; // what the given resource type was
 
                 // Track impression
                 okanjo.metrics.create(this._metricBase).type(Metrics.Object.widget, Metrics.Event.impression).meta(this.getConfig()).element(this.element) // this might not be all that useful cuz the content hasn't been rendered yet

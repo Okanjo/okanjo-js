@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2017-10-17 – v1.4.1
+ * Added various response metrics to events
+
 ## 2017-10-02 – v1.3.1
 Added support for viewable impression events
  * Added: okanjo.ui.getElementPosition will include `err` if the element position is unavailable

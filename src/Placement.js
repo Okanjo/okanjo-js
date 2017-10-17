@@ -241,8 +241,17 @@
          */
         _reportWidgetLoad(declined) {
 
+            const res = this._response || {};
+            const data = res.data || { results: [] };
+
             // If this is declined, mark future events as declined too
             this._metricBase.m.decl = declined || '0';
+
+            // Attach other main response attributes to all future events
+            this._metricBase.m.res_bf = data.backfilled ? 1 : 0; // whether the response used the backup fill flow
+            this._metricBase.m.res_total = data.total || 0; // how many total candidate results were available given filters
+            this._metricBase.m.res_type = data.type; // what the given resource type was
+            this._metricBase.m.res_length = data.results.length; // what the given resource type was
 
             // Track impression
             okanjo.metrics.create(this._metricBase)
