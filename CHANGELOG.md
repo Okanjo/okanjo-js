@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2017-11-01 – v1.4.2
+ * Added utm_source/utm_campaign params to click-through urls
+
 ## 2017-10-17 – v1.4.1
  * Added various response metrics to events
 

@@ -401,6 +401,9 @@
             additionalUrlParams.ok_msid = okanjo.metrics.sid || 'unknown';
             additionalUrlParams.ok_ch = this._metricBase.ch;
             additionalUrlParams.ok_cx = this._metricBase.cx;
+            additionalUrlParams.utm_source = 'okanjo';
+            additionalUrlParams.utm_campaign = 'smartserve';
+
 
             url += joiner + Object.keys(additionalUrlParams)
                     .map((key) => encodeURIComponent(key)+'='+encodeURIComponent(additionalUrlParams[key]))
