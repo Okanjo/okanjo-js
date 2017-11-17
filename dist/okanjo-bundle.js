@@ -1,4 +1,4 @@
-/*! okanjo-js v1.4.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.5.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -8,16 +8,6 @@
     root.okanjo = factory();
   }
 }(this, function() {
-"use strict";
-
-/* exported okanjo */
-
-//noinspection ThisExpressionReferencesGlobalObjectJS,JSUnusedLocalSymbols
-/**
- * Okanjo widget framework namespace
- * @global okanjo
- */
-
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -28,6 +18,279 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+// Production steps of ECMA-262, Edition 6, 22.1.2.1
+if (!Array.from) {
+    Array.from = function () {
+        var toStr = Object.prototype.toString;
+        var isCallable = function isCallable(fn) {
+            return typeof fn === 'function' || toStr.call(fn) === '[object Function]';
+        };
+        var toInteger = function toInteger(value) {
+            var number = Number(value);
+            if (isNaN(number)) {
+                return 0;
+            }
+            if (number === 0 || !isFinite(number)) {
+                return number;
+            }
+            return (number > 0 ? 1 : -1) * Math.floor(Math.abs(number));
+        };
+        var maxSafeInteger = Math.pow(2, 53) - 1;
+        var toLength = function toLength(value) {
+            var len = toInteger(value);
+            return Math.min(Math.max(len, 0), maxSafeInteger);
+        };
+
+        // The length property of the from method is 1.
+        return function from(arrayLike /*, mapFn, thisArg */) {
+            // 1. Let C be the this value.
+            var C = this;
+
+            // 2. Let items be ToObject(arrayLike).
+            var items = Object(arrayLike);
+
+            // 3. ReturnIfAbrupt(items).
+            if (arrayLike == null) {
+                throw new TypeError('Array.from requires an array-like object - not null or undefined');
+            }
+
+            // 4. If mapfn is undefined, then let mapping be false.
+            var mapFn = arguments.length > 1 ? arguments[1] : void undefined;
+            var T;
+            if (typeof mapFn !== 'undefined') {
+                // 5. else
+                // 5. a If IsCallable(mapfn) is false, throw a TypeError exception.
+                if (!isCallable(mapFn)) {
+                    throw new TypeError('Array.from: when provided, the second argument must be a function');
+                }
+
+                // 5. b. If thisArg was supplied, let T be thisArg; else let T be undefined.
+                if (arguments.length > 2) {
+                    T = arguments[2];
+                }
+            }
+
+            // 10. Let lenValue be Get(items, "length").
+            // 11. Let len be ToLength(lenValue).
+            var len = toLength(items.length);
+
+            // 13. If IsConstructor(C) is true, then
+            // 13. a. Let A be the result of calling the [[Construct]] internal method
+            // of C with an argument list containing the single item len.
+            // 14. a. Else, Let A be ArrayCreate(len).
+            var A = isCallable(C) ? Object(new C(len)) : new Array(len);
+
+            // 16. Let k be 0.
+            var k = 0;
+            // 17. Repeat, while k < len… (also steps a - h)
+            var kValue;
+            while (k < len) {
+                kValue = items[k];
+                if (mapFn) {
+                    A[k] = typeof T === 'undefined' ? mapFn(kValue, k) : mapFn.call(T, kValue, k);
+                } else {
+                    A[k] = kValue;
+                }
+                k += 1;
+            }
+            // 18. Let putStatus be Put(A, "length", len, true).
+            A.length = len;
+            // 20. Return A.
+            return A;
+        };
+    }();
+}
+// https://tc39.github.io/ecma262/#sec-array.prototype.find
+if (!Array.prototype.find) {
+    Object.defineProperty(Array.prototype, 'find', {
+        value: function value(predicate) {
+            // 1. Let O be ? ToObject(this value).
+            if (this == null) {
+                throw new TypeError('"this" is null or not defined');
+            }
+
+            var o = Object(this);
+
+            // 2. Let len be ? ToLength(? Get(O, "length")).
+            var len = o.length >>> 0;
+
+            // 3. If IsCallable(predicate) is false, throw a TypeError exception.
+            if (typeof predicate !== 'function') {
+                throw new TypeError('predicate must be a function');
+            }
+
+            // 4. If thisArg was supplied, let T be thisArg; else let T be undefined.
+            var thisArg = arguments[1];
+
+            // 5. Let k be 0.
+            var k = 0;
+
+            // 6. Repeat, while k < len
+            while (k < len) {
+                // a. Let Pk be ! ToString(k).
+                // b. Let kValue be ? Get(O, Pk).
+                // c. Let testResult be ToBoolean(? Call(predicate, T, « kValue, k, O »)).
+                // d. If testResult is true, return kValue.
+                var kValue = o[k];
+                if (predicate.call(thisArg, kValue, k, o)) {
+                    return kValue;
+                }
+                // e. Increase k by 1.
+                k++;
+            }
+
+            // 7. Return undefined.
+            return undefined;
+        }
+    });
+}
+// https://tc39.github.io/ecma262/#sec-array.prototype.findIndex
+if (!Array.prototype.findIndex) {
+    Object.defineProperty(Array.prototype, 'findIndex', {
+        value: function value(predicate) {
+            // 1. Let O be ? ToObject(this value).
+            if (this == null) {
+                throw new TypeError('"this" is null or not defined');
+            }
+
+            var o = Object(this);
+
+            // 2. Let len be ? ToLength(? Get(O, "length")).
+            var len = o.length >>> 0;
+
+            // 3. If IsCallable(predicate) is false, throw a TypeError exception.
+            if (typeof predicate !== 'function') {
+                throw new TypeError('predicate must be a function');
+            }
+
+            // 4. If thisArg was supplied, let T be thisArg; else let T be undefined.
+            var thisArg = arguments[1];
+
+            // 5. Let k be 0.
+            var k = 0;
+
+            // 6. Repeat, while k < len
+            while (k < len) {
+                // a. Let Pk be ! ToString(k).
+                // b. Let kValue be ? Get(O, Pk).
+                // c. Let testResult be ToBoolean(? Call(predicate, T, « kValue, k, O »)).
+                // d. If testResult is true, return k.
+                var kValue = o[k];
+                if (predicate.call(thisArg, kValue, k, o)) {
+                    return k;
+                }
+                // e. Increase k by 1.
+                k++;
+            }
+
+            // 7. Return -1.
+            return -1;
+        }
+    });
+}
+// https://tc39.github.io/ecma262/#sec-array.prototype.includes
+if (!Array.prototype.includes) {
+    Object.defineProperty(Array.prototype, 'includes', {
+        value: function value(searchElement, fromIndex) {
+
+            if (this == null) {
+                throw new TypeError('"this" is null or not defined');
+            }
+
+            // 1. Let O be ? ToObject(this value).
+            var o = Object(this);
+
+            // 2. Let len be ? ToLength(? Get(O, "length")).
+            var len = o.length >>> 0;
+
+            // 3. If len is 0, return false.
+            if (len === 0) {
+                return false;
+            }
+
+            // 4. Let n be ? ToInteger(fromIndex).
+            //    (If fromIndex is undefined, this step produces the value 0.)
+            var n = fromIndex | 0;
+
+            // 5. If n ≥ 0, then
+            //  a. Let k be n.
+            // 6. Else n < 0,
+            //  a. Let k be len + n.
+            //  b. If k < 0, let k be 0.
+            var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
+
+            function sameValueZero(x, y) {
+                return x === y || typeof x === 'number' && typeof y === 'number' && isNaN(x) && isNaN(y);
+            }
+
+            // 7. Repeat, while k < len
+            while (k < len) {
+                // a. Let elementK be the result of ? Get(O, ! ToString(k)).
+                // b. If SameValueZero(searchElement, elementK) is true, return true.
+                if (sameValueZero(o[k], searchElement)) {
+                    return true;
+                }
+                // c. Increase k by 1.
+                k++;
+            }
+
+            // 8. Return false
+            return false;
+        }
+    });
+}
+// https://developer.mozilla.org/en-US/docs/Web/API/NodeList/forEach
+if (window.NodeList && !NodeList.prototype.forEach) {
+    NodeList.prototype.forEach = function (callback, thisArg) {
+        thisArg = thisArg || window;
+        for (var i = 0; i < this.length; i++) {
+            callback.call(thisArg, this[i], i, this);
+        }
+    };
+}
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
+if (typeof Object.assign != 'function') {
+    // Must be writable: true, enumerable: false, configurable: true
+    Object.defineProperty(Object, "assign", {
+        value: function assign(target, varArgs) {
+            // .length of function is 2
+            'use strict';
+
+            if (target == null) {
+                // TypeError if undefined or null
+                throw new TypeError('Cannot convert undefined or null to object');
+            }
+
+            var to = Object(target);
+
+            for (var index = 1; index < arguments.length; index++) {
+                var nextSource = arguments[index];
+
+                if (nextSource != null) {
+                    // Skip over if undefined or null
+                    for (var nextKey in nextSource) {
+                        // Avoid bugs when hasOwnProperty is shadowed
+                        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                            to[nextKey] = nextSource[nextKey];
+                        }
+                    }
+                }
+            }
+            return to;
+        },
+        writable: true,
+        configurable: true
+    });
+}
+"use strict";
+
+/* exported okanjo */
+
+//noinspection ThisExpressionReferencesGlobalObjectJS,JSUnusedLocalSymbols
+/**
+ * Okanjo widget framework namespace
+ * @global okanjo
+ */
 var okanjo = function (window, document) {
 
     //region Constants
@@ -60,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.4.2",
+        version: "1.5.0",
 
         /**
          * Placeholder
@@ -101,7 +364,7 @@ var okanjo = function (window, document) {
                 });
             }
 
-            Console.error("[Okanjo v" + okanjo.version + "]: " + err.stack);
+            Console.error('[Okanjo v' + okanjo.version + ']: ' + err.stack);
             args.length && Console.error.apply(Console, ['Additional information:'].concat(args));
 
             // TODO - integrate with Raven
@@ -119,7 +382,7 @@ var okanjo = function (window, document) {
 
             var err = new Error(message);
 
-            Console.warn("[Okanjo v" + okanjo.version + "]: " + err.stack);
+            Console.warn('[Okanjo v' + okanjo.version + ']: ' + err.stack);
             args.length && Console.warn.apply(Console, ['Additional information:'].concat(args));
         },
 
@@ -185,7 +448,7 @@ var okanjo = function (window, document) {
         getRoute: function getRoute(route, params, env) {
             if (params) {
                 Object.keys(params).forEach(function (key) {
-                    route = route.replace(":" + key, params[key] + "");
+                    route = route.replace(':' + key, params[key] + "");
                 });
             }
             env = env || okanjo.env || 'live';
@@ -276,7 +539,7 @@ var okanjo = function (window, document) {
             out = out.concat(mixed.map(function (val) {
                 return okanjo.util.deepClone(val);
             }));
-        } else if ((typeof mixed === "undefined" ? "undefined" : _typeof(mixed)) === "object" && mixed !== null) {
+        } else if ((typeof mixed === 'undefined' ? 'undefined' : _typeof(mixed)) === "object" && mixed !== null) {
             // Object reference
             out = out || {};
             Object.keys(mixed).forEach(function (key) {
@@ -789,7 +1052,7 @@ var okanjo = function (window, document) {
      */
     var getKey = function getKey(key, keyPrefix) {
         if (keyPrefix) {
-            return keyPrefix + "[" + encode(key) + "]";
+            return keyPrefix + '[' + encode(key) + ']';
         } else {
             return encode(key);
         }
@@ -810,7 +1073,7 @@ var okanjo = function (window, document) {
                 value.forEach(function (v) {
                     return pairs.push(getKey(key, keyPrefix) + '=' + encode(v));
                 }); // Does not do that PHP garbage with key[]=val
-            } else if ((typeof value === "undefined" ? "undefined" : _typeof(value)) === "object" && value !== null) {
+            } else if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === "object" && value !== null) {
                 // Recurse
                 var res = okanjo.net.request.stringify(value, getKey(key, keyPrefix));
                 if (res) pairs.push(res);
@@ -842,7 +1105,7 @@ var okanjo = function (window, document) {
             expireDate.setDate(expireDate.getDate() + expireDays);
             var expires = expireDays ? " Expires=" + expireDate.toUTCString() + ";" : "";
             var path = " Path=/";
-            var cookieValue = encodeURI(value) + ";" + expires + path;
+            var cookieValue = encodeURI(value) + ';' + expires + path;
             document.cookie = cookieName + "=" + cookieValue;
         },
 
@@ -900,10 +1163,10 @@ var okanjo = function (window, document) {
 
 
         _createClass(TemplateEngine, [{
-            key: "registerTemplate",
+            key: 'registerTemplate',
             value: function registerTemplate(name, template, beforeRender, options) {
 
-                if ((typeof template === "undefined" ? "undefined" : _typeof(template)) === "object") {
+                if ((typeof template === 'undefined' ? 'undefined' : _typeof(template)) === "object") {
                     //noinspection JSValidateTypes
                     if (template.nodeType === undefined) {
                         throw new Error('Parameter template must be a string or a DOM element');
@@ -916,7 +1179,7 @@ var okanjo = function (window, document) {
                 }
 
                 // Shift options if only have 3 params
-                if (arguments.length === 3 && (typeof beforeRender === "undefined" ? "undefined" : _typeof(beforeRender)) === "object") {
+                if (arguments.length === 3 && (typeof beforeRender === 'undefined' ? 'undefined' : _typeof(beforeRender)) === "object") {
                     options = beforeRender;
                     beforeRender = null;
                 } else {
@@ -943,11 +1206,11 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "registerCss",
+            key: 'registerCss',
             value: function registerCss(name, css, options) {
                 options = options || {};
 
-                if ((typeof css === "undefined" ? "undefined" : _typeof(css)) === "object") {
+                if ((typeof css === 'undefined' ? 'undefined' : _typeof(css)) === "object") {
                     //noinspection JSValidateTypes
                     if (css.nodeType === undefined) {
                         throw new Error('Parameter css must be a string or a DOM element');
@@ -969,7 +1232,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "isTemplateRegistered",
+            key: 'isTemplateRegistered',
             value: function isTemplateRegistered(name) {
                 return !!this._templates[name];
             }
@@ -982,7 +1245,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "isCssRegistered",
+            key: 'isCssRegistered',
             value: function isCssRegistered(name) {
                 return !!this._css[name];
             }
@@ -993,7 +1256,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "ensureCss",
+            key: 'ensureCss',
             value: function ensureCss(name) {
                 if (this._css[name]) {
                     //noinspection JSValidateTypes
@@ -1046,7 +1309,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "render",
+            key: 'render',
             value: function render(templateName, context, model) {
                 var _this = this;
 
@@ -1399,7 +1662,7 @@ var okanjo = function (window, document) {
 
 
         _createClass(Metrics, [{
-            key: "_getStoredQueue",
+            key: '_getStoredQueue',
             value: function _getStoredQueue() {
                 if (window.localStorage[Metrics.Params.queue]) {
                     try {
@@ -1427,7 +1690,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_saveQueue",
+            key: '_saveQueue',
             value: function _saveQueue(delay) {
                 var _this2 = this;
 
@@ -1448,7 +1711,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_checkUrlForReferral",
+            key: '_checkUrlForReferral',
             value: function _checkUrlForReferral() {
                 var pageArgs = okanjo.util.getPageArguments(true),
                     urlSid = pageArgs[Metrics.Params.name],
@@ -1481,7 +1744,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "trackEvent",
+            key: 'trackEvent',
             value: function trackEvent(event, callback) {
                 // Ensure the event contains the required fields
                 if (!event.object_type || !event.event_type) {
@@ -1501,7 +1764,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "trackPageView",
+            key: 'trackPageView',
             value: function trackPageView(event, callback) {
                 event = event || {};
                 event.object_type = Metrics.Object.page;
@@ -1521,7 +1784,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_push",
+            key: '_push',
             value: function _push(event, callback) {
                 this._queue.push({ event: event, callback: callback });
 
@@ -1542,7 +1805,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_processQueue",
+            key: '_processQueue',
             value: function _processQueue() {
                 var _this3 = this;
 
@@ -1583,7 +1846,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_batchSend",
+            key: '_batchSend',
             value: function _batchSend(items, callback) {
                 var _this4 = this;
 
@@ -1627,7 +1890,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_normalizeEvent",
+            key: '_normalizeEvent',
             value: function _normalizeEvent(event) {
 
                 // Ensure meta is ready to receive values
@@ -1688,7 +1951,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_updateSid",
+            key: '_updateSid',
             value: function _updateSid(sid) {
                 if (!this.sid && sid) {
                     this.sid = sid;
@@ -1706,7 +1969,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "create",
+            key: 'create',
 
 
             //noinspection JSMethodCanBeStatic,JSUnusedGlobalSymbols
@@ -1723,7 +1986,7 @@ var okanjo = function (window, document) {
                 return Metrics.create.apply(null, args);
             }
         }], [{
-            key: "addElementInfo",
+            key: 'addElementInfo',
             value: function addElementInfo(element, event) {
                 var page = okanjo.ui.getPageSize(),
                     size = okanjo.ui.getElementPosition(element);
@@ -1748,7 +2011,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "addViewportInfo",
+            key: 'addViewportInfo',
             value: function addViewportInfo(event) {
                 var vp = okanjo.ui.getViewportSize(),
                     pos = okanjo.ui.getScrollPosition();
@@ -1772,7 +2035,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "addEventInfo",
+            key: 'addEventInfo',
             value: function addEventInfo(jsEvent, event) {
                 var pos = okanjo.ui.getEventPosition(jsEvent);
 
@@ -1794,7 +2057,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "addEventMeta",
+            key: 'addEventMeta',
             value: function addEventMeta(event) {
                 event = event || {};
                 event.m = event.m || {};
@@ -1816,7 +2079,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "create",
+            key: 'create',
             value: function create(data) {
                 for (var _len5 = arguments.length, args = Array(_len5 > 1 ? _len5 - 1 : 0), _key5 = 1; _key5 < _len5; _key5++) {
                     args[_key5 - 1] = arguments[_key5];
@@ -1944,7 +2207,7 @@ var okanjo = function (window, document) {
 
 
         _createClass(MetricEvent, [{
-            key: "data",
+            key: 'data',
             value: function data(_data) {
                 Object.assign(this, okanjo.util.deepClone(_data));
                 return this;
@@ -1957,7 +2220,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "event",
+            key: 'event',
             value: function event(jsEvent) {
                 Metrics.addEventInfo(jsEvent, this);
                 return this;
@@ -1969,7 +2232,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "viewport",
+            key: 'viewport',
             value: function viewport() {
                 Metrics.addViewportInfo(this);
                 return this;
@@ -1982,7 +2245,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "element",
+            key: 'element',
             value: function element(_element) {
                 Metrics.addElementInfo(_element, this);
                 return this;
@@ -1996,7 +2259,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "meta",
+            key: 'meta',
             value: function meta() {
                 for (var _len6 = arguments.length, args = Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
                     args[_key6] = arguments[_key6];
@@ -2014,7 +2277,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "type",
+            key: 'type',
             value: function type(object_type, event_type) {
                 this.object_type = object_type;
                 this.event_type = event_type;
@@ -2027,7 +2290,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "send",
+            key: 'send',
             value: function send(callback) {
                 okanjo.metrics.trackEvent(this, callback);
                 // DONT RETURN - BREAK THE CHAIN HERE
@@ -2039,7 +2302,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "toUrl",
+            key: 'toUrl',
             value: function toUrl() {
                 // Copy data w/o modifying it
                 var event = Object.assign({}, this);
@@ -2106,7 +2369,7 @@ var okanjo = function (window, document) {
 
 
         _createClass(EventEmitter, [{
-            key: "on",
+            key: 'on',
             value: function on(event, listener) {
                 if (!this._events[event]) {
                     this._events[event] = [];
@@ -2122,7 +2385,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "removeListener",
+            key: 'removeListener',
             value: function removeListener(event, listener) {
 
                 if (this._events[event]) {
@@ -2139,7 +2402,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "emit",
+            key: 'emit',
             value: function emit(event) {
                 var i = void 0,
                     listeners = void 0,
@@ -2164,7 +2427,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "once",
+            key: 'once',
             value: function once(event, listener) {
                 var _arguments = arguments,
                     _this6 = this;
@@ -2213,9 +2476,9 @@ var okanjo = function (window, document) {
             }
 
             // Verify configuration is OK
-            if (options && (typeof options === "undefined" ? "undefined" : _typeof(options)) !== "object") {
+            if (options && (typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== "object") {
                 // Warn and fix it
-                okanjo.report('Invalid widget options. Expected object, got: ' + (typeof options === "undefined" ? "undefined" : _typeof(options)), { widget: _this7, element: element, options: options });
+                okanjo.report('Invalid widget options. Expected object, got: ' + (typeof options === 'undefined' ? 'undefined' : _typeof(options)), { widget: _this7, element: element, options: options });
                 options = {};
             } else {
                 options = options || {};
@@ -2237,7 +2500,7 @@ var okanjo = function (window, document) {
 
 
         _createClass(Widget, [{
-            key: "init",
+            key: 'init',
             value: function init() {
                 // process config attributes
                 this._applyConfiguration();
@@ -2256,7 +2519,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_setCompatibilityOptions",
+            key: '_setCompatibilityOptions',
             value: function _setCompatibilityOptions() {}
             // By default, this does nothing. Must be overridden to be useful
 
@@ -2268,7 +2531,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "getSettings",
+            key: 'getSettings',
             value: function getSettings() {
                 // Override this
                 return {};
@@ -2279,7 +2542,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "load",
+            key: 'load',
             value: function load() {}
             // Override this in the widget implementation
 
@@ -2290,7 +2553,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_applyConfiguration",
+            key: '_applyConfiguration',
             value: function _applyConfiguration() {
                 var _this8 = this;
 
@@ -2327,7 +2590,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "getConfig",
+            key: 'getConfig',
             value: function getConfig() {
                 var _this9 = this;
 
@@ -2370,7 +2633,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_ensurePlacementKey",
+            key: '_ensurePlacementKey',
             value: function _ensurePlacementKey() {
 
                 // Check if set on widget or globally
@@ -2394,7 +2657,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "showError",
+            key: 'showError',
             value: function showError(message) {
                 this.setMarkup(okanjo.ui.engine.render('okanjo.error', this, { message: message }));
             }
@@ -2405,7 +2668,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "setMarkup",
+            key: 'setMarkup',
             value: function setMarkup(markup) {
                 this.element.innerHTML = markup;
             }
@@ -2417,7 +2680,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "getDataAttributes",
+            key: 'getDataAttributes',
 
 
             /**
@@ -2435,7 +2698,7 @@ var okanjo = function (window, document) {
                 return data;
             }
         }], [{
-            key: "getCurrentPageUrl",
+            key: 'getCurrentPageUrl',
             value: function getCurrentPageUrl() {
                 return window.location.href.replace(/([?#].*)$/, '');
             }
@@ -2470,7 +2733,7 @@ var okanjo = function (window, document) {
 
 
         _createClass(Field, [{
-            key: "array",
+            key: 'array',
             value: function array(converter) {
                 this._convert = function (val) {
                     if (Array.isArray(val)) {
@@ -2494,7 +2757,7 @@ var okanjo = function (window, document) {
             //noinspection JSUnusedGlobalSymbols
 
         }, {
-            key: "string",
+            key: 'string',
 
 
             /**
@@ -2508,7 +2771,7 @@ var okanjo = function (window, document) {
                 return this;
             }
         }, {
-            key: "bool",
+            key: 'bool',
 
 
             /**
@@ -2528,7 +2791,7 @@ var okanjo = function (window, document) {
             //noinspection JSUnusedGlobalSymbols
 
         }, {
-            key: "strip",
+            key: 'strip',
 
 
             /**
@@ -2539,7 +2802,7 @@ var okanjo = function (window, document) {
                 this._strip = true;return this;
             }
         }, {
-            key: "int",
+            key: 'int',
 
 
             /**
@@ -2554,7 +2817,7 @@ var okanjo = function (window, document) {
             //noinspection JSUnusedGlobalSymbols
 
         }, {
-            key: "float",
+            key: 'float',
 
 
             /**
@@ -2569,7 +2832,7 @@ var okanjo = function (window, document) {
             //noinspection JSUnusedGlobalSymbols
 
         }, {
-            key: "default",
+            key: 'default',
 
 
             //noinspection ReservedWordAsName
@@ -2590,7 +2853,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "group",
+            key: 'group',
             value: function group(name) {
                 this._group = name;
                 return this;
@@ -2602,7 +2865,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "getGroup",
+            key: 'getGroup',
             value: function getGroup() {
                 return this._group;
             }
@@ -2616,7 +2879,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "value",
+            key: 'value',
             value: function value(val) {
                 var strip = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
 
@@ -2627,32 +2890,32 @@ var okanjo = function (window, document) {
                 return val !== undefined ? val : this._default;
             }
         }], [{
-            key: "array",
+            key: 'array',
             value: function array(converter) {
                 return new Field().array(converter);
             }
         }, {
-            key: "string",
+            key: 'string',
             value: function string() {
                 return new Field().string();
             }
         }, {
-            key: "bool",
+            key: 'bool',
             value: function bool() {
                 return new Field().bool();
             }
         }, {
-            key: "strip",
+            key: 'strip',
             value: function strip() {
                 return new Field().strip();
             }
         }, {
-            key: "int",
+            key: 'int',
             value: function int() {
                 return new Field().int();
             }
         }, {
-            key: "float",
+            key: 'float',
             value: function float() {
                 return new Field().float();
             }
@@ -2738,7 +3001,7 @@ var okanjo = function (window, document) {
 
 
         _createClass(Placement, [{
-            key: "getSettings",
+            key: 'getSettings',
             value: function getSettings() {
                 return {
 
@@ -2835,7 +3098,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "getConfig",
+            key: 'getConfig',
             value: function getConfig() {
                 var _this11 = this;
 
@@ -2886,7 +3149,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "load",
+            key: 'load',
             value: function load() {
                 var _this12 = this;
 
@@ -2921,7 +3184,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_setMetricBase",
+            key: '_setMetricBase',
             value: function _setMetricBase() {
                 var base = this._metricBase;
                 base.ch = Metrics.Channel.placement;
@@ -2938,7 +3201,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_reportWidgetLoad",
+            key: '_reportWidgetLoad',
             value: function _reportWidgetLoad(declined) {
                 var _this13 = this;
 
@@ -2971,7 +3234,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_fetchContent",
+            key: '_fetchContent',
             value: function _fetchContent(callback) {
                 var _this14 = this;
 
@@ -2982,13 +3245,13 @@ var okanjo = function (window, document) {
                 var key = this.config.key;
 
                 // Attach sid and referrer
-                if (okanjo.metrics.sid) query.sid = okanjo.metrics.msid;
+                if (okanjo.metrics.sid) query.sid = okanjo.metrics.sid;
                 query.filters.url_referrer = this.config.url_referrer || window.location.href;
                 query.wgid = this.instanceId;
                 query.pgid = okanjo.metrics.pageId;
 
                 // Send it
-                okanjo.net.request.post(okanjo.net.getRoute(okanjo.net.routes.ads, null, this.config.sandbox ? 'sandbox' : 'live') + "?key=" + encodeURIComponent(key), query, function (err, res) {
+                okanjo.net.request.post(okanjo.net.getRoute(okanjo.net.routes.ads, null, this.config.sandbox ? 'sandbox' : 'live') + '?key=' + encodeURIComponent(key), query, function (err, res) {
                     if (err) {
                         okanjo.report('Failed to retrieve placement content', err, { placement: _this14 });
                         _this14.setMarkup(''); // Don't show anything
@@ -3014,7 +3277,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_mergeResponseSettings",
+            key: '_mergeResponseSettings',
             value: function _mergeResponseSettings() {
                 var _this15 = this;
 
@@ -3041,7 +3304,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_updateBaseMetaFromResponse",
+            key: '_updateBaseMetaFromResponse',
             value: function _updateBaseMetaFromResponse() {
                 // Update the base metric data with info from the response
                 var data = (this._response || {}).data || {};
@@ -3066,7 +3329,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_showContent",
+            key: '_showContent',
             value: function _showContent() {
                 var data = (this._response || {}).data || {};
 
@@ -3099,7 +3362,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_getClickThroughURL",
+            key: '_getClickThroughURL',
             value: function _getClickThroughURL(event, url, additionalUrlParams) {
                 var joiner = url.indexOf('?') >= 0 ? '&' : '?';
 
@@ -3137,7 +3400,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_handleResourceMouseDown",
+            key: '_handleResourceMouseDown',
             value: function _handleResourceMouseDown(type, resource, e) {
                 // Generate a new click id for this event
                 var clickId = okanjo.util.shortid();
@@ -3181,13 +3444,13 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_getTemplate",
+            key: '_getTemplate',
             value: function _getTemplate(contentType, defaultName) {
                 var templateName = this.config.template_name;
-                if (!templateName || !okanjo.ui.engine.isTemplateRegistered(contentType + "." + templateName)) {
+                if (!templateName || !okanjo.ui.engine.isTemplateRegistered(contentType + '.' + templateName)) {
                     templateName = defaultName;
                 }
-                return contentType + "." + templateName;
+                return contentType + '.' + templateName;
             }
 
             /**
@@ -3196,7 +3459,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_enforceLayoutOptions",
+            key: '_enforceLayoutOptions',
             value: function _enforceLayoutOptions() {
                 // Enforce format restrictions
                 if (this.config.size === "leaderboard" || this.config.size === "large_mobile_banner") {
@@ -3213,14 +3476,14 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_registerCustomBranding",
+            key: '_registerCustomBranding',
             value: function _registerCustomBranding(prefix, buttonClass) {
                 var brandColor = this.config.template_cta_color;
                 if (brandColor) {
                     var brandCSS = void 0,
                         brandCSSId = "okanjo-wgid-" + this.instanceId;
 
-                    brandCSS = "\n                    " + prefix + "-block2." + brandCSSId + " " + prefix + "-" + buttonClass + " { color: " + brandColor + ";} \n                    " + prefix + "-block2." + brandCSSId + ".okanjo-cta-style-button " + prefix + "-" + buttonClass + " { border: 1px solid " + brandColor + "; } \n                    " + prefix + "-block2." + brandCSSId + ".okanjo-cta-style-button " + prefix + "-" + buttonClass + ":hover { background: " + brandColor + "; } \n                ";
+                    brandCSS = '\n                    ' + prefix + '-block2.' + brandCSSId + ' ' + prefix + '-' + buttonClass + ' { color: ' + brandColor + ';} \n                    ' + prefix + '-block2.' + brandCSSId + '.okanjo-cta-style-button ' + prefix + '-' + buttonClass + ' { border: 1px solid ' + brandColor + '; } \n                    ' + prefix + '-block2.' + brandCSSId + '.okanjo-cta-style-button ' + prefix + '-' + buttonClass + ':hover { background: ' + brandColor + '; } \n                ';
 
                     okanjo.ui.engine.registerCss(brandCSSId, brandCSS, { id: brandCSSId });
                     okanjo.ui.engine.ensureCss(brandCSSId);
@@ -3235,7 +3498,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_addOnceViewedHandler",
+            key: '_addOnceViewedHandler',
             value: function _addOnceViewedHandler(element, handler) {
                 var controller = {
                     element: element,
@@ -3254,7 +3517,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_checkViewWatchers",
+            key: '_checkViewWatchers',
             value: function _checkViewWatchers() {
 
                 // Check each registered watcher
@@ -3288,7 +3551,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_toggleViewWatcher",
+            key: '_toggleViewWatcher',
             value: function _toggleViewWatcher(enabled) {
                 if (enabled) {
                     if (this._viewWatcherIv === null) {
@@ -3310,7 +3573,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_showProducts",
+            key: '_showProducts',
             value: function _showProducts() {
                 var _this16 = this;
 
@@ -3395,7 +3658,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_handleProductClick",
+            key: '_handleProductClick',
             value: function _handleProductClick(product, e) {
 
                 // Update the event
@@ -3511,7 +3774,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_showArticles",
+            key: '_showArticles',
             value: function _showArticles() {
                 var _this17 = this;
 
@@ -3586,7 +3849,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_handleArticleClick",
+            key: '_handleArticleClick',
             value: function _handleArticleClick(article, e) {
                 // Update the event
                 if (!article._event || !article._additionalParams || !article._clickId) {
@@ -3615,7 +3878,7 @@ var okanjo = function (window, document) {
              */
 
         }, {
-            key: "_showADX",
+            key: '_showADX',
             value: function _showADX() {
                 var _this18 = this;
 
@@ -3717,7 +3980,7 @@ var okanjo = function (window, document) {
 
                     // Load Google ad!
                     frame.contentWindow.document.open();
-                    frame.contentWindow.document.write("<html><head><style type=\"text/css\">html,body {margin: 0; padding: 0;}</style></head><body>\n<" + ("script type=\"text/javascript\" src=\"https://www.googletagservices.com/tag/js/gpt.js\">\n    googletag.pubads().addEventListener('slotRenderEnded', function(e) { \n        trackImpression(e);\n    });\n    googletag.pubads()\n        .definePassback(\"" + adUnitPath.replace(/"/g, '\\"') + "\", [[" + size.width + ", " + size.height + "]])\n        .setClickUrl(\"" + clickUrl + "&u=\")\n        .display();\n<") + "/script>\n</body></html>");
+                    frame.contentWindow.document.write('<html><head><style type="text/css">html,body {margin: 0; padding: 0;}</style></head><body>\n<' + ('script type="text/javascript" src="https://www.googletagservices.com/tag/js/gpt.js">\n    googletag.pubads().addEventListener(\'slotRenderEnded\', function(e) { \n        trackImpression(e);\n    });\n    googletag.pubads()\n        .definePassback("' + adUnitPath.replace(/"/g, '\\"') + '", [[' + size.width + ', ' + size.height + ']])\n        .setClickUrl("' + clickUrl + '&u=")\n        .display();\n<') + '/script>\n</body></html>');
                     frame.contentWindow.document.close();
 
                     // TODO future event hooks
@@ -3855,7 +4118,7 @@ var okanjo = function (window, document) {
 
 
         _createClass(Product, [{
-            key: "_setCompatibilityOptions",
+            key: '_setCompatibilityOptions',
             value: function _setCompatibilityOptions() {
                 // Convert the product config to a placement configuration
                 this.config.backwards = 'Product';
@@ -3960,7 +4223,7 @@ var okanjo = function (window, document) {
 
 
         _createClass(Ad, [{
-            key: "_setCompatibilityOptions",
+            key: '_setCompatibilityOptions',
             value: function _setCompatibilityOptions() {
                 // Convert the product config to a placement configuration
                 this.config.backwards = 'Ad';
@@ -3998,7 +4261,7 @@ var okanjo = function (window, document) {
     /*global define: false Mustache: true*/
 
     (function defineMustache(global, factory) {
-        if ((typeof exports === "undefined" ? "undefined" : _typeof(exports)) === 'object' && exports && typeof exports.nodeName !== 'string') {
+        if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object' && exports && typeof exports.nodeName !== 'string') {
             factory(exports); // CommonJS
         } else if (typeof define === 'function' && define.amd) {
             define(['exports'], factory); // AMD
@@ -4022,7 +4285,7 @@ var okanjo = function (window, document) {
          * which normally returns typeof 'object'
          */
         function typeStr(obj) {
-            return isArray(obj) ? 'array' : typeof obj === "undefined" ? "undefined" : _typeof(obj);
+            return isArray(obj) ? 'array' : typeof obj === 'undefined' ? 'undefined' : _typeof(obj);
         }
 
         function escapeRegExp(string) {
@@ -4034,7 +4297,7 @@ var okanjo = function (window, document) {
          * including its prototype, has a given property
          */
         function hasProperty(obj, propName) {
-            return obj != null && (typeof obj === "undefined" ? "undefined" : _typeof(obj)) === 'object' && propName in obj;
+            return obj != null && (typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) === 'object' && propName in obj;
         }
 
         // Workaround for https://issues.apache.org/jira/browse/COUCHDB-577
@@ -4493,7 +4756,7 @@ var okanjo = function (window, document) {
                 for (var j = 0, valueLength = value.length; j < valueLength; ++j) {
                     buffer += this.renderTokens(token[4], context.push(value[j]), partials, originalTemplate);
                 }
-            } else if ((typeof value === "undefined" ? "undefined" : _typeof(value)) === 'object' || typeof value === 'string' || typeof value === 'number') {
+            } else if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object' || typeof value === 'string' || typeof value === 'number') {
                 buffer += this.renderTokens(token[4], context.push(value), partials, originalTemplate);
             } else if (isFunction(value)) {
                 if (typeof originalTemplate !== 'string') throw new Error('Cannot use higher-order sections without the original template');
@@ -4603,7 +4866,7 @@ var okanjo = function (window, document) {
 return okanjo;
 }));
 
-/*! okanjo-js v1.4.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.5.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {(function (window) {
 
     var okanjo = window.okanjo;

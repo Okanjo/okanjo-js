@@ -3,6 +3,11 @@
 
 When stuff changes, it's described here.
 
+## 2017-11-17 – v1.5.1
+ * Added polyfills for old IE (support down to IE 10, Edge 14)
+ * Removed unused domready shim
+ * Fixed typo in parameter sent on placement content fetch
+
 ## 2017-11-01 – v1.4.2
  * Added utm_source/utm_campaign params to click-through urls
 

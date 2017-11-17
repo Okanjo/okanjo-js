@@ -285,7 +285,7 @@
             const key = this.config.key;
 
             // Attach sid and referrer
-            if (okanjo.metrics.sid) query.sid = okanjo.metrics.msid;
+            if (okanjo.metrics.sid) query.sid = okanjo.metrics.sid;
             query.filters.url_referrer = this.config.url_referrer || window.location.href;
             query.wgid = this.instanceId;
             query.pgid = okanjo.metrics.pageId;

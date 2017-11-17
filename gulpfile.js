@@ -90,6 +90,8 @@ const getVersionCommitMessage = function() {
 // Global Okanjo sources, dependencies and polyfills
 const sources = [
 
+    'lib/polyfill/*.js',
+
     'src/Okanjo.js',
     'src/Request.js',
     'src/Cookie.js',
@@ -112,6 +114,8 @@ const sources = [
 
 const metricsOnlyBuildFiles = [
 
+    'lib/polyfill/*.js',
+
     'src/Okanjo.js',
     'src/Request.js',
     'src/Cookie.js',
@@ -125,14 +129,14 @@ const metricsOnlyBuildFiles = [
 // Things that normally expose themselves to the root context, but shouldn't because we need them to not conflict
 const vendorSources = [
     // 'lib/qwery/qwery.js',
-    // 'lib/polyfill/domready.js',
+    // 'lib/polyfill/*.js',
     'lib/mustache.js/mustache.js' //,
     //'build/modal.js'
 ];
 
 const metricsOnlyVendorFiles = [
     // 'lib/qwery/qwery.js',
-    'lib/polyfill/domready.js'
+    // 'lib/polyfill/domready.js'
 ];
 
 
