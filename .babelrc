@@ -1,11 +1,13 @@
 {
   "presets": [
     ["env", {
-      "modules": false,
       "targets": {
-        "browsers": ["> 1%"]
-      }
+        "browsers": ["> 1%", "ie 9"]
+      },
+      "useBuiltIns": true,
+      "debug": true
     }]
   ],
-  "plugins": []
+  "plugins": [
+  ]
 }

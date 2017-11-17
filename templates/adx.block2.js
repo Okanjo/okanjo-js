@@ -1,18 +1,16 @@
-(function(window) {
 
-    const okanjo = window.okanjo;
-    okanjo.ui.engine.registerCss("adx.block2", "@@include(jsStringEscape('adx.block2.css'))", {id: 'okanjo-adx-block2'});
+import okanjo from '/src/Okanjo';
 
-    okanjo.ui.engine.registerTemplate("adx.block2", "@@include(jsStringEscape('adx.block2.mustache'))", function (model) {
+okanjo.ui.engine.registerCss("adx.block2", "@@include(jsStringEscape('adx.block2.css'))", {id: 'okanjo-adx-block2'});
 
-        // Attach required properties
-        model.config = this.config;
-        model.instanceId = this.instanceId;
-        model.metricParams = okanjo.net.request.stringify(this._metricBase);
+okanjo.ui.engine.registerTemplate("adx.block2", "@@include(jsStringEscape('adx.block2.mustache'))", function (model) {
 
-        return model;
-    }, {
-        css: ['adx.block2','okanjo.block2']
-    });
+    // Attach required properties
+    model.config = this.config;
+    model.instanceId = this.instanceId;
+    model.metricParams = okanjo.net.request.stringify(this._metricBase);
 
-})(window);
+    return model;
+}, {
+    css: ['adx.block2','okanjo.block2']
+});

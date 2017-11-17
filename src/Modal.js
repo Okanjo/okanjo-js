@@ -1,236 +1,233 @@
 "use strict";
 
-//noinspection ThisExpressionReferencesGlobalObjectJS,JSUnusedLocalSymbols
-(function(window, document) {
 
-    /*
+/*
 
-     div .modal-container .fade-out .hidden
-     | div .modal-window .clearfix
-     | |
-     | | div .modal-window-skin
-     | | | div .modal-window-outer
-     | | | | div .modal-window-inner
-     | | | | | iframe .okanjo-inline-buy-frame
-     | | | | /div
-     | | | /div
-     | | /div
-     | |
-     | | div .close-button
-     | | | ×
-     | | /div
-     | |
-     | /div
-     /div
+ div .modal-container .fade-out .hidden
+ | div .modal-window .clearfix
+ | |
+ | | div .modal-window-skin
+ | | | div .modal-window-outer
+ | | | | div .modal-window-inner
+ | | | | | iframe .okanjo-inline-buy-frame
+ | | | | /div
+ | | | /div
+ | | /div
+ | |
+ | | div .close-button
+ | | | ×
+ | | /div
+ | |
+ | /div
+ /div
 
-     */
+ */
 
-    const okanjo = window.okanjo;
-    const IS_MOBILE = okanjo.util.isMobile();
-
-    let initialized = false,
-        // scrollY = null,
+class Modal {
+    constructor(okanjo) {
+        this.okanjo = okanjo;
+        this.IS_MOBILE = okanjo.util.isMobile();
+        this.initialized = false;
 
         // Selectors
-        $html, $body, $modalContainer, $modalWindow, $modalSkin, $modalOuter, $modalInner, $modalClose, $modalFrame,
+        this.$html = null;
+        this.$body = null;
+        this.$modalContainer = null;
+        this.$modalWindow = null;
+        this.$modalSkin = null;
+        this.$modalOuter = null;
+        this.$modalInner = null;
+        this.$modalClose = null;
+        this.$modalFrame = null;
+    }
 
-        createElements = function() {
+    createElements() {
+        //noinspection JSUnresolvedFunction
+        this.$html = document.documentElement /* istanbul ignore next: old browsers */ || document.querySelector('html');
+        //noinspection JSUnresolvedFunction
+        this.$body = document.body /* istanbul ignore next: old browsers */ || document.querySelector('body');
 
-            // Page elements
-            //noinspection JSUnresolvedFunction
-            $html = document.documentElement /* istanbul ignore next: old browsers */ || document.querySelector('html');
-            //noinspection JSUnresolvedFunction
-            $body = document.body /* istanbul ignore next: old browsers */ || document.querySelector('body');
+        // Modal elements
+        this.$modalContainer = document.createElement('div');
+        this.$modalWindow = document.createElement('div');
+        this.$modalSkin = document.createElement('div');
+        this.$modalOuter = document.createElement('div');
+        this.$modalInner = document.createElement('div');
+        this.$modalClose = document.createElement('div');
+        this.$modalFrame = document.createElement('iframe');
 
-            // Modal elements
-            $modalContainer = document.createElement('div');
-            $modalWindow = document.createElement('div');
-            $modalSkin = document.createElement('div');
-            $modalOuter = document.createElement('div');
-            $modalInner = document.createElement('div');
-            $modalClose = document.createElement('div');
-            $modalFrame = document.createElement('iframe');
+        this.$modalContainer.setAttribute('class', 'okanjo-modal-container okanjo-modal-hidden ' /*+ okanjo.util.detectClasses().join(' ')*/);
+        this.$modalWindow.setAttribute('class', 'okanjo-modal-window');
+        this.$modalSkin.setAttribute('class', 'okanjo-modal-window-skin');
+        this.$modalOuter.setAttribute('class', 'okanjo-modal-window-outer');
+        this.$modalInner.setAttribute('class', 'okanjo-modal-window-inner');
+        this.$modalClose.setAttribute('class', 'okanjo-modal-close-button');
 
-            $modalContainer.setAttribute('class', 'okanjo-modal-container okanjo-modal-hidden ' /*+ okanjo.util.detectClasses().join(' ')*/);
-            $modalWindow.setAttribute('class', 'okanjo-modal-window');
-            $modalSkin.setAttribute('class', 'okanjo-modal-window-skin');
-            $modalOuter.setAttribute('class', 'okanjo-modal-window-outer');
-            $modalInner.setAttribute('class', 'okanjo-modal-window-inner');
-            $modalClose.setAttribute('class', 'okanjo-modal-close-button');
+        this.$modalFrame.setAttribute('class', 'okanjo-inline-buy-frame');
+        this.$modalFrame.setAttribute('frameborder', '0');
+        this.$modalFrame.setAttribute('vspace', '0');
+        this.$modalFrame.setAttribute('hspace', '0');
+        this.$modalFrame.setAttribute('webkitallowfullscreen', '');
+        this.$modalFrame.setAttribute('mozallowfullscreen', '');
+        this.$modalFrame.setAttribute('allowfullscreen', '');
+        this.$modalFrame.setAttribute('scrolling', 'auto');
 
-            $modalFrame.setAttribute('class', 'okanjo-inline-buy-frame');
-            $modalFrame.setAttribute('frameborder', '0');
-            $modalFrame.setAttribute('vspace', '0');
-            $modalFrame.setAttribute('hspace', '0');
-            $modalFrame.setAttribute('webkitallowfullscreen', '');
-            $modalFrame.setAttribute('mozallowfullscreen', '');
-            $modalFrame.setAttribute('allowfullscreen', '');
-            $modalFrame.setAttribute('scrolling', 'auto');
+        this.$modalClose.innerHTML = '×';
 
-            $modalClose.innerHTML = '×';
+        // Create the modal element tree
+        this.$modalInner.appendChild(this.$modalFrame);
+        this.$modalOuter.appendChild(this.$modalInner);
+        this.$modalSkin.appendChild(this.$modalOuter);
+        this.$modalWindow.appendChild(this.$modalSkin);
+        this.$modalWindow.appendChild(this.$modalClose);
+        this.$modalContainer.appendChild(this.$modalWindow);
 
-            // Create the modal element tree
-            $modalInner.appendChild($modalFrame);
-            $modalOuter.appendChild($modalInner);
-            $modalSkin.appendChild($modalOuter);
-            $modalWindow.appendChild($modalSkin);
-            $modalWindow.appendChild($modalClose);
-            $modalContainer.appendChild($modalWindow);
+        // Add the modal stuff to the body
+        this.$body.appendChild(this.$modalContainer);
+    }
 
-            // Add the modal stuff to the body
-            $body.appendChild($modalContainer);
-        },
+    addListener(el, event, handler) {
+        /* istanbul ignore else: old browsers */
+        if (el.addEventListener) {
+            el.addEventListener(event, handler, false);
+        } else {
+            el.attachEvent("on" + event, handler);
+        }
+    }
 
-        addListener = function(el, event, handler) {
-            /* istanbul ignore else: old browsers */
-            if (el.addEventListener) {
-                el.addEventListener(event, handler, false);
-            } else {
-                el.attachEvent("on" + event, handler);
+    getWindowHeight() {
+        return window.innerHeight /* istanbul ignore next: old browsers */ || document.documentElement.clientHeight;
+    }
+
+    handleReposition() {
+        // scrollY = okanjo.ui.getScrollPosition().y;
+        //$modalWindow.style.marginTop = scrollY + 40 + "px";
+        this.$modalWindow.style.height = (this.getWindowHeight() - 80) + "px";
+    }
+
+    bindEvents() {
+
+        // If the device orientation changes, adjust the modal view port
+        this.addListener(window, 'orientationchange', () => {
+            for (let t = 0; t < 2; t++) {
+                setTimeout(this.handleReposition.bind(this), 1000 * t + 10);
             }
-        },
+        });
 
-        getWindowHeight = function() {
-            return window.innerHeight /* istanbul ignore next: old browsers */ || document.documentElement.clientHeight;
-        },
+        // If the window changes size, also adjust the modal view port
+        this.addListener(window, 'resize', () => {
+            setTimeout(this.handleReposition.bind(this), 100);
+        });
 
-        handleReposition = function() {
-            // scrollY = okanjo.ui.getScrollPosition().y;
-            //$modalWindow.style.marginTop = scrollY + 40 + "px";
-            $modalWindow.style.height = (getWindowHeight() - 80) + "px";
-        },
+        // Click the overlay to close the modal
+        this.addListener(this.$modalContainer, 'click', this.closeModal.bind(this));
 
-        bindEvents = function() {
+        // If you click in the modal, don't close it!
+        this.addListener(this.$modalWindow, 'click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
 
-            // If the device orientation changes, adjust the modal view port
-            addListener(window, 'orientationchange', function() {
-                for (let t = 0; t < 2; t++) {
-                    setTimeout(handleReposition, 1000 * t + 10);
-                }
-            });
+        // Click the close button to close it
+        this.addListener(this.$modalClose, 'click', (e) => {
 
-            // If the window changes size, also adjust the modal view port
-            addListener(window, 'resize', function() {
-                setTimeout(handleReposition, 100);
-            });
+            // Don't close it twice
+            e.preventDefault();
+            e.stopPropagation();
 
-            // Click the overlay to close the modal
-            addListener($modalContainer, 'click', closeModal);
+            this.closeModal();
+        });
 
-            // If you click in the modal, don't close it!
-            addListener($modalWindow, 'click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            });
+    }
 
-            // Click the close button to close it
-            addListener($modalClose, 'click', function(e) {
+    addClass(el, name) {
+        el.className += " " + name;
+    }
 
-                // Don't close it twice
-                e.preventDefault();
-                e.stopPropagation();
+    removeClass(el, name) {
+        el.className = el.className.replace(new RegExp(' *?'+name), '');
+    }
 
-                closeModal();
-            });
+    openModal() {
 
-        },
+        // scrollY = document.body.scrollTop;
 
-        //removeListener = function(el, event, handler) {
-        //    if (el.removeEventListener) {
-        //        el.removeEventListener(event, handler);
-        //    } else {
-        //        el.detachEvent("on" + event, handler);
-        //    }
-        //},
+        this.removeClass(this.$modalContainer, 'okanjo-modal-hidden');
+        this.addClass(this.$modalContainer, 'okanjo-modal-fade-out');
 
-        addClass = function(el, name) {
-            el.className += " " + name;
-        },
+        this.handleReposition();
 
-        removeClass = function(el, name) {
-            el.className = el.className.replace(new RegExp(' *?'+name), '');
-        },
+        this.addClass(this.$html, "okanjo-modal-active");
 
-        openModal = function() {
-
-            // scrollY = document.body.scrollTop;
-
-            removeClass($modalContainer, 'okanjo-modal-hidden');
-            addClass($modalContainer, 'okanjo-modal-fade-out');
-
-            handleReposition();
-
-            addClass($html, "okanjo-modal-active");
-
-            if (!IS_MOBILE) {
-                addClass($html, "okanjo-modal-margin-fix");
-            }
-
-            setTimeout(function() {
-                removeClass($modalContainer, 'okanjo-modal-fade-out');
-            }, 10);
-
-            // Click the overlay to close the modal
-            //addListener($body, 'click', closeModal);
-
-        },
-
-        closeModal = function() {
-            addClass($modalContainer, 'okanjo-modal-fade-out');
-
-            setTimeout(function() {
-                removeClass($modalContainer, 'okanjo-modal-fade-out');
-                addClass($modalContainer, "okanjo-modal-hidden");
-
-                removeClass($html, "okanjo-modal-active");
-                if (!IS_MOBILE) {
-                    removeClass($html, "okanjo-modal-margin-fix");
-                }
-            }, 210);
-
-            // Click the overlay to close the modal
-            //removeListener($body, 'click', closeModal);
-        },
-
-        /**
-         * Insert an element or markup into the modal
-         * @param content
-         */
-        setContent = function(content) {
-
-            // Remove existing content
-            $modalInner.innerHTML = "";
-
-            // Insert new content
-            if (typeof content === "string") {
-                $modalInner.innerHTML = content;
-            } else {
-                $modalInner.appendChild(content);
-            }
-        };
-
-
-    // Expose the modal functions
-    okanjo.ui.modal = {
-
-        show: function(content) {
-
-            if (!initialized) {
-                initialized = true;
-                createElements();
-                bindEvents();
-            }
-
-            setContent(content);
-            openModal();
-        },
-
-        hide: function() {
-            closeModal();
+        if (!this.IS_MOBILE) {
+            this.addClass(this.$html, "okanjo-modal-margin-fix");
         }
 
-    };
+        setTimeout(() => {
+            this.removeClass(this.$modalContainer, 'okanjo-modal-fade-out');
+        }, 10);
 
-    return okanjo.ui.modal;
+        // Click the overlay to close the modal
+        //addListener($body, 'click', closeModal);
 
-})(window, document);
+    }
+
+    closeModal() {
+        this.addClass(this.$modalContainer, 'okanjo-modal-fade-out');
+
+        setTimeout(() => {
+            this.removeClass(this.$modalContainer, 'okanjo-modal-fade-out');
+            this.addClass(this.$modalContainer, "okanjo-modal-hidden");
+
+            this.removeClass(this.$html, "okanjo-modal-active");
+            if (!this.IS_MOBILE) {
+                this.removeClass(this.$html, "okanjo-modal-margin-fix");
+            }
+        }, 210);
+
+        // Click the overlay to close the modal
+        //removeListener($body, 'click', closeModal);
+    }
+
+    /**
+     * Insert an element or markup into the modal
+     * @param content
+     */
+    setContent(content) {
+
+        // Remove existing content
+        this.$modalInner.innerHTML = "";
+
+        // Insert new content
+        if (typeof content === "string") {
+            this.$modalInner.innerHTML = content;
+        } else {
+            this.$modalInner.appendChild(content);
+        }
+    }
+
+    //removeListener(el, event, handler) {
+    //    if (el.removeEventListener) {
+    //        el.removeEventListener(event, handler);
+    //    } else {
+    //        el.detachEvent("on" + event, handler);
+    //    }
+    //}
+
+    show(content) {
+        if (!this.initialized) {
+            this.initialized = true;
+            this.createElements();
+            this.bindEvents();
+        }
+
+        this.setContent(content);
+        this.openModal();
+    }
+
+    hide() {
+        this.closeModal();
+    }
+}
+
+export default Modal;

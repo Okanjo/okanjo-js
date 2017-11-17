@@ -38,6 +38,7 @@
 
 "use strict";
 
+const Browserify = require('browserify');
 const Gulp = require('gulp');
 const Path = require('path');
 const FS = require('fs');
@@ -45,6 +46,7 @@ const Del = require('del');
 const AWSPublish = require('gulp-awspublish');
 const Bower = require('gulp-bower');
 const Babel = require('gulp-babel');
+const Babelify = require('babelify');
 const Bump = require('gulp-bump');
 const Concat = require('gulp-concat');
 const FileInclude = require('gulp-file-include');
@@ -66,6 +68,7 @@ const UMD = require('gulp-umd');
 const Wrap = require('gulp-wrap');
 const JSEscapeString = require('js-string-escape');
 const LessPluginAutoPrefix = require('less-plugin-autoprefix');
+const VinylSource = require('vinyl-source-stream');
 
 // Auto add vendor prefixes in CSS
 const autoprefix = new LessPluginAutoPrefix({ browsers: ["> 5%"] });
@@ -111,6 +114,8 @@ const sources = [
 ];
 
 const metricsOnlyBuildFiles = [
+
+    // 'node_modules/babel-polyfill/lib/index.js',
 
     'src/Okanjo.js',
     'src/Request.js',
@@ -169,6 +174,39 @@ const deployFiles = [
 // OKANJO-METRICS.JS ===========================================================================================================
 //
 
+const bundler = Browserify({
+    debug: true,
+    entries: 'OkanjoBundle.js'
+});
+
+//bundler.external(...);
+
+bundler.transform(Babelify);
+
+
+Gulp.task('module-build', ['join-templates'], () => {
+    bundler
+        .bundle()
+        // .on('error', (err) => { console.error('Browserify Error:', err.message, err.stack); })
+        .pipe(VinylSource('okanjo-better-bundle.js'))
+        .pipe(Gulp.dest('build'))
+    // .pipe(Uglify({
+    //     preserveComments: 'some'
+    // }))
+    // .pipe(Rename('okanjo-better-bundle.min.js'))
+    // .pipe(Gulp.dest('build'))
+    ;
+});
+
+Gulp.task('module-build-min', ['module-build'], () => {
+    return Gulp.src('build/okanjo-better-bundle.js')
+    .pipe(Uglify({
+        preserveComments: 'some'
+    }))
+    .pipe(Rename('okanjo-better-bundle.min.js'))
+    .pipe(Gulp.dest('build'))
+    ;
+});
 
 Gulp.task('vendor-metrics', ['deps'], function() {
     return Gulp.src(metricsOnlyVendorFiles)
@@ -186,6 +224,7 @@ Gulp.task('min-metrics', ['vendor-metrics'], function() {
         .pipe(SourceMaps.init())
         .pipe(Replace(/%%OKANJO_VERSION/, packageJson.version))
         .pipe(Concat('okanjo-metrics.js'))
+
         .pipe(Babel())
         .pipe(UMD({
             exports: function() {
@@ -376,6 +415,7 @@ Gulp.task('join-templates', ['min-mustache-templates', 'min-css-templates'], fun
             },
             basepath: 'build/templates/'
         }))
+        .pipe(Replace('/src/Okanjo', '../../src/Okanjo'))
         .pipe(Gulp.dest('build/templates'))
 });
 
