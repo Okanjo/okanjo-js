@@ -3631,11 +3631,11 @@ var okanjo = function (window, document) {
                             a.addEventListener('click', _this16._handleProductClick.bind(_this16, product));
 
                             // Track impression
-                            okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this16.getConfig()).meta({ bf: product.backfill ? 1 : 0 }).element(a).send();
+                            okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this16.getConfig()).meta({ bf: product.backfill ? 1 : 0 }).element(a).viewport().send();
 
                             // Start watching for a viewable impression
                             _this16._addOnceViewedHandler(a, function () {
-                                okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.view).meta(_this16.getConfig()).meta({ bf: product.backfill ? 1 : 0 }).element(a).send();
+                                okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.view).meta(_this16.getConfig()).meta({ bf: product.backfill ? 1 : 0 }).element(a).viewport().send();
                             });
                         }
                     }
@@ -3822,11 +3822,11 @@ var okanjo = function (window, document) {
                             a.addEventListener('click', _this17._handleArticleClick.bind(_this17, article));
 
                             // Track impression
-                            okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this17.getConfig()).meta({ bf: article.backfill ? 1 : 0 }).element(a).send();
+                            okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this17.getConfig()).meta({ bf: article.backfill ? 1 : 0 }).element(a).viewport().send();
 
                             // Start watching for a viewable impression
                             _this17._addOnceViewedHandler(a, function () {
-                                okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.view).meta(_this17.getConfig()).meta({ bf: article.backfill ? 1 : 0 }).element(a).send();
+                                okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.view).meta(_this17.getConfig()).meta({ bf: article.backfill ? 1 : 0 }).element(a).viewport().send();
                             });
                         }
                     }
@@ -3956,7 +3956,7 @@ var okanjo = function (window, document) {
                         ta_s: adUnitPath,
                         ta_w: size.width,
                         ta_h: size.height
-                    }).element(frame).toUrl();
+                    }).element(frame).viewport().toUrl();
 
                     // Transfer references to the frame window
                     // frame.contentWindow.okanjo = okanjo;
@@ -3966,7 +3966,7 @@ var okanjo = function (window, document) {
                             ta_s: adUnitPath,
                             ta_w: size.width,
                             ta_h: size.height
-                        }).element(frame).send();
+                        }).element(frame).viewport().send();
 
                         // Start watching for a viewable impression
                         _this18._addOnceViewedHandler(frame, function () {
@@ -3974,7 +3974,7 @@ var okanjo = function (window, document) {
                                 ta_s: adUnitPath,
                                 ta_w: size.width,
                                 ta_h: size.height
-                            }).element(frame).send();
+                            }).element(frame).viewport().send();
                         });
                     };
 

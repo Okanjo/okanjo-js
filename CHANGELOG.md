@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2017-12-14 – v1.5.2
+ * Added missing viewport info on various impression events
+
 ## 2017-11-17 – v1.5.1
  * Added polyfills for old IE (support down to IE 10, Edge 14)
  * Removed unused domready shim

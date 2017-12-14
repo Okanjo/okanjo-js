@@ -653,6 +653,7 @@
                             .meta(this.getConfig())
                             .meta({ bf: product.backfill ? 1 : 0 })
                             .element(a)
+                            .viewport()
                             .send();
 
                         // Start watching for a viewable impression
@@ -662,6 +663,7 @@
                                 .meta(this.getConfig())
                                 .meta({ bf: product.backfill ? 1 : 0 })
                                 .element(a)
+                                .viewport()
                                 .send();
                         });
                     }
@@ -852,6 +854,7 @@
                             .meta(this.getConfig())
                             .meta({ bf: article.backfill ? 1 : 0 })
                             .element(a)
+                            .viewport()
                             .send();
 
                         // Start watching for a viewable impression
@@ -861,6 +864,7 @@
                                 .meta(this.getConfig())
                                 .meta({ bf: article.backfill ? 1 : 0 })
                                 .element(a)
+                                .viewport()
                                 .send();
                         });
 
@@ -989,6 +993,7 @@
                         ta_h: size.height
                     })
                     .element(frame)
+                    .viewport()
                     .toUrl();
 
                 // Transfer references to the frame window
@@ -1004,6 +1009,7 @@
                             ta_h: size.height
                         })
                         .element(frame)
+                        .viewport()
                         .send()
                     ;
 
@@ -1018,6 +1024,7 @@
                                 ta_h: size.height
                             })
                             .element(frame)
+                            .viewport()
                             .send()
                         ;
                     });
