@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2017-12-14 – v1.5.3
+ * Fixed widget impression firing before content was rendered 
+
 ## 2017-12-14 – v1.5.2
  * Added missing viewport info on various impression events
 

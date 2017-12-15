@@ -3582,15 +3582,6 @@ var okanjo = function (window, document) {
                 // Determine template to render, using custom template name if it exists
                 var templateName = this._getTemplate(Placement.ContentTypes.products, Placement.DefaultTemplates.products);
 
-                // Track widget impression
-                if (data.results.length === 0) {
-                    // Hook point for no results found
-                    this.emit('empty');
-                    this._reportWidgetLoad('empty'); // decline the impression
-                } else {
-                    this._reportWidgetLoad();
-                }
-
                 // - render
 
                 // Format products
@@ -3612,6 +3603,15 @@ var okanjo = function (window, document) {
 
                 // Render and display the results
                 this.setMarkup(okanjo.ui.engine.render(templateName, this));
+
+                // Track widget impression
+                if (data.results.length === 0) {
+                    // Hook point for no results found
+                    this.emit('empty');
+                    this._reportWidgetLoad('empty'); // decline the impression
+                } else {
+                    this._reportWidgetLoad();
+                }
 
                 // Bind interaction handlers and track impressions
                 this.element.querySelectorAll('a').forEach(function (a) {
@@ -3783,15 +3783,6 @@ var okanjo = function (window, document) {
                 // Determine template to render, using custom template name if it exists
                 var templateName = this._getTemplate(Placement.ContentTypes.articles, Placement.DefaultTemplates.articles);
 
-                // Track widget impression
-                if (data.results.length === 0) {
-                    // Hook point for no results found
-                    this.emit('empty');
-                    this._reportWidgetLoad('empty'); // decline the impression
-                } else {
-                    this._reportWidgetLoad();
-                }
-
                 // - render
 
                 // Format articles
@@ -3803,6 +3794,15 @@ var okanjo = function (window, document) {
 
                 // Render and display the results
                 this.setMarkup(okanjo.ui.engine.render(templateName, this));
+
+                // Track widget impression
+                if (data.results.length === 0) {
+                    // Hook point for no results found
+                    this.emit('empty');
+                    this._reportWidgetLoad('empty'); // decline the impression
+                } else {
+                    this._reportWidgetLoad();
+                }
 
                 // Bind interaction handlers and track impressions
                 this.element.querySelectorAll('a').forEach(function (a) {
@@ -3907,11 +3907,10 @@ var okanjo = function (window, document) {
                 // If we're using okanjo's ad slot, then track the impression
                 // otherwise decline it because we're just passing through to the publishers account
                 var adUnitPath = '/90447967/okanjo:<publisher>';
+                var declineReason = void 0;
                 if (data.settings.display && data.settings.display.adx_unit_path) {
                     adUnitPath = data.settings.display.adx_unit_path;
-                    this._reportWidgetLoad('empty'); // decline the impression
-                } else {
-                    this._reportWidgetLoad(); // accept it because we're serving out of our exchange
+                    declineReason = 'custom_ad_unit';
                 }
 
                 // Pass along what the template needs to know to display the ad
@@ -3922,6 +3921,9 @@ var okanjo = function (window, document) {
 
                 // Render the container
                 this.setMarkup(okanjo.ui.engine.render(templateName, this, renderContext));
+
+                // Report the impression
+                this._reportWidgetLoad(declineReason);
 
                 // Insert the actual ad into the container
                 var container = this.element.querySelector('.okanjo-adx-container');

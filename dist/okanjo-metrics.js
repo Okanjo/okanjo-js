@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v1.5.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v1.5.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -319,7 +319,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.5.1",
+        version: "1.5.2",
 
         /**
          * Placeholder
