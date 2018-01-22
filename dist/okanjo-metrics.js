@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v1.5.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v1.5.3 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -319,7 +319,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.5.2",
+        version: "1.5.3",
 
         /**
          * Placeholder
@@ -764,17 +764,25 @@ var okanjo = function (window, document) {
             var err = 'Could not get position of element. Did you attach the element to the DOM before initializing?';
             try {
                 var rect = element.getBoundingClientRect();
-                var pos = okanjo.ui.getScrollPosition();
+                var body = document.body.getBoundingClientRect();
+                // let pos = okanjo.ui.getScrollPosition();
 
                 /* istanbul ignore else: jsdom doesn't mock this */
                 if (!document.body.contains(element)) {
                     okanjo.report(err, element);
                 }
                 return {
-                    x1: rect.left + pos.x,
-                    y1: rect.top + pos.y,
-                    x2: rect.right + pos.x,
-                    y2: rect.bottom + pos.y
+                    // x1: rect.left + pos.x,
+                    // y1: rect.top + pos.y,
+                    // x2: rect.right + pos.x,
+                    // y2: rect.bottom + pos.y
+
+                    // This might fix
+                    x1: rect.left - body.left,
+                    y1: rect.top - body.top,
+                    x2: rect.right - body.left,
+                    y2: rect.bottom - body.top
+
                 };
             } catch (e) {
                 okanjo.report(err, { exception: e, element: element });

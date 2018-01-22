@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2018-01-22 – v1.5.4
+ * Adjusted element position algorithm in an attempt to reconcile differences with mobile browsers and zooming
+
 ## 2017-12-14 – v1.5.3
  * Fixed widget impression firing before content was rendered 
 
