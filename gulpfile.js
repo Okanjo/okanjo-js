@@ -43,7 +43,7 @@ const Path = require('path');
 const FS = require('fs');
 const Del = require('del');
 const AWSPublish = require('gulp-awspublish');
-const Bower = require('gulp-bower');
+// const Bower = require('gulp-bower');
 const Babel = require('gulp-babel');
 const Bump = require('gulp-bump');
 const Concat = require('gulp-concat');
@@ -128,14 +128,14 @@ const metricsOnlyBuildFiles = [
 
 // Things that normally expose themselves to the root context, but shouldn't because we need them to not conflict
 const vendorSources = [
-    // 'lib/qwery/qwery.js',
+    // 'node_modules/qwery/qwery.js',
     // 'lib/polyfill/*.js',
-    'lib/mustache.js/mustache.js' //,
+    'node_modules/mustache/mustache.js' //,
     //'build/modal.js'
 ];
 
 const metricsOnlyVendorFiles = [
-    // 'lib/qwery/qwery.js',
+    // 'node_modules/qwery/qwery.js',
     // 'lib/polyfill/domready.js'
 ];
 
@@ -147,7 +147,7 @@ const bundleSources = [
 
 const versionFiles = [
     'package.json',
-    'bower.json'
+    // 'bower.json'
 ];
 
 const deployFiles = [
@@ -174,7 +174,7 @@ const deployFiles = [
 //
 
 
-Gulp.task('vendor-metrics', ['deps'], function() {
+Gulp.task('vendor-metrics', [/*'deps'*/], function() {
     return Gulp.src(metricsOnlyVendorFiles)
         .pipe(Concat('vendor-metrics.js'))
         .pipe(Wrap({ src: 'lib/vendor.js.tpl' }))
@@ -228,10 +228,10 @@ Gulp.task('fix-maps-metrics', ['min-metrics'], function() {
 // OKANJO.JS ===========================================================================================================
 //
 
-Gulp.task('deps', function() {
-    return Gulp.src([])
-        .pipe(Bower())
-});
+// Gulp.task('deps', function() {
+//     return Gulp.src([])
+//         .pipe(Bower())
+// });
 
 
 //gulp.task('modal', function() {
@@ -242,7 +242,7 @@ Gulp.task('deps', function() {
 //});
 
 
-Gulp.task('vendor', ['deps'], function() {
+Gulp.task('vendor', [/*'deps'*/], function() {
     return Gulp.src(vendorSources)
         .pipe(Concat('vendor.js'))
         .pipe(Wrap({ src: 'lib/vendor.js.tpl' }))

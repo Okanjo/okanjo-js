@@ -123,7 +123,7 @@ class TestUtil {
         global.okanjo.ui.engine.should.be.ok();
 
         // get Mustache loaded on too
-        const Mustache = require('../lib/mustache.js/mustache');
+        const Mustache = require('mustache');
         global.okanjo.lib.Mustache = Mustache;
         Mustache.render.should.be.ok();
     }

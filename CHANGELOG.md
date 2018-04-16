@@ -3,6 +3,15 @@
 
 When stuff changes, it's described here.
 
+## Unreleased
+
+Housekeeping:
+ * Moved docs from okanjo-docs to README.md
+ * Removed bower from build flow
+ * Added yarn lockfile
+ * Updated build flow and tests to work without bower
+ * Added travis-ci integration
+
 ## 2018-01-22 – v1.5.4
  * Adjusted element position algorithm in an attempt to reconcile differences with mobile browsers and zooming
 
