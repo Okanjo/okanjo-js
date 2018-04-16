@@ -2467,16 +2467,7 @@ gulp-filter@^2.0.2:
     plexer "0.0.3"
     through2 "^0.6.1"
 
-gulp-git@^1.1.0:
-  version "1.15.1"
-  resolved "https://registry.yarnpkg.com/gulp-git/-/gulp-git-1.15.1.tgz#cdd9d354fc41d8dcb52cef47256dfba366785979"
-  dependencies:
-    any-shell-escape "^0.1.1"
-    gulp-util "^3.0.6"
-    require-dir "^0.1.0"
-    through2 "^0.6.5"
-
-gulp-git@^2.4.2:
+gulp-git@^2.4.2, gulp-git@^2.5.2:
   version "2.5.2"
   resolved "https://registry.yarnpkg.com/gulp-git/-/gulp-git-2.5.2.tgz#a76f9a9d41783bc90ab0e4fa80e336c991537ac9"
   dependencies:
@@ -4907,10 +4898,6 @@ request@2.81.0:
     tunnel-agent "^0.6.0"
     uuid "^3.0.0"
 
-require-dir@^0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/require-dir/-/require-dir-0.1.0.tgz#81e01e299faf5b74c34b6594f8e5add5985ddec5"
-
 require-dir@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/require-dir/-/require-dir-1.0.0.tgz#c2639de72960ea1ee280279f2da35e03c6536b2d"
@@ -5533,7 +5520,7 @@ through2@^0.5.0, through2@^0.5.1:
     readable-stream "~1.0.17"
     xtend "~3.0.0"
 
-through2@^0.6.1, through2@^0.6.3, through2@^0.6.5, through2@~0.6.1, through2@0.x:
+through2@^0.6.1, through2@^0.6.3, through2@~0.6.1, through2@0.x:
   version "0.6.5"
   resolved "https://registry.yarnpkg.com/through2/-/through2-0.6.5.tgz#41ab9c67b29d57209071410e1d7a7a968cd3ad48"
   dependencies:

@@ -11,6 +11,7 @@ Housekeeping:
  * Added yarn lockfile
  * Updated build flow and tests to work without bower
  * Added travis-ci integration
+ * Updated gulp-git to latest to work with node 8+
 
 ## 2018-01-22 – v1.5.4
  * Adjusted element position algorithm in an attempt to reconcile differences with mobile browsers and zooming
