@@ -1,0 +1,27 @@
+sudo: true
+language: node_js
+node_js:
+- lts/*
+- '6'
+script:
+- npm run report
+after_script:
+- npm install coveralls@2.10.0 && cat ./coverage/lcov.info | ./node_modules/.bin/coveralls
+before_deploy:
+- mkdir ./deploy && cp ./README.md ./deploy
+deploy:
+  provider: s3
+  access_key_id:
+    secure: T1G9TKv3L7BUlFSmKbeM4uzqZGB3saIjkwuqZchva1a16fzJ5zkeRRLi7n8g/NUTtKpxJfZw5+n7Kc+bs4VBHTMwXIFz3kKpUjpIZdTmjonDXXWL0bz6MHQU0hcVJedx4HkwUERH1EDJ9UtyH1h15V9X3J9hlsIOD2/bHp49H3M=
+  secret_access_key:
+    secure: CEYozX16Dz7SM6lxdOEChtSZfPkETMFijx+bCOxd38E4WCyRYT1Z8eEgABY+44LFtox4IO6mGkfmzcieK1myn9Hvrn8tO7is5tOiIpx9yp48lJCQ/A9oI1g7/lw84s06CFvhz7ks2QgJjAfq/FHnOyPmwluPBDFY5ZLwkXMU5Rk=
+  bucket: okanjo-docs
+  skip_cleanup: true
+  upload-dir: okanjo-js
+  acl: public_read
+  detect_encoding: true
+  default_text_charset: utf-8
+  local_dir: deploy
+  on:
+    branch: master
+    repo: Okanjo/okanjo-js
