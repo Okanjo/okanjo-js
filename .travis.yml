@@ -1,8 +1,8 @@
 sudo: true
 language: node_js
 node_js:
-- lts/*
 - '6'
+#- lts/*
 script:
 - npm run report
 after_script:
