@@ -669,7 +669,7 @@ sort_direction ((optional)) ((string))
 These parameters affect the visual appearance of placements. 
 
 size ((optional)) ((string))
-:   Optimizes the placement for a particular ad size. Available sizes: `medium_rectangle` (2 resources), `leaderboard` (3 resources), `large_mobile_banner` (1 resource), `half_page` (5 resources).
+:   Optimizes the placement for a particular ad size. Available sizes: `medium_rectangle` (2 resources), `leaderboard` (3 resources), `large_mobile_banner` (1 resource), `half_page` (5 resources), `billboard` (6 resources).
 template_name ((optional)) ((string))
 :   Specifies the template to use. Unless you have made your own custom template set, this must be set to `block2`.
 template_layout ((optional)) ((string))
