@@ -2,6 +2,9 @@
 node_modules
 build/
 test/
+local-test
+examples
+coverage
 lib/mustache.js
 lib/qwery
 lib/raven-js

@@ -1,4 +1,4 @@
-/*! okanjo-js v1.5.4 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.6.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -323,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.5.4",
+        version: "1.6.0",
 
         /**
          * Placeholder
@@ -4027,9 +4027,9 @@ var okanjo = function (window, document) {
         leaderboard: { width: 728, height: 90 },
         large_mobile_banner: { width: 320, height: 100 },
         half_page: { width: 300, height: 600 }, // aka: filmstrip, sidekick
+        billboard: { width: 970, height: 250 }, // aka: sidekick
 
         // IAB / Others
-        billboard: { width: 970, height: 250 }, // aka: sidekick
         button_2: { width: 120, height: 60 },
         micro_bar: { width: 88, height: 31 },
         portrait: { width: 300, height: 1050 },

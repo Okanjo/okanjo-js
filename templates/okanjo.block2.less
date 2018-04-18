@@ -313,6 +313,38 @@
     }
   }
 
+  &.billboard {
+    width: 970px;
+    height: 250px;
+    overflow: hidden;
+
+    .okanjo-resource {
+      width: 160px;
+      height: 248px;
+
+      &:first-child {
+        width: 163px;
+        height: 248px;
+      }
+
+      &.list {
+        width: 322px;
+        height: 123px;
+
+        .okanjo-resource-image-container {
+          width: 100px;
+          height: 100px;
+          line-height: 1px; // top aligned
+        }
+        .okanjo-resource-info-container {
+          height: auto;
+          float: left;
+          width: 165px;
+        }
+      }
+    }
+  }
+
   // full width list format
   &.auto {
     font-size: 1em;

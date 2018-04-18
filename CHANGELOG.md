@@ -3,7 +3,8 @@
 
 When stuff changes, it's described here.
 
-## Unreleased
+## 2018-04-18 – v1.6.1
+ * Added support for size `billboard` (970x250)
 
 Housekeeping:
  * Moved docs from okanjo-docs to README.md

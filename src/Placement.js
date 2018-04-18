@@ -1075,9 +1075,9 @@
         leaderboard:            { width: 728, height:  90 },
         large_mobile_banner:    { width: 320, height: 100 },
         half_page:              { width: 300, height: 600 }, // aka: filmstrip, sidekick
+        billboard:              { width: 970, height: 250 }, // aka: sidekick
 
         // IAB / Others
-        billboard:              { width: 970, height: 250 }, // aka: sidekick
         button_2:               { width: 120, height:  60 },
         micro_bar:              { width:  88, height:  31 },
         portrait:               { width: 300, height:1050 },
