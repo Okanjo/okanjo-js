@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2018-07-17 – v1.7.1
+ * Added support for `url_paths` and `not_url_paths` filters
+
 ## 2018-04-18 – v1.6.1
  * Added support for size `billboard` (970x250)
 

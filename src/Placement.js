@@ -71,6 +71,8 @@
                 url: string().group(FILTERS),
                 url_referrer: string().group(FILTERS).strip(),
                 url_selectors: string().group(FILTERS),
+                url_paths: array().group(FILTERS),
+                not_url_paths: array().group(FILTERS),
 
                 // Filter by hierarchy
                 organization_id: string().group(FILTERS),
