@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2018-08-14 – v1.7.2
+ * Removed hard coded protocol for pixel indicators
+
 ## 2018-07-17 – v1.7.1
  * Added support for `url_paths` and `not_url_paths` filters
 
