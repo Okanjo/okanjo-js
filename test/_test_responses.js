@@ -8,6 +8,7 @@ module.exports.getExampleAdxResponse = () => {
             article: null,
             test: null,
             backfilled: true,
+            shortfilled: false,
             results: [],
             total: 0,
             settings: {
@@ -25,6 +26,7 @@ module.exports.getExampleArticlesResponse = () => {
         data: {
             type: 'articles',
             backfilled: false,
+            shortfilled: false,
             article: null,
             test: null,
             results: [
@@ -46,7 +48,9 @@ module.exports.getExampleArticlesResponse = () => {
                     "property_id": "prop_test_2gWFnrrPHhoJPDQoE",
                     "placement_id": "placement_test_2gWFnrrPHhoJPDQoC",
                     "created": "2017-05-12T14:05:44.567Z",
-                    "updated": "2017-05-12T14:05:45.460Z"
+                    "updated": "2017-05-12T14:05:45.460Z",
+                    "backfill": false,
+                    "shortfill": false
                 },
                 {
                     "id": "article_test_2gWFnrrPHhoJPDQoA",
@@ -78,7 +82,9 @@ module.exports.getExampleArticlesResponse = () => {
                     "property_id": "prop_test_2gWFnrrPHhoJPDQo8",
                     "placement_id": "placement_test_2gWFnrrPHhoJPDQo9",
                     "created": "2017-05-12T14:05:44.554Z",
-                    "updated": "2017-05-12T14:05:44.561Z"
+                    "updated": "2017-05-12T14:05:44.561Z",
+                    "backfill": false,
+                    "shortfill": false
                 },
                 {
                     "id": "article_test_2gWFnrrPHhoJPDQoA",
@@ -110,7 +116,9 @@ module.exports.getExampleArticlesResponse = () => {
                     "property_id": "prop_test_2gWFnrrPHhoJPDQo8",
                     "placement_id": "placement_test_2gWFnrrPHhoJPDQo9",
                     "created": "2017-05-12T14:05:44.554Z",
-                    "updated": "2017-05-12T14:05:44.561Z"
+                    "updated": "2017-05-12T14:05:44.561Z",
+                    "backfill": false,
+                    "shortfill": false
                 },
                 {
                     "id": "article_test_2gWFnrrPHhoJPDQoA",
@@ -142,7 +150,9 @@ module.exports.getExampleArticlesResponse = () => {
                     "property_id": "prop_test_2gWFnrrPHhoJPDQo8",
                     "placement_id": "placement_test_2gWFnrrPHhoJPDQo9",
                     "created": "2017-05-12T14:05:44.554Z",
-                    "updated": "2017-05-12T14:05:44.561Z"
+                    "updated": "2017-05-12T14:05:44.561Z",
+                    "backfill": false,
+                    "shortfill": false
                 },
                 {
                     "id": "article_test_2gWFnrrPHhoJPDQoA",
@@ -174,7 +184,9 @@ module.exports.getExampleArticlesResponse = () => {
                     "property_id": "prop_test_2gWFnrrPHhoJPDQo8",
                     "placement_id": "placement_test_2gWFnrrPHhoJPDQo9",
                     "created": "2017-05-12T14:05:44.554Z",
-                    "updated": "2017-05-12T14:05:44.561Z"
+                    "updated": "2017-05-12T14:05:44.561Z",
+                    "backfill": false,
+                    "shortfill": false
                 }
             ],
             total: 2,
@@ -197,6 +209,7 @@ module.exports.getExampleProductResponse = () => {
         data: {
             type: 'products',
             backfilled: false,
+            shortfilled: false,
             article: { id: 'article_local_2gT3kBcwVQZ1kpEma' },
             test: null,
             results: [
@@ -230,7 +243,9 @@ module.exports.getExampleProductResponse = () => {
                         "curator_email": "support@okanjo.com"
                     },
                     "created": "2017-05-02T19:00:05.519Z",
-                    "updated": null
+                    "updated": null,
+                    "backfill": false,
+                    "shortfill": false
                 }, {
                     "id": "product_test_2gT3kBcwVQZ1kpEmb",
                     "store_id": "store_2gT3kBcwVQZ1kpEmc",
@@ -261,7 +276,9 @@ module.exports.getExampleProductResponse = () => {
                         "curator_email": "support@okanjo.com"
                     },
                     "created": "2017-04-30T19:00:14.114Z",
-                    "updated": "2017-05-02T19:00:18.048Z"
+                    "updated": "2017-05-02T19:00:18.048Z",
+                    "backfill": false,
+                    "shortfill": false
                 }
             ],
             total: 2,

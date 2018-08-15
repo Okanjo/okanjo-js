@@ -149,17 +149,19 @@
 
         /**
          * Gets the widget configuration formatted using settings, suitable for transmission
-         * @return {{filters: {}, display: {}, backfill: {}, article_meta: {}}}
+         * @return {{filters: {}, display: {}, backfill: {}, shortfill: {}, article_meta: {}}}
          */
         getConfig() {
             const settings = this.getSettings();
-            const out = { filters: {}, display: {}, backfill: {}, article_meta: {} };
+            const out = { filters: {}, display: {}, backfill: {}, shortfill: {}, article_meta: {} };
             const backfillPattern = /^backfill_(.+)$/; // backfill_property
+            const shortfillPattern = /^shortfill_(.+)$/; // shortfill_property
 
             Object.keys(this.config).forEach((origKey) => {
                 let val = this.config[origKey];
                 let key = origKey;
                 let isBackfill = false;
+                let isShortfill = false;
                 let group = null;
 
                 // Get the property name if it was prefixed with backfill
@@ -167,6 +169,13 @@
                 if (matches) {
                     key = matches[1];
                     isBackfill = true;
+                } else {
+                    // Get the property name if it was prefixed with shortfill
+                    matches = shortfillPattern.exec(origKey);
+                    if (matches) {
+                        key = matches[1];
+                        isShortfill = true;
+                    }
                 }
 
                 // Check if this is a known property
@@ -176,8 +185,18 @@
                 }
 
                 // Init the target/group if not already setup
-                let target = isBackfill ? out.backfill : out;
-                if (group) {
+                let target = out;
+                if (isBackfill) {
+                    target = out.backfill;
+                } else if (isShortfill) {
+                    target = out.shortfill;
+                }
+
+                // Set the target to the bucket in the settings container
+                // except shortfill - can only apply settings directly to the bucket
+                // e.g. backfill_url -> { backfill: { filters: { url: xxx } } }
+                // e.g. shortfill_url-> { shortfill: { url: xxx } }
+                if (!isShortfill && group) {
                     target[group] = target[group] || {};
                     target = target[group];
                 }
@@ -250,10 +269,11 @@
             this._metricBase.m.decl = declined || '0';
 
             // Attach other main response attributes to all future events
-            this._metricBase.m.res_bf = data.backfilled ? 1 : 0; // whether the response used the backup fill flow
+            this._metricBase.m.res_bf = data.backfilled ? 1 : 0; // whether the response used the back fill flow
+            this._metricBase.m.res_sf = data.shortfilled ? 1 : 0; // whether the response used the short fill flow
             this._metricBase.m.res_total = data.total || 0; // how many total candidate results were available given filters
             this._metricBase.m.res_type = data.type; // what the given resource type was
-            this._metricBase.m.res_length = data.results.length; // what the given resource type was
+            this._metricBase.m.res_length = data.results.length; // number of resources delivered
 
             // Track impression
             okanjo.metrics.create(this._metricBase)
@@ -442,7 +462,10 @@
                 .type(type, Metrics.Event.interaction)
                 .meta(this.getConfig())
                 .meta({ cid: clickId })
-                .meta({ bf: resource.backfill ? 1 : 0 })
+                .meta({
+                    bf: resource.backfill ? 1 : 0,
+                    sf: resource.shortfill ? 1 : 0
+                })
                 .event(e)
                 .element(e.currentTarget)
                 .viewport();
@@ -653,7 +676,10 @@
                         okanjo.metrics.create(this._metricBase, { id: product.id })
                             .type(Metrics.Object.product, Metrics.Event.impression)
                             .meta(this.getConfig())
-                            .meta({ bf: product.backfill ? 1 : 0 })
+                            .meta({
+                                bf: product.backfill ? 1 : 0,
+                                sf: product.shortfill ? 1 : 0
+                            })
                             .element(a)
                             .viewport()
                             .send();
@@ -663,7 +689,10 @@
                             okanjo.metrics.create(this._metricBase, { id: product.id })
                                 .type(Metrics.Object.product, Metrics.Event.view)
                                 .meta(this.getConfig())
-                                .meta({ bf: product.backfill ? 1 : 0 })
+                                .meta({
+                                    bf: product.backfill ? 1 : 0,
+                                    sf: product.shortfill ? 1 : 0
+                                })
                                 .element(a)
                                 .viewport()
                                 .send();
@@ -854,7 +883,10 @@
                         okanjo.metrics.create(this._metricBase, { id: article.id })
                             .type(Metrics.Object.article, Metrics.Event.impression)
                             .meta(this.getConfig())
-                            .meta({ bf: article.backfill ? 1 : 0 })
+                            .meta({
+                                bf: article.backfill ? 1 : 0,
+                                sf: article.shortfill ? 1 : 0
+                            })
                             .element(a)
                             .viewport()
                             .send();
@@ -864,7 +896,10 @@
                             okanjo.metrics.create(this._metricBase, { id: article.id })
                                 .type(Metrics.Object.article, Metrics.Event.view)
                                 .meta(this.getConfig())
-                                .meta({ bf: article.backfill ? 1 : 0 })
+                                .meta({
+                                    bf: article.backfill ? 1 : 0,
+                                    sf: article.shortfill ? 1 : 0
+                                })
                                 .element(a)
                                 .viewport()
                                 .send();

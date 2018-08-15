@@ -161,6 +161,24 @@ describe('Placements', () => {
 
             });
 
+            it('should take data shortfill settings and apply them correctly', (done) => {
+                resetDocument();
+                let target = insertDropzone({ key: 'unit_test_key', 'shortfill-url': 'http://asd.jkl' });
+
+                // Wait for the metrics batch to fly in before the next test
+                setMetricsBulkHandler(() => {
+                    setMetricsBulkHandler();
+                    done();
+                });
+
+                let placement = new okanjo.Placement(target, { q: null });
+                let config = placement.getConfig();
+
+                config.shortfill.url.should.be.exactly('http://asd.jkl');
+                should(config.filters.q).be.exactly('');
+
+            });
+
         });
 
         describe('_fetchContent', () => {
@@ -749,61 +767,127 @@ describe('Placements', () => {
                     setMetricsBulkHandler();
                     setAdsHandler();
 
-                    let productLink = target.querySelector('a');
-                    should(productLink).be.ok();
+                    // backfill check
+                    (() => {
+                        let productLink = target.querySelectorAll('a')[0];
+                        should(productLink).be.ok();
 
-                    let baitLink = target.href;
+                        let baitLink = target.href;
 
-                    let e = new window.Event('mousedown', {bubbles: true});
-                    e.pageX = 1;
-                    e.pageY = 2;
-                    productLink.dispatchEvent(e);
+                        let e = new window.Event('mousedown', {bubbles: true});
+                        e.pageX = 1;
+                        e.pageY = 2;
+                        productLink.dispatchEvent(e);
 
-                    // Verify that our link changed
-                    productLink.href.should.not.be.equal(baitLink);
-                    productLink.href.should.not.match(/\[bot]/);
+                        // Verify that our link changed
+                        productLink.href.should.not.be.equal(baitLink);
+                        productLink.href.should.not.match(/\[bot]/);
 
-                    let parts = Url.parse(productLink.href);
-                    let args = Qs.parse(parts.query);
+                        let parts = Url.parse(productLink.href);
+                        let args = Qs.parse(parts.query);
 
-                    // console.log(JSON.stringify(args, null, '  '));
-                    args.should.containDeep({
-                        "ch": "pw",
-                        "cx": "auto",
-                        "key": "unit_test_key",
-                        "m": {
-                            // "wgid": "UkexAd-WkS",
-                            "aid": "article_local_2gT3kBcwVQZ1kpEma",
-                            "pten": "0",
-                            "decl": "0",
-                            // "cid": "L1kFZWyH",
-                            "bf": "1",
-                            "et": "Event",
-                            "ex": "1",
-                            "ey": "2",
-                            "pw": "0",
-                            "ph": "0",
-                            "x1": "0",
-                            "y1": "0",
-                            "x2": "0",
-                            "y2": "0",
-                            "vx1": "0",
-                            "vy1": "0",
-                            "vx2": "0",
-                            "vy2": "0",
-                            // "pgid": "LyTObbyS",
-                            "ok_ver": "%%OKANJO_VERSION"
-                        },
-                        "id": "product_test_2gT3kBcwVQZ1kpEma",
-                        "ea": "click",
-                        // "u": "http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=575333915&ok_cid=L1kFZWyH&afftrack=unknown%3AL1kFZWyH&ok_msid=unknown&ok_ch=pw&ok_cx=auto"
-                    });
+                        // console.log(JSON.stringify(args, null, '  '));
+                        args.should.containDeep({
+                            "ch": "pw",
+                            "cx": "auto",
+                            "key": "unit_test_key",
+                            "m": {
+                                // "wgid": "UkexAd-WkS",
+                                "aid": "article_local_2gT3kBcwVQZ1kpEma",
+                                "pten": "0",
+                                "decl": "0",
+                                // "cid": "L1kFZWyH",
+                                "bf": "1",
+                                "sf": "0",
+                                "et": "Event",
+                                "ex": "1",
+                                "ey": "2",
+                                "pw": "0",
+                                "ph": "0",
+                                "x1": "0",
+                                "y1": "0",
+                                "x2": "0",
+                                "y2": "0",
+                                "vx1": "0",
+                                "vy1": "0",
+                                "vx2": "0",
+                                "vy2": "0",
+                                // "pgid": "LyTObbyS",
+                                "ok_ver": "%%OKANJO_VERSION"
+                            },
+                            "id": "product_test_2gT3kBcwVQZ1kpEma",
+                            "ea": "click",
+                            // "u": "http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=575333915&ok_cid=L1kFZWyH&afftrack=unknown%3AL1kFZWyH&ok_msid=unknown&ok_ch=pw&ok_cx=auto"
+                        });
 
-                    // check dynamic params to be present
-                    args.m.wgid.should.be.ok();
-                    args.m.cid.should.be.ok();
-                    args.m.pgid.should.be.ok();
-                    // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
+                        // check dynamic params to be present
+                        args.m.wgid.should.be.ok();
+                        args.m.cid.should.be.ok();
+                        args.m.pgid.should.be.ok();
+                        // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
+
+                    })();
+
+                    // shortfill check
+                    (() => {
+                        let productLink = target.querySelectorAll('a')[1];
+                        should(productLink).be.ok();
+
+                        let baitLink = target.href;
+
+                        let e = new window.Event('mousedown', {bubbles: true});
+                        e.pageX = 1;
+                        e.pageY = 2;
+                        productLink.dispatchEvent(e);
+
+                        // Verify that our link changed
+                        productLink.href.should.not.be.equal(baitLink);
+                        productLink.href.should.not.match(/\[bot]/);
+
+                        let parts = Url.parse(productLink.href);
+                        let args = Qs.parse(parts.query);
+
+                        // console.log(JSON.stringify(args, null, '  '));
+                        args.should.containDeep({
+                            "ch": "pw",
+                            "cx": "auto",
+                            "key": "unit_test_key",
+                            "m": {
+                                // "wgid": "UkexAd-WkS",
+                                "aid": "article_local_2gT3kBcwVQZ1kpEma",
+                                "pten": "0",
+                                "decl": "0",
+                                // "cid": "L1kFZWyH",
+                                "bf": "0",
+                                "sf": "1",
+                                "et": "Event",
+                                "ex": "1",
+                                "ey": "2",
+                                "pw": "0",
+                                "ph": "0",
+                                "x1": "0",
+                                "y1": "0",
+                                "x2": "0",
+                                "y2": "0",
+                                "vx1": "0",
+                                "vy1": "0",
+                                "vx2": "0",
+                                "vy2": "0",
+                                // "pgid": "LyTObbyS",
+                                "ok_ver": "%%OKANJO_VERSION"
+                            },
+                            "id": "product_test_2gT3kBcwVQZ1kpEmb",
+                            "ea": "click",
+                            // "u": "http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=575333915&ok_cid=L1kFZWyH&afftrack=unknown%3AL1kFZWyH&ok_msid=unknown&ok_ch=pw&ok_cx=auto"
+                        });
+
+                        // check dynamic params to be present
+                        args.m.wgid.should.be.ok();
+                        args.m.cid.should.be.ok();
+                        args.m.pgid.should.be.ok();
+                        // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
+
+                    })();
 
                     done();
                 });
@@ -813,6 +897,7 @@ describe('Placements', () => {
                     const payload = TestResponses.getExampleProductResponse();
 
                     payload.data.results[0].backfill = true;
+                    payload.data.results[1].shortfill = true;
 
                     return {
                         statusCode: 200,
@@ -946,6 +1031,9 @@ describe('Placements', () => {
                     placement._response.data.results[1].backfill.should.be.exactly(true);
                     placement._response.data.results[1]._image_url.should.be.exactly('');
 
+                    placement._response.data.results[2].backfill.should.be.exactly(false);
+                    placement._response.data.results[2].shortfill.should.be.exactly(true);
+
                     done();
                 });
 
@@ -953,9 +1041,51 @@ describe('Placements', () => {
                     const payload = TestResponses.getExampleProductResponse();
 
                     // Empty the results
+                    payload.data.results.push(JSON.parse(JSON.stringify(payload.data.results[0])));
+                    payload.data.results[2].id = 'product_test_2gT3kBcwVQZ1kpEmc';
+                    payload.data.results[2].backfill = false;
+                    payload.data.results[2].shortfill = true;
+
                     payload.data.results[0].inline_buy_url = 'http://unit.test/rock';
                     payload.data.results[1].backfill = true;
                     payload.data.results[1].image_urls = null; // lolwut
+
+                    return {
+                        statusCode: 200,
+                        payload
+                    };
+                });
+
+                // Make that placement
+                placement = new okanjo.Placement(target);
+            });
+
+            it('can deal with shortfill', (done) => {
+                resetDocument();
+                let target = insertDropzone({ key: 'unit_test_key' });
+                let placement;
+
+                setMetricsBulkHandler(() => {
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    placement._response.data.backfilled.should.be.exactly(false);
+                    placement._response.data.shortfilled.should.be.exactly(true);
+                    placement._response.data.results[1].backfill.should.be.exactly(false);
+                    placement._response.data.results[1].shortfill.should.be.exactly(true);
+
+                    done();
+                });
+
+                setAdsHandler(() => {
+                    const payload = TestResponses.getExampleProductResponse();
+
+                    // Emulate a shortfall scenario
+                    payload.data.backfilled = false;
+                    payload.data.shortfilled = true;
+                    payload.data.results[1].shortfill = true;
 
                     return {
                         statusCode: 200,
@@ -1791,17 +1921,33 @@ describe('Placements', () => {
 
             setMetricsBulkHandler((req) => {
 
-                // widget + 2 product impressions
-                req.payload.events.length.should.be.exactly(3);
+                // widget + 3 product impressions
+                req.payload.events.length.should.be.exactly(4);
 
                 setMetricsBulkHandler((req) => {
 
+                    let bf = 0;
+                    let sf = 0;
+                    let fl = 0;
 
                     // widget + 2 product impressions
-                    req.payload.events.length.should.be.exactly(3);
+                    req.payload.events.length.should.be.exactly(4);
                     req.payload.events.forEach((e) => {
                         e.event_type.should.be.exactly('vw');
+
+                        if (e.m.bf === 1) {
+                            bf++;
+                        } else if (e.m.sf === 1) {
+                            sf++;
+                        } else if (e.object_type === 'pr') {
+                            fl++;
+                        }
+
                     });
+
+                    bf.should.be.exactly(1);
+                    sf.should.be.exactly(1);
+                    fl.should.be.exactly(1);
 
                     // Clean up
                     setMetricsBulkHandler();
@@ -1818,8 +1964,8 @@ describe('Placements', () => {
                 // Fake some scrolling into view action
                 setTimeout(() => {
 
-                    // First, make sure we have 3 active view impression watchers (widget + 2 products)
-                    placement._viewedWatchers.length.should.be.exactly(3);
+                    // First, make sure we have 4 active view impression watchers (widget + 3 products)
+                    placement._viewedWatchers.length.should.be.exactly(4);
 
                     // Fake that they entered the view
                     placement._viewedWatchers.forEach((controller) => {
@@ -1833,6 +1979,12 @@ describe('Placements', () => {
 
             setAdsHandler(() => {
                 const payload = TestResponses.getExampleProductResponse();
+
+                // add an extra product
+                payload.data.results.push(JSON.parse(JSON.stringify(payload.data.results[0])));
+                payload.data.results[2].id = 'product_test_2gT3kBcwVQZ1kpEmc';
+                payload.data.results[2].backfill = false;
+                payload.data.results[2].shortfill = true;
 
                 // edge case for view events
                 payload.data.results[1].backfill = true;
@@ -1856,17 +2008,32 @@ describe('Placements', () => {
 
             setMetricsBulkHandler((req) => {
 
-                // widget + 2 product impressions
+                // widget + 5 article impressions
                 req.payload.events.length.should.be.exactly(6);
 
                 setMetricsBulkHandler((req) => {
 
+                    let bf = 0;
+                    let sf = 0;
+                    let nf = 0;
 
-                    // widget + 2 product impressions
+                    // widget + 5 article impressions
                     req.payload.events.length.should.be.exactly(6);
                     req.payload.events.forEach((e) => {
                         e.event_type.should.be.exactly('vw');
+
+                        if (e.m.bf === 1) {
+                            bf++;
+                        } else if (e.m.sf === 1) {
+                            sf++;
+                        } else if (e.object_type === 'am') {
+                            nf++;
+                        }
                     });
+
+                    bf.should.be.exactly(1);
+                    sf.should.be.exactly(1);
+                    nf.should.be.exactly(3);
 
                     // Clean up
                     setMetricsBulkHandler();
@@ -1901,6 +2068,7 @@ describe('Placements', () => {
 
                 // edge case for view events
                 payload.data.results[0].backfill = true;
+                payload.data.results[1].shortfill = true;
 
                 return {
                     statusCode: 200,

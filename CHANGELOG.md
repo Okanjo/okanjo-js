@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2018-08-15 – v1.8.1
+ * Added support for shortfill settings and reporting
+ * Updated unit tests for shortfill coverage
+
 ## 2018-08-14 – v1.7.2
  * Removed hard coded protocol for pixel indicators
 

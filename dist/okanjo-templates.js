@@ -1,4 +1,4 @@
-/*! okanjo-js v1.7.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.8.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {(function (window) {
 
     var okanjo = window.okanjo;

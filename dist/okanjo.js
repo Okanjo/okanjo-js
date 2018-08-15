@@ -1,4 +1,4 @@
-/*! okanjo-js v1.7.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.8.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -323,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.7.2",
+        version: "1.8.0",
 
         /**
          * Placeholder
@@ -3104,7 +3104,7 @@ var okanjo = function (window, document) {
 
             /**
              * Gets the widget configuration formatted using settings, suitable for transmission
-             * @return {{filters: {}, display: {}, backfill: {}, article_meta: {}}}
+             * @return {{filters: {}, display: {}, backfill: {}, shortfill: {}, article_meta: {}}}
              */
 
         }, {
@@ -3113,13 +3113,15 @@ var okanjo = function (window, document) {
                 var _this11 = this;
 
                 var settings = this.getSettings();
-                var out = { filters: {}, display: {}, backfill: {}, article_meta: {} };
+                var out = { filters: {}, display: {}, backfill: {}, shortfill: {}, article_meta: {} };
                 var backfillPattern = /^backfill_(.+)$/; // backfill_property
+                var shortfillPattern = /^shortfill_(.+)$/; // shortfill_property
 
                 Object.keys(this.config).forEach(function (origKey) {
                     var val = _this11.config[origKey];
                     var key = origKey;
                     var isBackfill = false;
+                    var isShortfill = false;
                     var group = null;
 
                     // Get the property name if it was prefixed with backfill
@@ -3127,6 +3129,13 @@ var okanjo = function (window, document) {
                     if (matches) {
                         key = matches[1];
                         isBackfill = true;
+                    } else {
+                        // Get the property name if it was prefixed with shortfill
+                        matches = shortfillPattern.exec(origKey);
+                        if (matches) {
+                            key = matches[1];
+                            isShortfill = true;
+                        }
                     }
 
                     // Check if this is a known property
@@ -3136,8 +3145,18 @@ var okanjo = function (window, document) {
                     }
 
                     // Init the target/group if not already setup
-                    var target = isBackfill ? out.backfill : out;
-                    if (group) {
+                    var target = out;
+                    if (isBackfill) {
+                        target = out.backfill;
+                    } else if (isShortfill) {
+                        target = out.shortfill;
+                    }
+
+                    // Set the target to the bucket in the settings container
+                    // except shortfill - can only apply settings directly to the bucket
+                    // e.g. backfill_url -> { backfill: { filters: { url: xxx } } }
+                    // e.g. shortfill_url-> { shortfill: { url: xxx } }
+                    if (!isShortfill && group) {
                         target[group] = target[group] || {};
                         target = target[group];
                     }
@@ -3222,10 +3241,11 @@ var okanjo = function (window, document) {
                 this._metricBase.m.decl = declined || '0';
 
                 // Attach other main response attributes to all future events
-                this._metricBase.m.res_bf = data.backfilled ? 1 : 0; // whether the response used the backup fill flow
+                this._metricBase.m.res_bf = data.backfilled ? 1 : 0; // whether the response used the back fill flow
+                this._metricBase.m.res_sf = data.shortfilled ? 1 : 0; // whether the response used the short fill flow
                 this._metricBase.m.res_total = data.total || 0; // how many total candidate results were available given filters
                 this._metricBase.m.res_type = data.type; // what the given resource type was
-                this._metricBase.m.res_length = data.results.length; // what the given resource type was
+                this._metricBase.m.res_length = data.results.length; // number of resources delivered
 
                 // Track impression
                 okanjo.metrics.create(this._metricBase).type(Metrics.Object.widget, Metrics.Event.impression).meta(this.getConfig()).element(this.element) // this might not be all that useful cuz the content hasn't been rendered yet
@@ -3418,7 +3438,10 @@ var okanjo = function (window, document) {
                 // Start building the event
                 var event = okanjo.metrics.create(this._metricBase, {
                     id: resource.id
-                }).type(type, Metrics.Event.interaction).meta(this.getConfig()).meta({ cid: clickId }).meta({ bf: resource.backfill ? 1 : 0 }).event(e).element(e.currentTarget).viewport();
+                }).type(type, Metrics.Event.interaction).meta(this.getConfig()).meta({ cid: clickId }).meta({
+                    bf: resource.backfill ? 1 : 0,
+                    sf: resource.shortfill ? 1 : 0
+                }).event(e).element(e.currentTarget).viewport();
 
                 // Pull the proper params out of the resource depending on it's type
                 var trackParam = 'url_track_param';
@@ -3641,11 +3664,17 @@ var okanjo = function (window, document) {
                             a.addEventListener('click', _this16._handleProductClick.bind(_this16, product));
 
                             // Track impression
-                            okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this16.getConfig()).meta({ bf: product.backfill ? 1 : 0 }).element(a).viewport().send();
+                            okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this16.getConfig()).meta({
+                                bf: product.backfill ? 1 : 0,
+                                sf: product.shortfill ? 1 : 0
+                            }).element(a).viewport().send();
 
                             // Start watching for a viewable impression
                             _this16._addOnceViewedHandler(a, function () {
-                                okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.view).meta(_this16.getConfig()).meta({ bf: product.backfill ? 1 : 0 }).element(a).viewport().send();
+                                okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.view).meta(_this16.getConfig()).meta({
+                                    bf: product.backfill ? 1 : 0,
+                                    sf: product.shortfill ? 1 : 0
+                                }).element(a).viewport().send();
                             });
                         }
                     }
@@ -3832,11 +3861,17 @@ var okanjo = function (window, document) {
                             a.addEventListener('click', _this17._handleArticleClick.bind(_this17, article));
 
                             // Track impression
-                            okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this17.getConfig()).meta({ bf: article.backfill ? 1 : 0 }).element(a).viewport().send();
+                            okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this17.getConfig()).meta({
+                                bf: article.backfill ? 1 : 0,
+                                sf: article.shortfill ? 1 : 0
+                            }).element(a).viewport().send();
 
                             // Start watching for a viewable impression
                             _this17._addOnceViewedHandler(a, function () {
-                                okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.view).meta(_this17.getConfig()).meta({ bf: article.backfill ? 1 : 0 }).element(a).viewport().send();
+                                okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.view).meta(_this17.getConfig()).meta({
+                                    bf: article.backfill ? 1 : 0,
+                                    sf: article.shortfill ? 1 : 0
+                                }).element(a).viewport().send();
                             });
                         }
                     }
