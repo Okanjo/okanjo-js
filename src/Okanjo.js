@@ -537,6 +537,16 @@ const okanjo = (function(window, document) {
         },
 
         /**
+         * Checks whether the element is actually displayed on the DOM
+         * @param element
+         * @return {boolean}
+         */
+        isElementVisible: (element) => {
+            /* istanbul ignore next: jsdom won't trigger this */
+            return element.offsetWidth > 0 && element.offsetHeight > 0;
+        },
+
+        /**
          * Gets the percentage of the element pixels currently within the viewport
          * @param {HTMLElement|Node} element
          * @return {number}

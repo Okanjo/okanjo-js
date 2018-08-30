@@ -575,8 +575,9 @@
                 controller = this._viewedWatchers[i];
 
                 // Check if watcher is complete, then remove it from the list
-                /* istanbul ignore if: jsdom won't trigger this */
-                if (okanjo.ui.getPercentageInViewport(controller.element) >= MINIMUM_VIEW_PX) {
+                /* istanbul ignore next: jsdom won't trigger this */
+                if (okanjo.ui.isElementVisible(controller.element) &&
+                    okanjo.ui.getPercentageInViewport(controller.element) >= MINIMUM_VIEW_PX) {
                     controller.successfulCount++;
                 }
 

@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v1.8.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v1.8.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -319,7 +319,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.8.0",
+        version: "1.8.1",
 
         /**
          * Placeholder
@@ -816,6 +816,16 @@ var okanjo = function (window, document) {
                 intersectionArea: intersectionArea,
                 elementArea: elementArea
             };
+        },
+
+        /**
+         * Checks whether the element is actually displayed on the DOM
+         * @param element
+         * @return {boolean}
+         */
+        isElementVisible: function isElementVisible(element) {
+            /* istanbul ignore next: jsdom won't trigger this */
+            return element.offsetWidth > 0 && element.offsetHeight > 0;
         },
 
         /**

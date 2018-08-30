@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2018-08-30 – v1.9.1
+ * Added DOM visibility check as prerequisite for viewability 
+ 
 ## 2018-08-15 – v1.8.1
  * Added support for shortfill settings and reporting
  * Updated unit tests for shortfill coverage
