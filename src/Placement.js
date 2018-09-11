@@ -127,6 +127,7 @@
                 template_name: string().group(DISPLAY),
                 template_layout: string().group(DISPLAY),
                 template_theme: string().group(DISPLAY),
+                template_variant: string().group(DISPLAY),
                 template_cta_style: string().group(DISPLAY),
                 template_cta_text: string().group(DISPLAY),
                 template_cta_color: string().group(DISPLAY),
@@ -526,6 +527,33 @@
         }
 
         /**
+         * Enforces
+         * @private
+         */
+        _enforceSlabLayoutOptions() {
+            if (this.config.size === "medium_rectangle" || this.config.size === "billboard") {
+                // no list view
+                this.config.template_layout = "grid";
+
+                // no buttons
+                if (this.config.template_cta_style === "button") {
+                    this.config.template_cta_style = "link";
+                }
+            } else if (this.config.size === "half_page") {
+                this.config.template_layout = "grid";
+            } else if (this.config.size === "leaderboard" || this.config.size === "large_mobile_banner") {
+                this.config.template_layout = "list";
+
+                // no button
+                if (this.config.template_cta_style === "button") {
+                    this.config.template_cta_style = "link";
+                }
+            } else if (this.config.size === "auto") {
+                this.config.template_layout = "list";
+            }
+        }
+
+        /**
          * Register a custom
          * @private
          */
@@ -706,6 +734,9 @@
             this.element.querySelectorAll('.okanjo-resource-title').forEach((element) => {
                 okanjo.ui.ellipsify(element);
             });
+
+            // Fit images
+            okanjo.ui.fitImages(this.element);
 
             // Hook point that the widget is done loading
             this.emit('load');
@@ -914,6 +945,9 @@
             this.element.querySelectorAll('.okanjo-resource-title').forEach((element) => {
                 okanjo.ui.ellipsify(element);
             });
+
+            // Fit images
+            okanjo.ui.fitImages(this.element);
 
             // Hook point that the widget is done loading
             this.emit('load');

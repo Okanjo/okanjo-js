@@ -415,6 +415,33 @@ describe('Placements', () => {
                 new okanjo.Placement(target);
             });
 
+            it('can show articles in slab template', (done) => {
+                resetDocument();
+                let target = insertDropzone({ key: 'unit_test_key', template_name: 'slab' });
+
+                setMetricsBulkHandler(() => {
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    target.querySelectorAll('.okanjo-article').length.should.be.exactly(5);
+
+                    done();
+                });
+
+                // Make the server return an error
+                setAdsHandler(() => {
+                    return {
+                        statusCode: 200,
+                        payload: TestResponses.getExampleArticlesResponse()
+                    };
+                });
+
+                // Make that placement
+                new okanjo.Placement(target);
+            });
+
             it('can show google ads', (done) => {
                 resetDocument();
                 let target = insertDropzone({ key: 'unit_test_key' });
@@ -1107,6 +1134,39 @@ describe('Placements', () => {
 
                 // We don't need to fully load to test this
                 let placement = new okanjo.Placement(target, { no_init: true });
+
+                setMetricsBulkHandler(() => {
+                    setMetricsBulkHandler();
+
+                    firedEmpty.should.be.exactly(true);
+
+                    done();
+                });
+
+                placement._metricBase.m = {};
+                placement._response = null;
+
+                // Go
+                //noinspection JSAccessibilityCheck
+                placement._showArticles();
+
+                // Go again
+                placement._response = {};
+                placement.on('empty', () => {
+                    firedEmpty.should.be.exactly(false);
+                    firedEmpty = true;
+                });
+                //noinspection JSAccessibilityCheck
+                placement._showArticles();
+            });
+
+            it('should handle empty responses in slab template', (done) => {
+                resetDocument();
+                let target = insertDropzone({ key: 'unit_test_key' });
+                let firedEmpty = false;
+
+                // We don't need to fully load to test this
+                let placement = new okanjo.Placement(target, { no_init: true, template_name: 'slab' });
 
                 setMetricsBulkHandler(() => {
                     setMetricsBulkHandler();
@@ -1887,6 +1947,156 @@ describe('Placements', () => {
                 placement._enforceLayoutOptions();
                 placement.config.template_layout.should.be.exactly('list');
             });
+        });
+
+        describe('_enforceSlabLayoutOptions', () => {
+
+            it('medium_rectangle / billboard is grid with no buttons', () => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    size: 'billboard',
+                    type: 'articles',
+                    template_name: 'slab',
+                    template_layout: 'list',        // forces to grid
+                    template_cta_style: 'button'    // forces to link
+                });
+
+                // We don't need to fully load to test this
+                let placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._enforceSlabLayoutOptions();
+                placement.config.template_layout.should.be.exactly('grid');
+                placement.config.template_cta_style.should.be.exactly('link');
+
+                resetDocument();
+                target = insertDropzone({
+                    key: 'unit_test_key',
+                    size: 'medium_rectangle',
+                    type: 'articles',
+                    template_name: 'slab',
+                    template_layout: 'list',        // forces to grid
+                    template_cta_style: 'none'
+                });
+
+                // We don't need to fully load to test this
+                placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._enforceSlabLayoutOptions();
+                placement.config.template_layout.should.be.exactly('grid');
+                placement.config.template_cta_style.should.be.exactly('none');
+            });
+
+            it('half_page is always grid', () => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    size: 'half_page',
+                    type: 'articles',
+                    template_name: 'slab',
+                    template_layout: 'list',        // forces to grid
+                    template_cta_style: 'button'
+                });
+
+                // We don't need to fully load to test this
+                let placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._enforceSlabLayoutOptions();
+                placement.config.template_layout.should.be.exactly('grid');
+                placement.config.template_cta_style.should.be.exactly('button');
+
+            });
+
+            it('leaderboard / large_mobile_banner is always list with no button', () => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    size: 'leaderboard',
+                    type: 'articles',
+                    template_name: 'slab',
+                    template_layout: 'grid',        // forces to list
+                    template_cta_style: 'button'    // forces to link
+                });
+
+                // We don't need to fully load to test this
+                let placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._enforceSlabLayoutOptions();
+                placement.config.template_layout.should.be.exactly('list');
+                placement.config.template_cta_style.should.be.exactly('link');
+
+                resetDocument();
+                target = insertDropzone({
+                    key: 'unit_test_key',
+                    size: 'large_mobile_banner',
+                    type: 'articles',
+                    template_name: 'slab',
+                    template_layout: 'grid',        // forces to list
+                    template_cta_style: 'none'
+                });
+
+                // We don't need to fully load to test this
+                placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._enforceSlabLayoutOptions();
+                placement.config.template_layout.should.be.exactly('list');
+                placement.config.template_cta_style.should.be.exactly('none');
+
+            });
+
+            it('auto is always list', () => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    size: 'auto',
+                    type: 'articles',
+                    template_name: 'slab',
+                    template_layout: 'grid',        // forces to list
+                    template_cta_style: 'button'
+                });
+
+                // We don't need to fully load to test this
+                let placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._enforceSlabLayoutOptions();
+                placement.config.template_layout.should.be.exactly('list');
+                placement.config.template_cta_style.should.be.exactly('button');
+
+            });
+
+            it('default is unchanged', () => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    type: 'articles',
+                    template_name: 'slab',
+                    template_layout: 'grid',
+                    template_cta_style: 'button'
+                });
+
+                // We don't need to fully load to test this
+                let placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._enforceSlabLayoutOptions();
+                placement.config.template_layout.should.be.exactly('grid');
+                placement.config.template_cta_style.should.be.exactly('button');
+
+            });
+
         });
 
         describe('_registerCustomBranding', () => {

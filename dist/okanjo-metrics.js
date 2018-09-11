@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v1.9.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v1.10.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -319,7 +319,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.9.0",
+        version: "1.10.0",
 
         /**
          * Placeholder
@@ -920,6 +920,30 @@ var okanjo = function (window, document) {
             element.innerHTML = '';
             element.appendChild(content);
             element.appendChild(span);
+        }
+    };
+
+    /**
+     * Locates images with the class okanjo-fit and ensures that they get filled.
+     * This is basically a object-fit hacky workaround
+     * @param element
+     */
+    okanjo.ui.fitImages = function (element) {
+        // Detect objectFit support
+        /* istanbul ignore else: n/a to jsdom */
+        if ('objectFit' in document.documentElement.style === false) {
+            // Find images to fit
+            element.querySelectorAll('img.okanjo-fit').forEach(function (img) {
+
+                // Hide the image
+                img.style.display = 'none';
+
+                // Update the parent w/ the background
+                var parent = img.parentNode;
+                parent.style.backgroundSize = 'cover';
+                parent.style.backgroundImage = 'url(' + img.src + ')';
+                parent.style.backgroundposition = 'center center';
+            });
         }
     };
 

@@ -1,5 +1,5 @@
 <!--suppress CheckEmptyScriptTag -->
-<div class="okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}">
+<div class="okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}">
     <div class="okanjo-resource-list" itemscope itemtype="http://schema.org/ItemList" data-instance-id="{{ instanceId }}">
         {{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }}
     {{#articles}}
@@ -12,7 +12,7 @@
                title="Read More: {{ title }}">
                 <div class="okanjo-resource-image-container">
                     {{#image}}
-                        <img class="okanjo-resource-image" src="{{ image }}" title="{{ name }}" itemprop="image">
+                        <img class="okanjo-resource-image {{ fitImage }}" src="{{ image }}" title="{{ name }}" itemprop="image">
                     {{/image}}
                     {{^image}}
                         <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"

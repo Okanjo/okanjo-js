@@ -636,6 +636,30 @@ const okanjo = (function(window, document) {
 
     };
 
+    /**
+     * Locates images with the class okanjo-fit and ensures that they get filled.
+     * This is basically a object-fit hacky workaround
+     * @param element
+     */
+    okanjo.ui.fitImages = function(element) {
+        // Detect objectFit support
+        /* istanbul ignore else: n/a to jsdom */
+        if ('objectFit' in document.documentElement.style === false) {
+            // Find images to fit
+            element.querySelectorAll('img.okanjo-fit').forEach((img) => {
+
+                // Hide the image
+                img.style.display = 'none';
+
+                // Update the parent w/ the background
+                let parent = img.parentNode;
+                parent.style.backgroundSize = 'cover';
+                parent.style.backgroundImage = 'url('+img.src+')';
+                parent.style.backgroundposition = 'center center';
+            });
+        }
+    };
+
     //endregion
 
     // Export the root namespace

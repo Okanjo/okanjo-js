@@ -3,6 +3,15 @@
 
 When stuff changes, it's described here.
 
+## 2018-09-11 – v1.10.1
+ * Added new article template: `slab`
+ * okanjo.ui: Added `fitImages` helper to enable object-fit css polyfill on images for old browsers
+ * Placement: Added `template_variant` to enable variant modes in templates
+ * Placement: Added `_enforceSlabLayoutOptions` design rules for slabs
+ * Articles.Block2: Exported the article.block2 markup to be reusable 
+ * Articles.Block2: Updated UI to include `fitImage` option
+ * Updated tests for coverage
+
 ## 2018-08-30 – v1.9.1
  * Added DOM visibility check as prerequisite for viewability 
  

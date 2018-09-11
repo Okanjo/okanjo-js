@@ -1,4 +1,4 @@
-/*! okanjo-js v1.9.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.10.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -323,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.9.1",
+        version: "1.10.0",
 
         /**
          * Placeholder
@@ -924,6 +924,30 @@ var okanjo = function (window, document) {
             element.innerHTML = '';
             element.appendChild(content);
             element.appendChild(span);
+        }
+    };
+
+    /**
+     * Locates images with the class okanjo-fit and ensures that they get filled.
+     * This is basically a object-fit hacky workaround
+     * @param element
+     */
+    okanjo.ui.fitImages = function (element) {
+        // Detect objectFit support
+        /* istanbul ignore else: n/a to jsdom */
+        if ('objectFit' in document.documentElement.style === false) {
+            // Find images to fit
+            element.querySelectorAll('img.okanjo-fit').forEach(function (img) {
+
+                // Hide the image
+                img.style.display = 'none';
+
+                // Update the parent w/ the background
+                var parent = img.parentNode;
+                parent.style.backgroundSize = 'cover';
+                parent.style.backgroundImage = 'url(' + img.src + ')';
+                parent.style.backgroundposition = 'center center';
+            });
         }
     };
 
@@ -3092,6 +3116,7 @@ var okanjo = function (window, document) {
                     template_name: string().group(DISPLAY),
                     template_layout: string().group(DISPLAY),
                     template_theme: string().group(DISPLAY),
+                    template_variant: string().group(DISPLAY),
                     template_cta_style: string().group(DISPLAY),
                     template_cta_text: string().group(DISPLAY),
                     template_cta_color: string().group(DISPLAY),
@@ -3514,6 +3539,36 @@ var okanjo = function (window, document) {
             }
 
             /**
+             * Enforces
+             * @private
+             */
+
+        }, {
+            key: '_enforceSlabLayoutOptions',
+            value: function _enforceSlabLayoutOptions() {
+                if (this.config.size === "medium_rectangle" || this.config.size === "billboard") {
+                    // no list view
+                    this.config.template_layout = "grid";
+
+                    // no buttons
+                    if (this.config.template_cta_style === "button") {
+                        this.config.template_cta_style = "link";
+                    }
+                } else if (this.config.size === "half_page") {
+                    this.config.template_layout = "grid";
+                } else if (this.config.size === "leaderboard" || this.config.size === "large_mobile_banner") {
+                    this.config.template_layout = "list";
+
+                    // no button
+                    if (this.config.template_cta_style === "button") {
+                        this.config.template_cta_style = "link";
+                    }
+                } else if (this.config.size === "auto") {
+                    this.config.template_layout = "list";
+                }
+            }
+
+            /**
              * Register a custom
              * @private
              */
@@ -3694,6 +3749,9 @@ var okanjo = function (window, document) {
                 this.element.querySelectorAll('.okanjo-resource-title').forEach(function (element) {
                     okanjo.ui.ellipsify(element);
                 });
+
+                // Fit images
+                okanjo.ui.fitImages(this.element);
 
                 // Hook point that the widget is done loading
                 this.emit('load');
@@ -3891,6 +3949,9 @@ var okanjo = function (window, document) {
                 this.element.querySelectorAll('.okanjo-resource-title').forEach(function (element) {
                     okanjo.ui.ellipsify(element);
                 });
+
+                // Fit images
+                okanjo.ui.fitImages(this.element);
 
                 // Hook point that the widget is done loading
                 this.emit('load');
@@ -4923,7 +4984,7 @@ var okanjo = function (window, document) {
 return okanjo;
 }));
 
-/*! okanjo-js v1.9.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.10.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {(function (window) {
 
     var okanjo = window.okanjo;
@@ -4946,10 +5007,9 @@ return okanjo;
     var okanjo = window.okanjo;
     okanjo.ui.engine.registerCss("articles.block2", ".okanjo-block2 .okanjo-article.okanjo-cta-style-button .okanjo-resource-title-container{height:52px}.okanjo-block2 .okanjo-article .okanjo-resource-title-container.modern{height:44px}.okanjo-block2.leaderboard .okanjo-article .okanjo-resource-title-container{margin-top:2px;margin-bottom:4px}", { id: 'okanjo-article-block2' });
 
-    var article_block2 = "<div class=\"okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}\"><div class=okanjo-resource-list itemscope=\"\" itemtype=http://schema.org/ItemList data-instance-id=\"{{ instanceId }}\">{{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }} {{#articles}}<div class=\"okanjo-resource okanjo-article {{#config}}{{ template_layout }}{{/config}}\" itemscope=\"\" itemtype=http://schema.org/Article><a href=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\" data-id=\"{{ id }}\" data-index=\"{{ _index }}\" target=_blank itemprop=url title=\"Read More: {{ title }}\"><div class=okanjo-resource-image-container>{{#image}} <img class=okanjo-resource-image src=\"{{ image }}\" title=\"{{ name }}\" itemprop=image> {{/image}} {{^image}}<svg version=1.1 id=Layer_1 xmlns=http://www.w3.org/2000/svg xmlns:xlink=http://www.w3.org/1999/xlink x=0px y=0px viewbox=\"0 0 48 48\" style=\"enable-background:new 0 0 48 48;\" xml:space=preserve><g id=newspaper_1_><g id=newspaper_2_><path id=newspaper_6_ d=\"M21.5,23h-5c-0.276,0-0.5-0.224-0.5-0.5v-5c0-0.276,0.224-0.5,0.5-0.5h5c0.276,0,0.5,0.224,0.5,0.5v5 C22,22.776,21.776,23,21.5,23z M37,32c0,1.654-1.346,3-3,3h-2H15c-1.654,0-3-1.346-3-3V14c0-0.552,0.448-1,1-1h17 c0.552,0,1,0.448,1,1v18c0,0.552,0.449,1,1,1h2c0.551,0,1-0.448,1-1V17h-1v14.75c0,0.138-0.112,0.25-0.25,0.25h-1.5 C32.112,32,32,31.888,32,31.75V16c0-0.552,0.448-1,1-1h3c0.552,0,1,0.448,1,1v1V32z M15,33h14.184C29.072,32.686,29,32.352,29,32 V15H14v17C14,32.552,14.449,33,15,33z M26.5,19h-2c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5h2 c0.276,0,0.5,0.224,0.5,0.5v1C27,18.776,26.776,19,26.5,19z M26.5,23h-2c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5 h2c0.276,0,0.5,0.224,0.5,0.5v1C27,22.776,26.776,23,26.5,23z M26.5,27h-10c-0.276,0-0.5-0.224-0.5-0.5v-1 c0-0.276,0.224-0.5,0.5-0.5h10c0.276,0,0.5,0.224,0.5,0.5v1C27,26.776,26.776,27,26.5,27z M26.5,31h-10 c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5h10c0.276,0,0.5,0.224,0.5,0.5v1C27,30.776,26.776,31,26.5,31z\"></path></g></g></svg>{{/image}}</div><div class=okanjo-resource-info-container><div class=\"okanjo-resource-publisher-container {{#config}}{{ template_theme }}{{/config}}\" itemprop=publisher itemscope=\"\" itemtype=http://schema.org/Organization><span class=okanjo-resource-publisher itemprop=name title=\"{{ publisher_name }}\">{{ publisher_name }}{{^publisher_name}}&nbsp;{{/publisher_name}}</span></div><div class=\"okanjo-resource-title-container {{#config}}{{ template_theme }}{{/config}}\"><span class=okanjo-resource-title itemprop=name>{{ title }}</span></div><div class=\"okanjo-resource-description-container okanjo-visually-hidden {{#config}}{{ template_theme }}{{/config}}\"><div class=okanjo-resource-description itemprop=description>{{ description }}</div></div><div><div class=okanjo-resource-button-container><div class=okanjo-resource-cta-button><span>{{meta.cta_text}}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Read Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div><meta property=url itemprop=url content=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\"></div></div><div class=\"okanjo-resource-meta okanjo-visually-hidden\">{{#author}}<span itemprop=author>{{ author }}</span>{{/author}} {{#published}}<span itemprop=dateCreated>{{ published }}</span>{{/published}} <img src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div></a></div>{{/articles}}</div><div class=\"okanjo-resource-meta okanjo-visually-hidden\"></div></div>";
+    okanjo.ui.__article_block2 = "<div class=\"okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}\"><div class=okanjo-resource-list itemscope=\"\" itemtype=http://schema.org/ItemList data-instance-id=\"{{ instanceId }}\">{{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }} {{#articles}}<div class=\"okanjo-resource okanjo-article {{#config}}{{ template_layout }}{{/config}}\" itemscope=\"\" itemtype=http://schema.org/Article><a href=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\" data-id=\"{{ id }}\" data-index=\"{{ _index }}\" target=_blank itemprop=url title=\"Read More: {{ title }}\"><div class=okanjo-resource-image-container>{{#image}} <img class=\"okanjo-resource-image {{ fitImage }}\" src=\"{{ image }}\" title=\"{{ name }}\" itemprop=image> {{/image}} {{^image}}<svg version=1.1 id=Layer_1 xmlns=http://www.w3.org/2000/svg xmlns:xlink=http://www.w3.org/1999/xlink x=0px y=0px viewbox=\"0 0 48 48\" style=\"enable-background:new 0 0 48 48;\" xml:space=preserve><g id=newspaper_1_><g id=newspaper_2_><path id=newspaper_6_ d=\"M21.5,23h-5c-0.276,0-0.5-0.224-0.5-0.5v-5c0-0.276,0.224-0.5,0.5-0.5h5c0.276,0,0.5,0.224,0.5,0.5v5 C22,22.776,21.776,23,21.5,23z M37,32c0,1.654-1.346,3-3,3h-2H15c-1.654,0-3-1.346-3-3V14c0-0.552,0.448-1,1-1h17 c0.552,0,1,0.448,1,1v18c0,0.552,0.449,1,1,1h2c0.551,0,1-0.448,1-1V17h-1v14.75c0,0.138-0.112,0.25-0.25,0.25h-1.5 C32.112,32,32,31.888,32,31.75V16c0-0.552,0.448-1,1-1h3c0.552,0,1,0.448,1,1v1V32z M15,33h14.184C29.072,32.686,29,32.352,29,32 V15H14v17C14,32.552,14.449,33,15,33z M26.5,19h-2c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5h2 c0.276,0,0.5,0.224,0.5,0.5v1C27,18.776,26.776,19,26.5,19z M26.5,23h-2c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5 h2c0.276,0,0.5,0.224,0.5,0.5v1C27,22.776,26.776,23,26.5,23z M26.5,27h-10c-0.276,0-0.5-0.224-0.5-0.5v-1 c0-0.276,0.224-0.5,0.5-0.5h10c0.276,0,0.5,0.224,0.5,0.5v1C27,26.776,26.776,27,26.5,27z M26.5,31h-10 c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5h10c0.276,0,0.5,0.224,0.5,0.5v1C27,30.776,26.776,31,26.5,31z\"></path></g></g></svg>{{/image}}</div><div class=okanjo-resource-info-container><div class=\"okanjo-resource-publisher-container {{#config}}{{ template_theme }}{{/config}}\" itemprop=publisher itemscope=\"\" itemtype=http://schema.org/Organization><span class=okanjo-resource-publisher itemprop=name title=\"{{ publisher_name }}\">{{ publisher_name }}{{^publisher_name}}&nbsp;{{/publisher_name}}</span></div><div class=\"okanjo-resource-title-container {{#config}}{{ template_theme }}{{/config}}\"><span class=okanjo-resource-title itemprop=name>{{ title }}</span></div><div class=\"okanjo-resource-description-container okanjo-visually-hidden {{#config}}{{ template_theme }}{{/config}}\"><div class=okanjo-resource-description itemprop=description>{{ description }}</div></div><div><div class=okanjo-resource-button-container><div class=okanjo-resource-cta-button><span>{{meta.cta_text}}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Read Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div><meta property=url itemprop=url content=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\"></div></div><div class=\"okanjo-resource-meta okanjo-visually-hidden\">{{#author}}<span itemprop=author>{{ author }}</span>{{/author}} {{#published}}<span itemprop=dateCreated>{{ published }}</span>{{/published}} <img src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div></a></div>{{/articles}}</div><div class=\"okanjo-resource-meta okanjo-visually-hidden\"></div></div>";
 
-    okanjo.ui.engine.registerTemplate("articles.block2", article_block2, function (model) {
-
+    okanjo.ui.engine.registerTemplate("articles.block2", okanjo.ui.__article_block2, function (model) {
         var data = (this._response || { data: { results: [] } }).data || { results: [] };
         model.articles = data.results;
         model.config = this.config;
@@ -4967,6 +5027,35 @@ return okanjo;
         return model;
     }, {
         css: [/*'okanjo.core',*/'articles.block2', 'okanjo.block2' /*, 'okanjo.modal'*/]
+    });
+})(window);
+(function (window) {
+
+    var okanjo = window.okanjo;
+    okanjo.ui.engine.registerCss("articles.slab", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-block2.okanjo-slab img.okanjo-fit{height:100%;width:100%;object-fit:cover}.okanjo-block2.okanjo-slab.okanjo-cta-style-none .okanjo-resource-button-container{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-slab.okanjo-cta-style-none .okanjo-resource.list .okanjo-resource-title-container{height:95px}.okanjo-block2.okanjo-slab.okanjo-cta-style-button .okanjo-resource-title-container{height:40px}.okanjo-block2.okanjo-slab .okanjo-resource{width:298px}.okanjo-block2.okanjo-slab .okanjo-resource-publisher-container{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-slab .okanjo-resource-image-container{height:155px}.okanjo-block2.okanjo-slab .okanjo-resource-title-container{height:58px;font-size:16px;line-height:19px}.okanjo-block2.okanjo-slab .okanjo-resource-title-container.newsprint{font:16px/19px Georgia,serif}.okanjo-block2.okanjo-slab .okanjo-resource.list .okanjo-resource-title-container{font-size:14px;height:60px}.okanjo-block2.okanjo-slab .okanjo-resource.list .okanjo-resource-title-container.newsprint{font-size:15px}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource,.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource:first-child{width:298px;height:248px}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource .okanjo-resource-title-container{height:40px;margin-bottom:8px}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource .okanjo-resource-image-container{height:155px}.okanjo-block2.okanjo-slab.medium_rectangle.okanjo-cta-style-none .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.leaderboard .okanjo-resource .okanjo-resource-title-container{font-size:13px;line-height:15px;height:50px;margin-top:1px;margin-bottom:4px}.okanjo-block2.okanjo-slab.leaderboard .okanjo-resource .okanjo-resource-title-container.newsprint{font:700 13px/15px Georgia,serif}.okanjo-block2.okanjo-slab.large_mobile_banner .okanjo-resource .okanjo-resource-title-container,.okanjo-block2.okanjo-slab.leaderboard.okanjo-cta-style-none .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.large_mobile_banner.okanjo-cta-style-none .okanjo-resource-title-container{height:80px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource{width:298px;height:298px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource:nth-last-child(n+2){width:298px;height:298px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource:first-child{height:299px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource .okanjo-resource-image-container{width:100%;height:180px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource .okanjo-resource-title-container{margin-bottom:3px;height:77px}.okanjo-block2.okanjo-slab.half_page.okanjo-cta-style-button .okanjo-resource-title-container{height:57px;margin-bottom:8px}.okanjo-block2.okanjo-slab.half_page.okanjo-cta-style-none .okanjo-resource-title-container{height:116px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource{width:298px;height:198px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource:nth-last-child(n+2){width:298px;height:199px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource:first-child{height:199px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource .okanjo-resource-button-container{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource .okanjo-resource-image-container{width:100%;height:136px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource .okanjo-resource-title-container{height:42px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource,.okanjo-block2.okanjo-slab.billboard .okanjo-resource:first-child{width:322px;height:248px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource .okanjo-resource-title-container{height:40px;margin-bottom:8px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource .okanjo-resource-image-container{height:155px}.okanjo-block2.okanjo-slab.billboard.okanjo-cta-style-none .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.auto .okanjo-resource.list .okanjo-resource-image-container{width:100px;height:100px}.okanjo-block2.okanjo-slab.auto .okanjo-resource.list .okanjo-resource-info-container{margin-left:111px;width:auto}", { id: 'okanjo-article-slab' });
+
+    // Reuses block2 markup layout, extended css
+    okanjo.ui.engine.registerTemplate("articles.slab", okanjo.ui.__article_block2, function (model) {
+        var data = (this._response || { data: { results: [] } }).data || { results: [] };
+        model.blockClasses = ['okanjo-slab'];
+        model.articles = data.results;
+        model.config = this.config;
+        model.instanceId = this.instanceId;
+        model.metricChannel = this._metricBase.ch;
+        model.metricContext = this._metricBase.cx;
+        model.metricParams = okanjo.net.request.stringify(this._metricBase);
+        model.fitImage = 'okanjo-fit';
+
+        // Enforce format restrictions
+        // this._enforceLayoutOptions();
+        this._enforceSlabLayoutOptions();
+
+        // Add branding if necessary
+        this._registerCustomBranding('.okanjo-article', 'button');
+
+        return model;
+    }, {
+        css: ['articles.slab', /* 'articles.block2',*/'okanjo.block2']
     });
 })(window);
 (function (window) {
