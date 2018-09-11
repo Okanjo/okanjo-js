@@ -3565,6 +3565,11 @@ var okanjo = function (window, document) {
                     }
                 } else if (this.config.size === "auto") {
                     this.config.template_layout = "list";
+                } else if (this.config.size === "responsive") {
+                    // no button in responsive mode
+                    if (this.config.template_cta_style === "button") {
+                        this.config.template_cta_style = "link";
+                    }
                 }
             }
 

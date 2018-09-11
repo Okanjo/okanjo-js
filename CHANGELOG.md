@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2018-09-11 – v1.10.2
+ * Added `responsive` size to `slab`.
+ * Updated tests for coverage
+
 ## 2018-09-11 – v1.10.1
  * Added new article template: `slab`
  * okanjo.ui: Added `fitImages` helper to enable object-fit css polyfill on images for old browsers

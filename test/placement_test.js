@@ -2097,6 +2097,47 @@ describe('Placements', () => {
 
             });
 
+            it('no responsive buttons', () => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    type: 'articles',
+                    size: 'responsive',
+                    template_name: 'slab',
+                    template_layout: 'grid',
+                    template_cta_style: 'button'
+                });
+
+                // We don't need to fully load to test this
+                let placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._enforceSlabLayoutOptions();
+                placement.config.template_layout.should.be.exactly('grid');
+                placement.config.template_cta_style.should.be.exactly('link');
+
+                resetDocument();
+                target = insertDropzone({
+                    key: 'unit_test_key',
+                    type: 'articles',
+                    size: 'responsive',
+                    template_name: 'slab',
+                    template_layout: 'grid',
+                    template_cta_style: 'none'
+                });
+
+                // We don't need to fully load to test this
+                placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._enforceSlabLayoutOptions();
+                placement.config.template_layout.should.be.exactly('grid');
+                placement.config.template_cta_style.should.be.exactly('none');
+
+            });
+
         });
 
         describe('_registerCustomBranding', () => {
