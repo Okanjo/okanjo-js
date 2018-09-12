@@ -2,8 +2,29 @@
 
 .okanjo-block2 {
   color: #333;
-  font: 12px/1.2 @font-family-modern;
+  font-size: 12px/1.2;
+  font-family: inherit;
   .clearfix();
+
+  // theme: newsprint
+  &.theme-newsprint {
+    .okanjo-resource-seller-container {
+      font-family: @font-family-newsprint;
+    }
+
+    .okanjo-resource-title-container {
+      font: 13px/15px @font-family-newsprint;
+    }
+
+    .okanjo-resource-cta-button,
+    .okanjo-resource-buy-button {
+      font-family: @font-family-modern;
+    }
+  }
+
+  &.theme-modern {
+    font-family: @font-family-modern;
+  }
 
   .okanjo-ellipses {
     .ellipses-after();
@@ -78,10 +99,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-
-    &.newsprint {
-      font-family: @font-family-newsprint;
-    }
   }
 
   .okanjo-resource-title-container {
@@ -94,10 +111,6 @@
     line-height: 14px;
     height: 45px;
     word-wrap: break-word;
-
-    &.newsprint {
-      font: 13px/15px @font-family-newsprint;
-    }
 
     span {
       .inline-block();
@@ -251,14 +264,16 @@
 
         margin-top: 1px;
         margin-bottom: 4px;
-
-        &.newsprint {
-          font: bold 11px/13px @font-family-newsprint;
-        }
       }
 
       .okanjo-resource-price-container {
         margin-bottom: 3px;
+      }
+    }
+
+    &.theme-newsprint {
+      .okanjo-resource-title-container {
+        font: bold 11px/13px @font-family-newsprint;
       }
     }
   }

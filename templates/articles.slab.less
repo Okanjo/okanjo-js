@@ -46,10 +46,6 @@
 
     font-size: 16px;
     line-height: 19px;
-
-    &.newsprint {
-      font: 16px/19px Georgia, serif;
-    }
   }
 
 
@@ -59,12 +55,19 @@
     .okanjo-resource-title-container {
       font-size: 14px;
       height: 60px;
+    }
+  }
 
-      &.newsprint {
+  &.theme-newsprint {
+    .okanjo-resource-title-container {
+      font: 16px/19px Georgia, serif;
+
+    }
+    .okanjo-resource.list {
+      .okanjo-resource-title-container {
         font-size: 15px;
       }
     }
-
   }
 
   // flexbox ftw
@@ -144,10 +147,6 @@
 
         margin-top: 1px;
         margin-bottom: 4px;
-
-        &.newsprint {
-          font: bold 13px/15px @font-family-newsprint;
-        }
       }
 
     }
@@ -155,6 +154,12 @@
     &.okanjo-cta-style-none {
       .okanjo-resource-title-container {
         height: 60px;
+      }
+    }
+
+    &.theme-newsprint {
+      .okanjo-resource .okanjo-resource-title-container {
+        font: bold 13px/15px @font-family-newsprint;
       }
     }
 

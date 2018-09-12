@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartServe Widget Builder</title>
+    <link href="https://fonts.googleapis.com/css?family=Fauna+One|Indie+Flower" rel="stylesheet">
+    <style>
+        html, body {
+            font-family: 'Fauna One', serif;
+            /*font-family: 'Indie Flower', cursive;*/
+
+            min-height: 2000px;
+        }
+
+        #codez {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #codez > div {
+            flex-grow: 1;
+            flex-shrink: 0;
+            //noinspection CssOverwrittenProperties
+            flex-basis: 48%;
+            //noinspection CssOverwrittenProperties
+            flex-basis: 300px;
+            /*display: flex;*/
+            /*align-items: center;*/
+            justify-content: center;
+        }
+        
+        blockquote {
+            text-decoration: underline;
+        }
+
+        form > div {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-content: flex-start;
+            align-items: flex-start;
+        }
+        
+        label {
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        form > div > div {
+            padding: 0 1em 1em 1em;
+            order: 0;
+            flex: 0 1 auto;
+            align-self: auto;
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+        }
+
+        form h3 {
+            margin-bottom: 10px;
+        }
+
+
+        form > div.row-60-40 > div:first-child {
+            flex-basis: 60%;
+        }
+
+        form > div.row-60-40 > div:last-child {
+            flex-basis: 40%;
+        }
+
+        form > div.row-50-50 > div {
+            flex-basis: 50%;
+        }
+
+
+
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<h1>SmartServe Widget Builder</h1>
+<form>
+    <div class="row-60-40">
+        <div>
+            <h3>Size</h3>
+            <label><input type="radio" name="size" value="default" checked/> default</label>
+            <label><input type="radio" name="size" value="responsive"/> responsive</label>
+            <label><input type="radio" name="size" value="medium_rectangle"/> medium_rectangle</label>
+            <label><input type="radio" name="size" value="leaderboard"/> leaderboard</label>
+            <label><input type="radio" name="size" value="large_mobile_banner"/> large_mobile_banner</label>
+            <label><input type="radio" name="size" value="half_page"/> half_page</label>
+            <label><input type="radio" name="size" value="billboard"/> billboard</label>
+            <label><input type="radio" name="size" value="auto"/> auto</label>
+        </div>
+        <div>
+            <h3>Resources</h3>
+            <input type="number" name="take" value="6" />
+        </div>
+    </div>
+    <div class="row-60-40">
+        <div>
+            <h3>Layout</h3>
+            <label><input type="radio" name="layout" value="grid" checked/> grid</label>
+            <label><input type="radio" name="layout" value="list"/> list</label>
+        </div>
+        <div>
+            <h3>Theme</h3>
+            <label><input type="radio" name="theme" value="modern" checked/> modern</label>
+            <label><input type="radio" name="theme" value="newsprint" /> newsprint</label>
+            <label><input type="radio" name="theme" value="inherit" /> inherit</label>
+        </div>
+    </div>
+    <div class="row-60-40">
+        <div>
+            <h3>CTA Style</h3>
+            <label><input type="radio" name="cta" value="link" checked/> link</label>
+            <label><input type="radio" name="cta" value="button" /> button</label>
+            <label><input type="radio" name="cta" value="none" /> none</label>
+        </div>
+        <div>
+            <h3>Variant</h3>
+            <label><input type="radio" name="variant" value="none" checked /> none</label>
+            <label><input type="radio" name="variant" value="dense" /> dense (half_page)</label>
+        </div>
+    </div>
+</form>
+<h2>Here is your widget</h2>
+<a href="#" id="toggle-code-block"><h3>Example Code (show/hide)</h3></a>
+<div id="code-container" class="hidden">
+    <p>
+        <blockquote> ** Please only use this code as a reference. It shouldn't really be used for production deployments. **</blockquote>
+    </p>
+    <div id="codez">
+        <div>
+            <h4>Example Div</h4>
+            <pre id="placement-code"></pre>
+        </div>
+        <div>
+            <h4>Example Constructor</h4>
+            <pre id="placement-settings"></pre>
+        </div>
+    </div>
+</div>
+<div id="placement-container"></div>
+
+<script src="https://cdn.okanjo.com/js/latest/okanjo-bundle.min.js" crossorigin="anonymous"></script>
+<script>
+
+    // docs test key
+    okanjo.key = 'pmk_1W0fkWVTPLaCGIgRmoCkQ70lsEQFf8R8';
+    okanjo.net.endpoint = 'https://api2.okanjo.com';
+
+    var sizes = {
+        responsive: {take: 4},
+        default: {take: 6},
+        medium_rectangle: {take: 1},
+        leaderboard: {take: 3},
+        large_mobile_banner: {take: 1},
+        half_page: {take: 2},
+        billboard: {take: 3},
+        auto: {take: 2}
+    };
+
+    var variants = {
+        half_page: {
+            dense: {
+                take: 3
+            }
+        }
+    };
+
+    var template_name = 'slab';
+    var current = null;
+    var placement = null;
+    var $placement = null;
+    var $placementCode = document.getElementById('placement-code');
+    var $placementSettings = document.getElementById('placement-settings');
+    var $placementContainer = document.getElementById('placement-container');
+    var $codeContainer = document.getElementById('code-container');
+
+    function onChange() {
+
+        var size = document.querySelector('input[name=size]:checked').value;
+        var take = document.querySelector('input[name=take]').value;
+        var layout = document.querySelector('input[name=layout]:checked').value;
+        var theme = document.querySelector('input[name=theme]:checked').value;
+        var cta = document.querySelector('input[name=cta]:checked').value;
+        var variant = document.querySelector('input[name=variant]:checked').value;
+
+        if (variant === 'none') {
+            variant = null;
+        }
+
+        if (current && size !== current.size) {
+            take = sizes[size].take;
+            document.querySelector('input[name=take]').value = take;
+        } else if (current && variant !== current.variant) {
+            // override take based on variant if present
+            if (variants[size] && variants[size][variant]) {
+                take = variants[size][variant].take;
+            } else {
+                take = sizes[size].take;
+            }
+            document.querySelector('input[name=take]').value = take;
+        }
+
+        // update current placement settings
+        current = {
+            size: size,
+            take: take,
+            layout: layout,
+            theme: theme,
+            style: cta,
+            variant: variant,
+            template_name: template_name
+        };
+
+        $placementContainer.innerHTML = '';
+        $placement = document.createElement('div');
+        $placement.className = 'okanjo-placement';
+        $placement.setAttribute('data-size', size);
+        $placement.setAttribute('data-template-name', template_name);
+        $placement.setAttribute('data-template-layout', layout);
+        $placement.setAttribute('data-template-theme', theme);
+        $placement.setAttribute('data-template-cta-style', cta);
+        $placement.setAttribute('data-take', take);
+        $placement.setAttribute('data-type', 'articles');
+        $placement.setAttribute('data-organization-id', 'org_2iSTeqvzs1TVxrmSB');
+        if (variant) {
+            $placement.setAttribute('data-template-variant', variant);
+        }
+        $placementContainer.appendChild($placement);
+        $placementCode.innerHTML = $placement.outerHTML
+            .replace(/&/g, "&amp;")
+            // .replace(/<\/div>/, "\n</div>")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;")
+            .replace(/ /g, "\n     ");
+
+        var code = {
+            type: 'articles',
+            size: size,
+            take: take,
+            template_name: template_name,
+            template_layout: layout,
+            template_theme: theme,
+            template_cta_style: cta,
+        };
+        if (variant) code.template_variant = variant;
+
+        $placementSettings.innerHTML = '\n\nvar p = new okanjo.Placement(document.querySelector(".okanjo-placement"), ';
+        $placementSettings.innerHTML += JSON.stringify(code, null, '  ');
+        $placementSettings.innerHTML += ');';
+
+        placement = new okanjo.Placement($placement, {});
+    }
+
+    document.querySelectorAll('input').forEach((i) => {
+        i.onchange = onChange;
+    });
+
+    onChange();
+
+    document.getElementById('toggle-code-block').onclick = function(e) {
+        e.preventDefault();
+
+        $codeContainer.className = $codeContainer.className === 'hidden' ? '' : 'hidden';
+    }
+
+
+</script>
+</body>
+</html>

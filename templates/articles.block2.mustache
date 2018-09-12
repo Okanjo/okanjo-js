@@ -1,5 +1,5 @@
 <!--suppress CheckEmptyScriptTag -->
-<div class="okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}">
+<div class="okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} theme-{{ template_theme }}{{^template_theme}}modern{{/template_theme}} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}">
     <div class="okanjo-resource-list" itemscope itemtype="http://schema.org/ItemList" data-instance-id="{{ instanceId }}">
         {{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }}
     {{#articles}}
@@ -34,13 +34,13 @@
                     {{/image}}
                 </div>
                 <div class="okanjo-resource-info-container">
-                    <div class="okanjo-resource-publisher-container {{#config}}{{ template_theme }}{{/config}}" itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+                    <div class="okanjo-resource-publisher-container" itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
                         <span class="okanjo-resource-publisher" itemprop="name" title="{{ publisher_name }}">{{ publisher_name }}{{^publisher_name}}&nbsp;{{/publisher_name}}</span>
                     </div>
-                    <div class="okanjo-resource-title-container {{#config}}{{ template_theme }}{{/config}}">
+                    <div class="okanjo-resource-title-container">
                         <span class="okanjo-resource-title" itemprop="name">{{ title }}</span>
                     </div>
-                    <div class="okanjo-resource-description-container okanjo-visually-hidden {{#config}}{{ template_theme }}{{/config}}">
+                    <div class="okanjo-resource-description-container okanjo-visually-hidden">
                         <div class="okanjo-resource-description" itemprop="description">
                             {{ description }}
                         </div>

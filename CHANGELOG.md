@@ -3,6 +3,11 @@
 
 When stuff changes, it's described here.
 
+## 2018-09-12 – v1.11.1
+ * Added `inherit` theme, to inherit container font instead of using a sans (modern) or serif (newsprint) based font
+ * Refactored the way theme is applied in block2 markup; moved to root level from element level 
+ * Added basic widget configurator example, builder.html
+ 
 ## 2018-09-11 – v1.10.2
  * Added `responsive` size to `slab`.
  * Updated tests for coverage
