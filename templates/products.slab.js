@@ -1,13 +1,13 @@
 (function(window) {
 
     const okanjo = window.okanjo;
-    okanjo.ui.engine.registerCss("articles.slab", "@@include(jsStringEscape('articles.slab.css'))", {id: 'okanjo-article-slab'});
+    okanjo.ui.engine.registerCss("products.slab", "@@include(jsStringEscape('products.slab.css'))", {id: 'okanjo-product-slab'});
 
     // Reuses block2 markup layout, extended css
-    okanjo.ui.engine.registerTemplate("articles.slab", okanjo.ui.__article_block2, function (model) {
+    okanjo.ui.engine.registerTemplate("products.slab", okanjo.ui.__product_block2, function (model) {
         const data = (this._response || { data: { results: [] } }).data || { results: [] };
         model.blockClasses = ['okanjo-slab'];
-        model.articles = data.results;
+        model.products = data.results;
         model.config = this.config;
         model.instanceId = this.instanceId;
         model.metricChannel = this._metricBase.ch;
@@ -20,11 +20,11 @@
         this._enforceSlabLayoutOptions();
 
         // Add branding if necessary
-        this._registerCustomBranding('.okanjo-article', 'button');
+        this._registerCustomBranding('.okanjo-product', 'button');
 
         return model;
     }, {
-        css: [ 'articles.slab', 'okanjo.slab','okanjo.block2' ]
+        css: [ 'products.slab', 'okanjo.slab', 'okanjo.block2' ]
     });
 
 })(window);

@@ -129,6 +129,13 @@
             <label><input type="radio" name="variant" value="dense" /> dense (half_page)</label>
         </div>
     </div>
+    <div class="row-60-40">
+        <div>
+            <h3>Resource Type</h3>
+            <label><input type="radio" name="type" value="articles" checked/> articles</label>
+            <label><input type="radio" name="type" value="products" /> products</label>
+        </div>
+    </div>
 </form>
 <h2>Here is your widget</h2>
 <a href="#" id="toggle-code-block"><h3>Example Code (show/hide)</h3></a>
@@ -192,6 +199,7 @@
         var theme = document.querySelector('input[name=theme]:checked').value;
         var cta = document.querySelector('input[name=cta]:checked').value;
         var variant = document.querySelector('input[name=variant]:checked').value;
+        var type = document.querySelector('input[name=type]:checked').value;
 
         if (variant === 'none') {
             variant = null;
@@ -218,7 +226,8 @@
             theme: theme,
             style: cta,
             variant: variant,
-            template_name: template_name
+            template_name: template_name,
+            type: type
         };
 
         $placementContainer.innerHTML = '';
@@ -230,8 +239,12 @@
         $placement.setAttribute('data-template-theme', theme);
         $placement.setAttribute('data-template-cta-style', cta);
         $placement.setAttribute('data-take', take);
-        $placement.setAttribute('data-type', 'articles');
-        $placement.setAttribute('data-organization-id', 'org_2iSTeqvzs1TVxrmSB');
+        $placement.setAttribute('data-type', type);
+        if (type === 'articles') {
+            $placement.setAttribute('data-organization-id', 'org_2iSTeqvzs1TVxrmSB');
+        } else {
+            $placement.setAttribute('data-pools', 'farm:5b561f42d2872c111fff0cd4');
+        }
         if (variant) {
             $placement.setAttribute('data-template-variant', variant);
         }
@@ -253,6 +266,7 @@
             template_layout: layout,
             template_theme: theme,
             template_cta_style: cta,
+            type: type
         };
         if (variant) code.template_variant = variant;
 

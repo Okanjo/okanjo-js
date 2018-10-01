@@ -1,0 +1,266 @@
+@import "common.less";
+
+@product: ~'.okanjo-resource.okanjo-product';
+
+.okanjo-block2.okanjo-slab {
+
+  //region Default
+
+  @{product} {
+
+    // grid
+    .okanjo-resource-title-container {
+      height: 40px;
+    }
+
+    // list
+    &.list {
+
+      .okanjo-resource-title-container {
+        font-size: 14px;
+        height: 40px;
+      }
+
+    }
+
+  }
+
+  // cta=button
+  &.okanjo-cta-style-button {
+    @{product}.list {
+
+      .okanjo-resource-title-container {
+        height: 30px; // 2 lines of text
+        font-size: 12px;
+        line-height: 14px;
+      }
+
+    }
+
+    &.theme-newsprint {
+      @{product}.list {
+        .okanjo-resource-title-container {
+          font-size: 13px;
+        }
+      }
+    }
+  }
+
+  // cta=none
+  &.okanjo-cta-style-none {
+    @{product}.list {
+      .okanjo-resource-title-container {
+        height: 60px;
+      }
+    }
+  }
+
+  //endregion
+
+  //region Medium Rectangle
+
+  &.medium_rectangle {
+
+    // grid (only)
+    @{product} {
+      .okanjo-resource-title-container {
+        margin-bottom: 4px;
+        margin-top: 2px;
+      }
+
+      .okanjo-resource-price-container {
+        display: inline-block;
+      }
+
+      .okanjo-resource-button-container {
+        display: inline-block;
+        margin-left: 10px;
+        font-size: 15px;
+        line-height: 1;
+
+        .okanjo-resource-buy-button {
+          font-size: 14px;
+          overflow: inherit;
+        }
+
+      }
+
+    }
+
+    &.okanjo-cta-style-none {
+      @{product} {
+        .okanjo-resource-title-container {
+          height: 40px;
+        }
+      }
+    }
+
+  }
+
+  //endregion
+
+  //region Leaderboard
+
+  &.leaderboard {
+
+    @{product} {
+      .okanjo-resource-title-container {
+        margin-bottom: 0;
+        height: 32px;
+        font-size: 14px
+      }
+    }
+
+    &.okanjo-cta-style-none {
+      @{product} {
+        .okanjo-resource-title-container {
+          height: 47px;
+        }
+      }
+    }
+
+  }
+
+  //endregion
+
+  //region Large Mobile Banner
+
+  &.large_mobile_banner {
+
+    @{product} {
+      .okanjo-resource-title-container {
+        height: 34px;
+        font-size: 14px;
+        line-height: 16px;
+        margin-bottom: 2px;
+      }
+    }
+
+    &.okanjo-cta-style-none {
+      @{product} {
+        .okanjo-resource-title-container {
+          height: 50px;
+        }
+      }
+    }
+
+  }
+
+  //endregion
+
+  //region Half Page
+
+  &.half_page {
+
+    @{product} {
+      .okanjo-resource-title-container {
+        height: 40px;
+      }
+    }
+
+    &.okanjo-cta-style-button {
+      @{product} {
+        .okanjo-resource-title-container {
+          height: 34px;
+          margin-bottom: 0;
+          line-height: 15px;
+          font-size: 15px;
+        }
+      }
+    }
+
+    &.okanjo-cta-style-none {
+      @{product} {
+        .okanjo-resource-title-container {
+          height: 60px;
+        }
+      }
+    }
+
+    // dense variant
+    &.dense {
+      @{product} {
+        .okanjo-resource-title-container {
+          height: 33px;
+          font-size: 15px;
+          line-height: 15px;
+        }
+        // dense products don't work very well, so kill the price tag and cta
+        .okanjo-resource-price-container,
+        .okanjo-resource-button-container {
+          .visually-hidden();
+        }
+      }
+    }
+
+  }
+
+  //endregion
+
+  //region Billboard
+
+  &.billboard {
+    // grid (only)
+    @{product} {
+      .okanjo-resource-title-container {
+        margin-bottom: 4px;
+        margin-top: 2px;
+      }
+
+      .okanjo-resource-price-container {
+        display: inline-block;
+      }
+
+      .okanjo-resource-button-container {
+        display: inline-block;
+        margin-left: 10px;
+        font-size: 15px;
+        line-height: 1;
+
+        .okanjo-resource-buy-button {
+          font-size: 14px;
+          overflow: inherit;
+        }
+
+      }
+
+    }
+
+    &.okanjo-cta-style-none {
+      @{product} {
+        .okanjo-resource-title-container {
+          height: 40px;
+        }
+      }
+    }
+  }
+
+  //endregion
+
+  //region Auto
+
+  &.auto {
+
+    @{product}.list {
+      .okanjo-resource-title-container {
+        height: auto;
+        margin-bottom: 2px;
+        line-height: 20px;
+      }
+      .okanjo-resource-price-container {
+        margin-bottom: 0;
+      }
+    }
+
+    &.okanjo-cta-style-button {
+      @{product} {
+        .okanjo-resource-price-container {
+          margin-bottom: 3px;
+        }
+      }
+    }
+  }
+
+  //endregion
+
+}

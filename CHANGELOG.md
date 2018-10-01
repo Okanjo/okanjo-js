@@ -3,6 +3,12 @@
 
 When stuff changes, it's described here.
 
+## 2018-09-12 – v1.12.1
+ * Added `slab` template support for products
+ * Refactored `slab` base styles to stand-alone `okanjo.slab.less`, for reuse
+ * Fixed an issue in block2 where the price accidentally inherited font in some cases
+ * Updated the builder example to support products
+
 ## 2018-09-12 – v1.11.1
  * Added `inherit` theme, to inherit container font instead of using a sans (modern) or serif (newsprint) based font
  * Refactored the way theme is applied in block2 markup; moved to root level from element level 

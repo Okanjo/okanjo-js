@@ -3,9 +3,9 @@
     const okanjo = window.okanjo;
     okanjo.ui.engine.registerCss("products.block2", "@@include(jsStringEscape('products.block2.css'))", { id: 'okanjo-product-block2' });
 
-    const product_block2 = "@@include(jsStringEscape('products.block2.mustache'))";
+    okanjo.ui.__product_block2 = "@@include(jsStringEscape('products.block2.mustache'))";
 
-    okanjo.ui.engine.registerTemplate("products.block2", product_block2, function(model) {
+    okanjo.ui.engine.registerTemplate("products.block2", okanjo.ui.__product_block2, function(model) {
 
         // Attach placement properties
         const data = (this._response || { data: { results: [] } }).data || { results: [] };
