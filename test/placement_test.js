@@ -442,6 +442,33 @@ describe('Placements', () => {
                 new okanjo.Placement(target);
             });
 
+            it('can show products in slab template', (done) => {
+                resetDocument();
+                let target = insertDropzone({ key: 'unit_test_key', template_name: 'slab' });
+
+                setMetricsBulkHandler(() => {
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    target.querySelectorAll('.okanjo-product').length.should.be.exactly(2);
+
+                    done();
+                });
+
+                // Make the server return an error
+                setAdsHandler(() => {
+                    return {
+                        statusCode: 200,
+                        payload: TestResponses.getExampleProductResponse()
+                    };
+                });
+
+                // Make that placement
+                new okanjo.Placement(target);
+            });
+
             it('can show google ads', (done) => {
                 resetDocument();
                 let target = insertDropzone({ key: 'unit_test_key' });
@@ -1163,7 +1190,7 @@ describe('Placements', () => {
             it('should handle empty responses in slab template', (done) => {
                 resetDocument();
                 let target = insertDropzone({ key: 'unit_test_key' });
-                let firedEmpty = false;
+                let emptyCount = 0;
 
                 // We don't need to fully load to test this
                 let placement = new okanjo.Placement(target, { no_init: true, template_name: 'slab' });
@@ -1171,9 +1198,11 @@ describe('Placements', () => {
                 setMetricsBulkHandler(() => {
                     setMetricsBulkHandler();
 
-                    firedEmpty.should.be.exactly(true);
+                    emptyCount.should.be.lessThanOrEqual(2);
 
-                    done();
+                    if (emptyCount === 2) {
+                        done();
+                    }
                 });
 
                 placement._metricBase.m = {};
@@ -1182,15 +1211,18 @@ describe('Placements', () => {
                 // Go
                 //noinspection JSAccessibilityCheck
                 placement._showArticles();
+                placement._showProducts();
 
                 // Go again
                 placement._response = {};
                 placement.on('empty', () => {
-                    firedEmpty.should.be.exactly(false);
-                    firedEmpty = true;
+                    emptyCount.should.be.lessThanOrEqual(2);
+                    emptyCount++;
                 });
                 //noinspection JSAccessibilityCheck
                 placement._showArticles();
+                placement._showProducts();
+
             });
 
             it('should handle article edge cases (backfill)', (done) => {
