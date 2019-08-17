@@ -3,6 +3,10 @@
 
 When stuff changes, it's described here.
 
+## 2018-12-11 – v1.13.1
+ * Added support for splitfilled widgets
+ * Added test coverage for splitfill
+
 ## 2018-09-12 – v1.12.1
  * Added `slab` template support for products
  * Refactored `slab` base styles to stand-alone `okanjo.slab.less`, for reuse

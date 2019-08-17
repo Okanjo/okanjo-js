@@ -118,6 +118,60 @@ describe('Placements', () => {
 
                 req.payload.win.should.be.ok();
 
+                req.payload.events.forEach(event => {
+                    should(event.env).not.be.ok();
+                });
+
+                // Cleanup
+                setAdsHandler();
+                setMetricsBulkHandler();
+                done();
+            });
+
+            let placement = new okanjo.Placement(target);
+
+            placement.on('load', () => {
+                loadEventFired.should.be.exactly(false);
+                loadEventFired = true;
+            });
+
+            placement.on('data', () => {
+                dataEventFired.should.be.exactly(false);
+                dataEventFired = true;
+            });
+        });
+
+        it('should flag metrics as testing, if configured', (done) => {
+            resetDocument();
+            let target = insertDropzone({ key: 'unit_test_key', testing: true });
+            let adsHits = 0;
+            let metricsReceived = 0;
+            let loadEventFired = false;
+            let dataEventFired = false;
+
+            setAdsHandler(() => {
+                adsHits++;
+                adsHits.should.be.exactly(1);
+                metricsReceived.should.be.exactly(0);
+            });
+
+            setMetricsBulkHandler((req) => {
+                metricsReceived += req.payload.events.length;
+                adsHits.should.be.exactly(1);
+                metricsReceived.should.be.exactly(3); // imps: wg, pr, pr
+
+                // Check the markup
+                target.querySelectorAll('.okanjo-product').should.have.length(2);
+                loadEventFired.should.be.exactly(true);
+                dataEventFired.should.be.exactly(true);
+
+                req.payload.win.should.be.ok();
+
+                // console.log(req.payload.events);
+                req.payload.events.forEach(event => {
+                    event.env.should.be.exactly('testing');
+                });
+
                 // Cleanup
                 setAdsHandler();
                 setMetricsBulkHandler();
@@ -2415,7 +2469,6 @@ describe('Placements', () => {
 
                     }, 10);
 
-                    done();
                 });
 
                 // jsDom isn't going to actually load the google ad, so fake it
@@ -2433,6 +2486,506 @@ describe('Placements', () => {
             });
 
             // We don't need to fully load to test this
+            placement = new okanjo.Placement(target);
+        });
+
+    });
+
+    describe('Splitfill', () => {
+
+        it('can track properly on products', (done) => {
+
+            resetDocument();
+            let target = insertDropzone({ key: 'unit_test_key' });
+            let placement;
+
+            setMetricsBulkHandler((req) => {
+
+                let bf = 0;
+                let sf = 0;
+                let spltfl_seg = 0;
+                let fl = 0;
+
+                // CHECK IMPRESSIONS
+                // 1 widget + 2 product impressions
+                req.payload.events.length.should.be.exactly(3);
+                req.payload.events.forEach((e) => {
+                    e.event_type.should.be.exactly('imp');
+
+                    if (e.m.bf === 1) {
+                        bf++;
+                    } else if (e.m.sf === 1) {
+                        sf++;
+                    } else if (e.m.spltfl_seg) {
+                        spltfl_seg++;
+                    } else if (e.object_type === 'pr') {
+                        fl++;
+                    }
+
+                });
+
+                bf.should.be.exactly(0);
+                sf.should.be.exactly(0);
+                spltfl_seg.should.be.exactly(1);
+                fl.should.be.exactly(1);
+
+                setMetricsBulkHandler((req) => {
+
+                    bf = 0;
+                    sf = 0;
+                    spltfl_seg = 0;
+                    fl = 0;
+
+                    // CHECK VIEWS
+                    // 1 widget + 2 product views
+                    req.payload.events.length.should.be.exactly(3);
+                    req.payload.events.forEach((e) => {
+                        e.event_type.should.be.exactly('vw');
+
+                        if (e.m.bf === 1) {
+                            bf++;
+                        } else if (e.m.sf === 1) {
+                            sf++;
+                        } else if (e.m.spltfl_seg) {
+                            spltfl_seg++;
+                        } else if (e.object_type === 'pr') {
+                            fl++;
+                        }
+
+                    });
+
+                    bf.should.be.exactly(0);
+                    sf.should.be.exactly(0);
+                    spltfl_seg.should.be.exactly(1);
+                    fl.should.be.exactly(1);
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+
+                    // CHECK A CLICK THROUGH LINK (with a segment)
+                    (() => {
+                        let productLink = target.querySelectorAll('a')[0];
+                        should(productLink).be.ok();
+
+                        let baitLink = target.href;
+
+                        let e = new window.Event('mousedown', {bubbles: true});
+                        e.pageX = 1;
+                        e.pageY = 2;
+                        productLink.dispatchEvent(e);
+
+                        // Verify that our link changed
+                        productLink.href.should.not.be.equal(baitLink);
+                        productLink.href.should.not.match(/\[bot]/);
+
+                        let parts = Url.parse(productLink.href);
+                        let args = Qs.parse(parts.query);
+
+                        // console.log(JSON.stringify(args, null, '  '));
+                        args.should.containDeep({
+                            "ch": "pw",
+                            "cx": "auto",
+                            "key": "unit_test_key",
+                            "m": {
+                                // "wgid": "8kMzJKKGf",
+                                "aid": "article_local_2gT3kBcwVQZ1kpEma",
+                                "pten": "0",
+                                "decl": "0",
+                                "res_bf": "0",
+                                "res_sf": "0",
+                                "res_spltfl": "1",                  // !! <<<<< !!
+                                "res_total": "2",
+                                "res_type": "products",
+                                "res_length": "2",
+                                // "cid": "UkxzzJttMf",
+                                "bf": "0",
+                                "sf": "0",
+                                "spltfl_seg": "test split segment", // !! <<<<< !!
+                                "et": "Event",
+                                "ex": "1",
+                                "ey": "2",
+                                "pw": "0",
+                                "ph": "0",
+                                "x1": "0",
+                                "y1": "0",
+                                "x2": "0",
+                                "y2": "0",
+                                "vx1": "0",
+                                "vy1": "0",
+                                "vx2": "0",
+                                "vy2": "0",
+                                // "pgid": "UkgMktKfG",
+                                "ok_ver": "%%OKANJO_VERSION"
+                            },
+                            "id": "product_test_2gT3kBcwVQZ1kpEma",
+                            "ea": "click",
+                            // "u": "http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=575333915&ok_cid=UkxzzJttMf&afftrack=MTunittesting1%3AUkxzzJttMf&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
+                            "sid": "MTunittesting1",
+                            "win": "about:blank"
+                        });
+
+                        // check dynamic params to be present
+                        args.m.wgid.should.be.ok();
+                        args.m.cid.should.be.ok();
+                        args.m.pgid.should.be.ok();
+                        // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
+
+                    })();
+
+                    // Check a link without a segment
+                    (() => {
+                        let productLink = target.querySelectorAll('a')[1];
+                        should(productLink).be.ok();
+
+                        let baitLink = target.href;
+
+                        let e = new window.Event('mousedown', {bubbles: true});
+                        e.pageX = 1;
+                        e.pageY = 2;
+                        productLink.dispatchEvent(e);
+
+                        // Verify that our link changed
+                        productLink.href.should.not.be.equal(baitLink);
+                        productLink.href.should.not.match(/\[bot]/);
+
+                        let parts = Url.parse(productLink.href);
+                        let args = Qs.parse(parts.query);
+
+                        // console.log(JSON.stringify(args, null, '  '));
+                        args.should.containDeep({
+                            "ch": "pw",
+                            "cx": "auto",
+                            "key": "unit_test_key",
+                            "m": {
+                                // "wgid": "UylAxWtFfz",
+                                "aid": "article_local_2gT3kBcwVQZ1kpEma",
+                                "pten": "0",
+                                "decl": "0",
+                                "res_bf": "0",
+                                "res_sf": "0",
+                                "res_spltfl": "1",              // !! <<<<< !!
+                                "res_total": "2",
+                                "res_type": "products",
+                                "res_length": "2",
+                                // "cid": "81xJ-bFFfM",
+                                "bf": "0",
+                                "sf": "0",
+                                "spltfl_seg": "",               // !! <<<<< !!
+                                "et": "Event",
+                                "ex": "1",
+                                "ey": "2",
+                                "pw": "0",
+                                "ph": "0",
+                                "x1": "0",
+                                "y1": "0",
+                                "x2": "0",
+                                "y2": "0",
+                                "vx1": "0",
+                                "vy1": "0",
+                                "vx2": "0",
+                                "vy2": "0",
+                                // "pgid": "Lkpl-FYzM",
+                                "ok_ver": "%%OKANJO_VERSION"
+                            },
+                            "id": "product_test_2gT3kBcwVQZ1kpEmb",
+                            "ea": "click",
+                            // "u": "http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=675783405&ok_cid=81xJ-bFFfM&afftrack=MTunittesting1%3A81xJ-bFFfM&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
+                            "sid": "MTunittesting1",
+                            "win": "about:blank"
+                        });
+
+                        // check dynamic params to be present
+                        args.m.wgid.should.be.ok();
+                        args.m.cid.should.be.ok();
+                        args.m.pgid.should.be.ok();
+                        // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
+
+                    })();
+
+
+                    done();
+
+                });
+
+                // Fake some scrolling into view action
+                setTimeout(() => {
+
+                    // First, make sure we have 3 active view impression watchers (widget + 2 products)
+                    placement._viewedWatchers.length.should.be.exactly(3);
+
+                    // Fake that they entered the view
+                    placement._viewedWatchers.forEach((controller) => {
+                        controller.successfulCount = 2; // MINIMUM_VIEW_FREQ
+                    });
+
+                    // Now we wait for the next tick to deliver another bulk metrics report of views
+
+                }, 10);
+            });
+
+            setAdsHandler(() => {
+                const payload = TestResponses.getExampleSplitfillProductResponse();
+
+                return {
+                    statusCode: 200,
+                    payload
+                };
+            });
+
+            // Make that placement
+            placement = new okanjo.Placement(target);
+        });
+
+        it('can track properly on articles', (done) => {
+
+            resetDocument();
+            let target = insertDropzone({ key: 'unit_test_key' });
+            let placement;
+
+            setMetricsBulkHandler((req) => {
+
+                let bf = 0;
+                let sf = 0;
+                let spltfl_seg = 0;
+                let fl = 0;
+
+                // CHECK IMPRESSIONS
+                // 1 widget + 2 article impressions
+                req.payload.events.length.should.be.exactly(3);
+                req.payload.events.forEach((e) => {
+                    e.event_type.should.be.exactly('imp');
+
+                    if (e.m.bf === 1) {
+                        bf++;
+                    } else if (e.m.sf === 1) {
+                        sf++;
+                    } else if (e.m.spltfl_seg) {
+                        spltfl_seg++;
+                    } else if (e.object_type === 'am') {
+                        fl++;
+                    }
+
+                });
+
+                bf.should.be.exactly(0);
+                sf.should.be.exactly(0);
+                spltfl_seg.should.be.exactly(1);
+                fl.should.be.exactly(1);
+
+                setMetricsBulkHandler((req) => {
+
+                    bf = 0;
+                    sf = 0;
+                    spltfl_seg = 0;
+                    fl = 0;
+
+                    // CHECK VIEWS
+                    // 1 widget + 2 article views
+                    req.payload.events.length.should.be.exactly(3);
+                    req.payload.events.forEach((e) => {
+                        e.event_type.should.be.exactly('vw');
+
+                        if (e.m.bf === 1) {
+                            bf++;
+                        } else if (e.m.sf === 1) {
+                            sf++;
+                        } else if (e.m.spltfl_seg) {
+                            spltfl_seg++;
+                        } else if (e.object_type === 'am') {
+                            fl++;
+                        }
+
+                    });
+
+                    bf.should.be.exactly(0);
+                    sf.should.be.exactly(0);
+                    spltfl_seg.should.be.exactly(1);
+                    fl.should.be.exactly(1);
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+
+                    // CHECK A CLICK THROUGH LINK (with a segment)
+                    (() => {
+                        let articleLink = target.querySelectorAll('a')[0];
+                        should(articleLink).be.ok();
+
+                        let baitLink = target.href;
+
+                        let e = new window.Event('mousedown', {bubbles: true});
+                        e.pageX = 1;
+                        e.pageY = 2;
+                        articleLink.dispatchEvent(e);
+
+                        // Verify that our link changed
+                        articleLink.href.should.not.be.equal(baitLink);
+                        articleLink.href.should.not.match(/\[bot]/);
+
+                        let parts = Url.parse(articleLink.href);
+                        let args = Qs.parse(parts.query);
+
+                        // console.log(JSON.stringify(args, null, '  '));
+                        args.should.containDeep({
+                            "ch": "pw",
+                            "cx": "auto",
+                            "key": "unit_test_key",
+                            "m": {
+                                // "wgid": "UkZJf_KtGz",
+                                "pten": "0",
+                                "decl": "0",
+                                "res_bf": "0",
+                                "res_sf": "0",
+                                "res_spltfl": "1",                          // !! <<<<< !!
+                                "res_total": "2",
+                                "res_type": "articles",
+                                "res_length": "2",
+                                "display_size": "half_page",
+                                "display_template_layout": "list",
+                                "display_template_cta_style": "link",
+                                // "cid": "Iyz1G_KFzz",
+                                "bf": "0",
+                                "sf": "0",
+                                "spltfl_seg": "test split segment",         // !! <<<<< !!
+                                "et": "Event",
+                                "ex": "1",
+                                "ey": "2",
+                                "pw": "0",
+                                "ph": "0",
+                                "x1": "0",
+                                "y1": "0",
+                                "x2": "0",
+                                "y2": "0",
+                                "vx1": "0",
+                                "vy1": "0",
+                                "vx2": "0",
+                                "vy2": "0",
+                                // "pgid": "Lk2-OKYff",
+                                "ok_ver": "%%OKANJO_VERSION"
+                            },
+                            "id": "article_test_2gWFnrrPHhoJPDQoF",
+                            "ea": "click",
+                            // "u": "http://unit.test/1?ok_cid=Iyz1G_KFzz&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
+                            "sid": "MTunittesting1",
+                            "win": "about:blank"
+
+                        });
+
+                        // check dynamic params to be present
+                        args.m.wgid.should.be.ok();
+                        args.m.cid.should.be.ok();
+                        args.m.pgid.should.be.ok();
+                        // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
+
+                    })();
+
+                    // Check a link without a segment
+                    (() => {
+                        let articleLink = target.querySelectorAll('a')[1];
+                        should(articleLink).be.ok();
+
+                        let baitLink = target.href;
+
+                        let e = new window.Event('mousedown', {bubbles: true});
+                        e.pageX = 1;
+                        e.pageY = 2;
+                        articleLink.dispatchEvent(e);
+
+                        // Verify that our link changed
+                        articleLink.href.should.not.be.equal(baitLink);
+                        articleLink.href.should.not.match(/\[bot]/);
+
+                        let parts = Url.parse(articleLink.href);
+                        let args = Qs.parse(parts.query);
+
+                        // console.log(JSON.stringify(args, null, '  '));
+                        args.should.containDeep({
+                            "ch": "pw",
+                            "cx": "auto",
+                            "key": "unit_test_key",
+                            "m": {
+                                // "wgid": "UkZJf_KtGz",
+                                "pten": "0",
+                                "decl": "0",
+                                "res_bf": "0",
+                                "res_sf": "0",
+                                "res_spltfl": "1",                          // !! <<<<< !!
+                                "res_total": "2",
+                                "res_type": "articles",
+                                "res_length": "2",
+                                "display_size": "half_page",
+                                "display_template_layout": "list",
+                                "display_template_cta_style": "link",
+                                // "cid": "UJQkf_tFMf",
+                                "bf": "0",
+                                "sf": "0",
+                                "spltfl_seg": "",                           // !! <<<<< !!
+                                "et": "Event",
+                                "ex": "1",
+                                "ey": "2",
+                                "pw": "0",
+                                "ph": "0",
+                                "x1": "0",
+                                "y1": "0",
+                                "x2": "0",
+                                "y2": "0",
+                                "vx1": "0",
+                                "vy1": "0",
+                                "vx2": "0",
+                                "vy2": "0",
+                                // "pgid": "Lk2-OKYff",
+                                "ok_ver": "%%OKANJO_VERSION"
+                            },
+                            "id": "article_test_2gWFnrrPHhoJPDQoA",
+                            "ea": "click",
+                            // "u": "http://unit.test/2?ok_cid=UJQkf_tFMf&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
+                            "sid": "MTunittesting1",
+                            "win": "about:blank"
+
+                        });
+
+                        // check dynamic params to be present
+                        args.m.wgid.should.be.ok();
+                        args.m.cid.should.be.ok();
+                        args.m.pgid.should.be.ok();
+                        // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
+
+                    })();
+
+
+                    done();
+
+                });
+
+                // Fake some scrolling into view action
+                setTimeout(() => {
+
+                    // First, make sure we have 3 active view impression watchers (widget + 2 articles)
+                    placement._viewedWatchers.length.should.be.exactly(3);
+
+                    // Fake that they entered the view
+                    placement._viewedWatchers.forEach((controller) => {
+                        controller.successfulCount = 2; // MINIMUM_VIEW_FREQ
+                    });
+
+                    // Now we wait for the next tick to deliver another bulk metrics report of views
+
+                }, 10);
+            });
+
+            setAdsHandler(() => {
+                const payload = TestResponses.getExampleSplitfillArticlesResponse();
+
+                return {
+                    statusCode: 200,
+                    payload
+                };
+            });
+
+            // Make that placement
             placement = new okanjo.Placement(target);
         });
 

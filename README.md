@@ -701,7 +701,8 @@ disable_inline_buy ((optional, default is `false`)) ((boolean))
 :   Whether interstitials are allowed to run. 
 disable_popup ((optional, default is `false`)) ((boolean))
 :   Whether mobile devices opens an interstitial in a new window for broader device support. 
-
+testing ((optional, default is `false`)) ((boolean))
+:   Whether to flag metrics as testing (excluded from reports)
 
 ## Examples
 

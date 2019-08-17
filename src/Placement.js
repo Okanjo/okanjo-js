@@ -144,7 +144,8 @@
                 expandable: bool().strip().default(true),
                 disable_inline_buy: bool().strip().default(false), // stops inline buy functionality
                 disable_popup: bool().strip().default(false), // stops new window on mobile for inline buy functionality
-                backwards: string().strip() // internal flag indicating port from a deprecated widget
+                backwards: string().strip(), // internal flag indicating port from a deprecated widget
+                testing: bool().strip() // metrics flag to indicate testing
             };
         }
 
@@ -254,6 +255,8 @@
             base.key = this.config.key;
             base.m = base.m || {};
             base.m.wgid = this.instanceId;
+
+            if (this.config.testing) base.env = Metrics.Environment.testing;
         }
 
         /**
@@ -272,6 +275,7 @@
             // Attach other main response attributes to all future events
             this._metricBase.m.res_bf = data.backfilled ? 1 : 0; // whether the response used the back fill flow
             this._metricBase.m.res_sf = data.shortfilled ? 1 : 0; // whether the response used the short fill flow
+            this._metricBase.m.res_spltfl = data.splitfilled ? 1 : 0; // whether the response used the short fill flow
             this._metricBase.m.res_total = data.total || 0; // how many total candidate results were available given filters
             this._metricBase.m.res_type = data.type; // what the given resource type was
             this._metricBase.m.res_length = data.results.length; // number of resources delivered
@@ -426,6 +430,9 @@
             additionalUrlParams.ok_cx = this._metricBase.cx;
             additionalUrlParams.utm_source = 'okanjo';
             additionalUrlParams.utm_campaign = 'smartserve';
+            // additionalUrlParams.utm_source = window.location.hostname;
+            additionalUrlParams.utm_medium = 'smartserve';
+            // additionalUrlParams.utm_campaign = 'smartserve';
 
 
             url += joiner + Object.keys(additionalUrlParams)
@@ -465,7 +472,8 @@
                 .meta({ cid: clickId })
                 .meta({
                     bf: resource.backfill ? 1 : 0,
-                    sf: resource.shortfill ? 1 : 0
+                    sf: resource.shortfill ? 1 : 0,
+                    spltfl_seg: resource.splitfill_segment || null
                 })
                 .event(e)
                 .element(e.currentTarget)
@@ -712,7 +720,8 @@
                             .meta(this.getConfig())
                             .meta({
                                 bf: product.backfill ? 1 : 0,
-                                sf: product.shortfill ? 1 : 0
+                                sf: product.shortfill ? 1 : 0,
+                                spltfl_seg: product.splitfill_segment || null
                             })
                             .element(a)
                             .viewport()
@@ -725,7 +734,8 @@
                                 .meta(this.getConfig())
                                 .meta({
                                     bf: product.backfill ? 1 : 0,
-                                    sf: product.shortfill ? 1 : 0
+                                    sf: product.shortfill ? 1 : 0,
+                                    spltfl_seg: product.splitfill_segment || null
                                 })
                                 .element(a)
                                 .viewport()
@@ -922,7 +932,8 @@
                             .meta(this.getConfig())
                             .meta({
                                 bf: article.backfill ? 1 : 0,
-                                sf: article.shortfill ? 1 : 0
+                                sf: article.shortfill ? 1 : 0,
+                                spltfl_seg: article.splitfill_segment || null
                             })
                             .element(a)
                             .viewport()
@@ -935,7 +946,8 @@
                                 .meta(this.getConfig())
                                 .meta({
                                     bf: article.backfill ? 1 : 0,
-                                    sf: article.shortfill ? 1 : 0
+                                    sf: article.shortfill ? 1 : 0,
+                                    spltfl_seg: article.splitfill_segment || null
                                 })
                                 .element(a)
                                 .viewport()

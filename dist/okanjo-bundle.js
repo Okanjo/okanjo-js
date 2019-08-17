@@ -1,4 +1,4 @@
-/*! okanjo-js v1.12.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.13.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -323,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.12.1",
+        version: "1.13.0",
 
         /**
          * Placeholder
@@ -3133,7 +3133,8 @@ var okanjo = function (window, document) {
                     expandable: bool().strip().default(true),
                     disable_inline_buy: bool().strip().default(false), // stops inline buy functionality
                     disable_popup: bool().strip().default(false), // stops new window on mobile for inline buy functionality
-                    backwards: string().strip() // internal flag indicating port from a deprecated widget
+                    backwards: string().strip(), // internal flag indicating port from a deprecated widget
+                    testing: bool().strip() // metrics flag to indicate testing
                 };
             }
 
@@ -3256,6 +3257,8 @@ var okanjo = function (window, document) {
                 base.key = this.config.key;
                 base.m = base.m || {};
                 base.m.wgid = this.instanceId;
+
+                if (this.config.testing) base.env = Metrics.Environment.testing;
             }
 
             /**
@@ -3278,6 +3281,7 @@ var okanjo = function (window, document) {
                 // Attach other main response attributes to all future events
                 this._metricBase.m.res_bf = data.backfilled ? 1 : 0; // whether the response used the back fill flow
                 this._metricBase.m.res_sf = data.shortfilled ? 1 : 0; // whether the response used the short fill flow
+                this._metricBase.m.res_spltfl = data.splitfilled ? 1 : 0; // whether the response used the short fill flow
                 this._metricBase.m.res_total = data.total || 0; // how many total candidate results were available given filters
                 this._metricBase.m.res_type = data.type; // what the given resource type was
                 this._metricBase.m.res_length = data.results.length; // number of resources delivered
@@ -3438,6 +3442,10 @@ var okanjo = function (window, document) {
                 additionalUrlParams.ok_cx = this._metricBase.cx;
                 additionalUrlParams.utm_source = 'okanjo';
                 additionalUrlParams.utm_campaign = 'smartserve';
+                // additionalUrlParams.utm_source = window.location.hostname;
+                additionalUrlParams.utm_medium = 'smartserve';
+                // additionalUrlParams.utm_campaign = 'smartserve';
+
 
                 url += joiner + Object.keys(additionalUrlParams).map(function (key) {
                     return encodeURIComponent(key) + '=' + encodeURIComponent(additionalUrlParams[key]);
@@ -3475,7 +3483,8 @@ var okanjo = function (window, document) {
                     id: resource.id
                 }).type(type, Metrics.Event.interaction).meta(this.getConfig()).meta({ cid: clickId }).meta({
                     bf: resource.backfill ? 1 : 0,
-                    sf: resource.shortfill ? 1 : 0
+                    sf: resource.shortfill ? 1 : 0,
+                    spltfl_seg: resource.splitfill_segment || null
                 }).event(e).element(e.currentTarget).viewport();
 
                 // Pull the proper params out of the resource depending on it's type
@@ -3736,14 +3745,16 @@ var okanjo = function (window, document) {
                             // Track impression
                             okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this16.getConfig()).meta({
                                 bf: product.backfill ? 1 : 0,
-                                sf: product.shortfill ? 1 : 0
+                                sf: product.shortfill ? 1 : 0,
+                                spltfl_seg: product.splitfill_segment || null
                             }).element(a).viewport().send();
 
                             // Start watching for a viewable impression
                             _this16._addOnceViewedHandler(a, function () {
                                 okanjo.metrics.create(_this16._metricBase, { id: product.id }).type(Metrics.Object.product, Metrics.Event.view).meta(_this16.getConfig()).meta({
                                     bf: product.backfill ? 1 : 0,
-                                    sf: product.shortfill ? 1 : 0
+                                    sf: product.shortfill ? 1 : 0,
+                                    spltfl_seg: product.splitfill_segment || null
                                 }).element(a).viewport().send();
                             });
                         }
@@ -3936,14 +3947,16 @@ var okanjo = function (window, document) {
                             // Track impression
                             okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this17.getConfig()).meta({
                                 bf: article.backfill ? 1 : 0,
-                                sf: article.shortfill ? 1 : 0
+                                sf: article.shortfill ? 1 : 0,
+                                spltfl_seg: article.splitfill_segment || null
                             }).element(a).viewport().send();
 
                             // Start watching for a viewable impression
                             _this17._addOnceViewedHandler(a, function () {
                                 okanjo.metrics.create(_this17._metricBase, { id: article.id }).type(Metrics.Object.article, Metrics.Event.view).meta(_this17.getConfig()).meta({
                                     bf: article.backfill ? 1 : 0,
-                                    sf: article.shortfill ? 1 : 0
+                                    sf: article.shortfill ? 1 : 0,
+                                    spltfl_seg: article.splitfill_segment || null
                                 }).element(a).viewport().send();
                             });
                         }
@@ -4924,7 +4937,7 @@ var okanjo = function (window, document) {
         };
 
         mustache.name = 'mustache.js';
-        mustache.version = '2.3.0';
+        mustache.version = '2.3.2';
         mustache.tags = ['{{', '}}'];
 
         // All high-level mustache.* functions use this writer.
@@ -4989,7 +5002,7 @@ var okanjo = function (window, document) {
 return okanjo;
 }));
 
-/*! okanjo-js v1.12.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.13.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {(function (window) {
 
     var okanjo = window.okanjo;
