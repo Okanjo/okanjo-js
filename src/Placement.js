@@ -570,16 +570,16 @@
          * Register a custom
          * @private
          */
-        _registerCustomBranding(prefix, buttonClass) {
+        _registerCustomBranding(/*prefix, buttonClass*/) {
             const brandColor = this.config.template_cta_color;
             if (brandColor) {
                 let brandCSS,
                     brandCSSId = "okanjo-wgid-" + this.instanceId;
 
                 brandCSS = `
-                    ${prefix}-block2.${brandCSSId} ${prefix}-${buttonClass} { color: ${brandColor};} 
-                    ${prefix}-block2.${brandCSSId}.okanjo-cta-style-button ${prefix}-${buttonClass} { border: 1px solid ${brandColor}; } 
-                    ${prefix}-block2.${brandCSSId}.okanjo-cta-style-button ${prefix}-${buttonClass}:hover { background: ${brandColor}; } 
+                    .okanjo-block2.${brandCSSId} .okanjo-resource-cta-button, .okanjo-resource-buy-button { color: ${brandColor} !important; } 
+                    .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button { border-color: ${brandColor} !important; } 
+                    .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button:hover, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button:hover { background: ${brandColor} !important; color: #fff !important; } 
                 `;
 
                 okanjo.ui.engine.registerCss(brandCSSId, brandCSS, { id: brandCSSId });

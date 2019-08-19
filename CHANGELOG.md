@@ -3,9 +3,15 @@
 
 When stuff changes, it's described here.
 
-## 2018-12-11 – v1.13.1
+## 2019-08-19 – v1.13.1
+ * Fixed CTA color overrides
+
+## 2019-08-16 – v1.13.0
  * Added support for splitfilled widgets
- * Added test coverage for splitfill
+ * Added testing option to placements (flags metrics as test metrics)
+ * Added test coverage for splitfill and testing flag
+ * Removed yarn.lock, replaced with package-lock.json
+ * Updated docs
 
 ## 2018-09-12 – v1.12.1
  * Added `slab` template support for products

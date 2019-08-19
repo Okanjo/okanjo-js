@@ -1,7 +1,7 @@
 {
   "name": "okanjo-js",
   "homepage": "https://okanjo.com/",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "description": "Okanjo JavaScript Widget Framework",
   "main": "index.js",
   "repository": {

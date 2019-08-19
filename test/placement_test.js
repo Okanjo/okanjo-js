@@ -2240,8 +2240,8 @@ describe('Placements', () => {
                 placement._applyConfiguration();
 
                 //noinspection JSAccessibilityCheck
-                placement._registerCustomBranding('.okanjo-product', 'buy-button');
-                document.documentElement.innerHTML.should.containEql('.okanjo-product-buy-button { color: #ff0000;');
+                placement._registerCustomBranding(/*'.okanjo-product', 'buy-button'*/);
+                document.documentElement.innerHTML.should.containEql('.okanjo-resource-buy-button { color: #ff0000 !important;');
             });
 
         });

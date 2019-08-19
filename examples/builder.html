@@ -274,7 +274,7 @@
         $placementSettings.innerHTML += JSON.stringify(code, null, '  ');
         $placementSettings.innerHTML += ');';
 
-        placement = new okanjo.Placement($placement, {});
+        placement = new okanjo.Placement($placement, { testing: true });
     }
 
     document.querySelectorAll('input').forEach((i) => {
