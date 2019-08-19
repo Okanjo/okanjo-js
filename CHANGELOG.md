@@ -3,7 +3,7 @@
 
 When stuff changes, it's described here.
 
-## 2019-08-19 – v1.13.1
+## 2019-08-19 – v1.13.2
  * Fixed CTA color overrides
 
 ## 2019-08-16 – v1.13.0

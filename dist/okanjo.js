@@ -1,4 +1,4 @@
-/*! okanjo-js v1.13.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.13.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -323,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.13.1",
+        version: "1.13.2",
 
         /**
          * Placeholder
@@ -3595,7 +3595,7 @@ var okanjo = function (window, document) {
                     var brandCSS = void 0,
                         brandCSSId = "okanjo-wgid-" + this.instanceId;
 
-                    brandCSS = '\n                    .okanjo-block2.' + brandCSSId + ' .okanjo-resource-cta-button, .okanjo-resource-buy-button { color: ' + brandColor + ' !important; } \n                    .okanjo-block2.' + brandCSSId + '.okanjo-cta-style-button .okanjo-resource-cta-button, .okanjo-block2.' + brandCSSId + '.okanjo-cta-style-button .okanjo-resource-buy-button { border-color: ' + brandColor + ' !important; } \n                    .okanjo-block2.' + brandCSSId + '.okanjo-cta-style-button .okanjo-resource-cta-button:hover, .okanjo-block2.' + brandCSSId + '.okanjo-cta-style-button .okanjo-resource-buy-button:hover { background: ' + brandColor + ' !important; color: #fff !important; } \n                ';
+                    brandCSS = '\n                    .okanjo-block2.' + brandCSSId + ' .okanjo-resource-cta-button, .okanjo-block2.' + brandCSSId + ' .okanjo-resource-buy-button { color: ' + brandColor + ' !important; } \n                    .okanjo-block2.' + brandCSSId + '.okanjo-cta-style-button .okanjo-resource-cta-button, .okanjo-block2.' + brandCSSId + '.okanjo-cta-style-button .okanjo-resource-buy-button { border-color: ' + brandColor + ' !important; } \n                    .okanjo-block2.' + brandCSSId + '.okanjo-cta-style-button .okanjo-resource-cta-button:hover, .okanjo-block2.' + brandCSSId + '.okanjo-cta-style-button .okanjo-resource-buy-button:hover { background: ' + brandColor + ' !important; color: #fff !important; } \n                ';
 
                     okanjo.ui.engine.registerCss(brandCSSId, brandCSS, { id: brandCSSId });
                     okanjo.ui.engine.ensureCss(brandCSSId);

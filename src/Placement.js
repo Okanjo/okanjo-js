@@ -577,7 +577,7 @@
                     brandCSSId = "okanjo-wgid-" + this.instanceId;
 
                 brandCSS = `
-                    .okanjo-block2.${brandCSSId} .okanjo-resource-cta-button, .okanjo-resource-buy-button { color: ${brandColor} !important; } 
+                    .okanjo-block2.${brandCSSId} .okanjo-resource-cta-button, .okanjo-block2.${brandCSSId} .okanjo-resource-buy-button { color: ${brandColor} !important; } 
                     .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button { border-color: ${brandColor} !important; } 
                     .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button:hover, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button:hover { background: ${brandColor} !important; color: #fff !important; } 
                 `;
