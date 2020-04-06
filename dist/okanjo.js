@@ -1,4 +1,4 @@
-/*! okanjo-js v1.13.2 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.14.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -323,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.13.2",
+        version: "1.14.0",
 
         /**
          * Placeholder
@@ -3476,7 +3476,8 @@ var okanjo = function (window, document) {
             key: '_handleResourceMouseDown',
             value: function _handleResourceMouseDown(type, resource, e) {
                 // Generate a new click id for this event
-                var clickId = okanjo.util.shortid();
+                // const clickId = okanjo.util.shortid();
+                var clickId = resource._cid;
 
                 // Start building the event
                 var event = okanjo.metrics.create(this._metricBase, {

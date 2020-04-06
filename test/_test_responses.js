@@ -50,7 +50,8 @@ module.exports.getExampleArticlesResponse = () => {
                     "created": "2017-05-12T14:05:44.567Z",
                     "updated": "2017-05-12T14:05:45.460Z",
                     "backfill": false,
-                    "shortfill": false
+                    "shortfill": false,
+                    "_cid": "SSCLK2EiyYZ5Y4EriWsEaC0Ech1"
                 },
                 {
                     "id": "article_test_2gWFnrrPHhoJPDQoA",
@@ -84,7 +85,8 @@ module.exports.getExampleArticlesResponse = () => {
                     "created": "2017-05-12T14:05:44.554Z",
                     "updated": "2017-05-12T14:05:44.561Z",
                     "backfill": false,
-                    "shortfill": false
+                    "shortfill": false,
+                    "_cid": "SSCLK2EiyYZ5Y4EriWsEaC0Ech2"
                 },
                 {
                     "id": "article_test_2gWFnrrPHhoJPDQoA",
@@ -118,7 +120,8 @@ module.exports.getExampleArticlesResponse = () => {
                     "created": "2017-05-12T14:05:44.554Z",
                     "updated": "2017-05-12T14:05:44.561Z",
                     "backfill": false,
-                    "shortfill": false
+                    "shortfill": false,
+                    "_cid": "SSCLK2EiyYZ5Y4EriWsEaC0Ech3"
                 },
                 {
                     "id": "article_test_2gWFnrrPHhoJPDQoA",
@@ -152,7 +155,8 @@ module.exports.getExampleArticlesResponse = () => {
                     "created": "2017-05-12T14:05:44.554Z",
                     "updated": "2017-05-12T14:05:44.561Z",
                     "backfill": false,
-                    "shortfill": false
+                    "shortfill": false,
+                    "_cid": "SSCLK2EiyYZ5Y4EriWsEaC0Ech4"
                 },
                 {
                     "id": "article_test_2gWFnrrPHhoJPDQoA",
@@ -186,7 +190,8 @@ module.exports.getExampleArticlesResponse = () => {
                     "created": "2017-05-12T14:05:44.554Z",
                     "updated": "2017-05-12T14:05:44.561Z",
                     "backfill": false,
-                    "shortfill": false
+                    "shortfill": false,
+                    "_cid": "SSCLK2EiyYZ5Y4EriWsEaC0Ech5"
                 }
             ],
             total: 2,
@@ -245,7 +250,8 @@ module.exports.getExampleProductResponse = () => {
                     "created": "2017-05-02T19:00:05.519Z",
                     "updated": null,
                     "backfill": false,
-                    "shortfill": false
+                    "shortfill": false,
+                    "_cid": "SSCLK2EiyYZ5Y4EriWsEaC0Ech26"
                 }, {
                     "id": "product_test_2gT3kBcwVQZ1kpEmb",
                     "store_id": "store_2gT3kBcwVQZ1kpEmc",
@@ -278,7 +284,8 @@ module.exports.getExampleProductResponse = () => {
                     "created": "2017-04-30T19:00:14.114Z",
                     "updated": "2017-05-02T19:00:18.048Z",
                     "backfill": false,
-                    "shortfill": false
+                    "shortfill": false,
+                    "_cid": "SSCLK2EiyYZ5Y4EriWsEaC0Ech7"
                 }
             ],
             total: 2,
@@ -335,7 +342,8 @@ module.exports.getExampleSplitfillProductResponse = () => {
                     "updated": null,
                     "backfill": false,
                     "shortfill": false,
-                    "splitfill_segment": "test split segment"
+                    "splitfill_segment": "test split segment",
+                    "_cid": "SSCLK2EiyYZ5Y4EriWsEaC0Ech8"
                 }, {
                     "id": "product_test_2gT3kBcwVQZ1kpEmb",
                     "store_id": "store_2gT3kBcwVQZ1kpEmc",
@@ -369,7 +377,8 @@ module.exports.getExampleSplitfillProductResponse = () => {
                     "updated": "2017-05-02T19:00:18.048Z",
                     "backfill": false,
                     "shortfill": false,
-                    "splitfill_segment": null
+                    "splitfill_segment": null,
+                    "_cid": "SSCLK2EiyYZ5Y4EriWsEaC0Ech9"
                 }
             ],
             total: 2,
@@ -414,7 +423,8 @@ module.exports.getExampleSplitfillArticlesResponse = () => {
                     "updated": "2017-05-12T14:05:45.460Z",
                     "backfill": false,
                     "shortfill": false,
-                    "splitfill_segment": "test split segment"
+                    "splitfill_segment": "test split segment",
+                    "_cid": "SSCLK2EiyYZ5Y4EriWsEaC0Ec10"
                 },
                 {
                     "id": "article_test_2gWFnrrPHhoJPDQoA",
@@ -449,7 +459,8 @@ module.exports.getExampleSplitfillArticlesResponse = () => {
                     "updated": "2017-05-12T14:05:44.561Z",
                     "backfill": false,
                     "shortfill": false,
-                    "splitfill_segment": null
+                    "splitfill_segment": null,
+                    "_cid": "SSCLK2EiyYZ5Y4EriWsEaC0Ec11"
                 }
             ],
             total: 2,

@@ -416,8 +416,7 @@ Gulp.task('pre-deploy-bump', function() {
 
 });
 
-Gulp.task('pre-deploy-release', ['pre-deploy-bump', 'full-build'], function() {
-
+function CommitTagPush() {
     const Stream = require('stream');
     //function cb(obj) {
     //    var stream = new Stream.Transform({objectMode: true});
@@ -450,6 +449,14 @@ Gulp.task('pre-deploy-release', ['pre-deploy-bump', 'full-build'], function() {
                 cb();
             });
         }));
+}
+
+Gulp.task('pre-deploy-release', ['pre-deploy-bump', 'full-build'], function() {
+    return CommitTagPush();
+});
+
+Gulp.task('pre-deploy-release-no-bump', ['full-build'], function() {
+    return CommitTagPush();
 });
 
 Gulp.task('deploy-s3-latest', function() {

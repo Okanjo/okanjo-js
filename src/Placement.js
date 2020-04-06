@@ -461,7 +461,8 @@
          */
         _handleResourceMouseDown(type, resource, e) {
             // Generate a new click id for this event
-            const clickId = okanjo.util.shortid();
+            // const clickId = okanjo.util.shortid();
+            const clickId = resource._cid;
 
             // Start building the event
             const event = okanjo.metrics.create(this._metricBase, {
