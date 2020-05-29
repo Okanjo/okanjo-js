@@ -58,4 +58,27 @@ describe('Cookie', () => {
 
     });
 
+    describe('https', () => {
+
+        it('should set https flag', () => {
+
+            // Fudge the UA
+            TestUtil.cleanEnvironment();
+            TestUtil.setupEnvironment({
+                url: "https://okanjo.com/test?query=1#hash=2&nope"
+            });
+            should(window.okanjo).be.exactly(undefined);
+            TestUtil.reloadOkanjo();
+            TestUtil.reloadCookie();
+            should(window.okanjo).be.ok();
+
+            const key = 'unit_test2', value = 'was here';
+            window.okanjo.util.cookie.set(key, value, 1);
+            let res = window.okanjo.util.cookie.get(key);
+            res.should.be.exactly(value);
+
+        });
+
+    });
+
 });

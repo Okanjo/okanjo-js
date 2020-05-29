@@ -493,7 +493,7 @@
             const additionalParams = {
                 ok_cid: clickId
             };
-            if (resource[trackParam]) additionalParams[resource[trackParam]] = (okanjo.metrics.sid || 'unknown') + ':' + clickId;
+            if (resource[trackParam]) additionalParams[resource[trackParam]] = clickId;
 
             // Update the link with the event data
             event.data({ ea: Metrics.Action.click });

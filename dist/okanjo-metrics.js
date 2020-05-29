@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v1.14.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v1.15.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -319,7 +319,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.14.0",
+        version: "1.15.0",
 
         /**
          * Placeholder
@@ -1143,7 +1143,10 @@ var okanjo = function (window, document) {
             expireDate.setDate(expireDate.getDate() + expireDays);
             var expires = expireDays ? " Expires=" + expireDate.toUTCString() + ";" : "";
             var path = " Path=/";
-            var cookieValue = encodeURI(value) + ';' + expires + path;
+            var secure = window.location.protocol === 'https:' ? ' Secure;' : '';
+            // const secure = ' Secure;';
+            var cookieValue = encodeURI(value) + ';' + expires + secure + ' SameSite=None;' + path;
+            // console.log('setting cookie', cookieName, cookieValue)
             document.cookie = cookieName + "=" + cookieValue;
         },
 

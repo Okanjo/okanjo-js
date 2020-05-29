@@ -19,7 +19,10 @@
             expireDate.setDate(expireDate.getDate() + expireDays);
             const expires = expireDays ? " Expires=" + expireDate.toUTCString() + ";" : "";
             const path = " Path=/";
-            const cookieValue = `${encodeURI(value)};${expires}${path}`;
+            const secure = window.location.protocol === 'https:' ? ' Secure;' : '';
+            // const secure = ' Secure;';
+            const cookieValue = `${encodeURI(value)};${expires}${secure} SameSite=None;${path}`;
+            // console.log('setting cookie', cookieName, cookieValue)
             document.cookie = cookieName + "=" + cookieValue;
         },
 

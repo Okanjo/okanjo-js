@@ -3,12 +3,16 @@
 
 When stuff changes, it's described here.
 
-## 2019-08-19 – v1.13.2
- * Fixed CTA color overrides
+## 2020-05-28 – v1.15.0
+ * Use server CIDs for vendor tracking params
+ * Set SameSite and Secure params on session cookie
 
 ## 2020-04-06 – v1.14.0
  * Use server generated cids
  * Added build task option to skip version bump 
+
+## 2019-08-19 – v1.13.2
+ * Fixed CTA color overrides
 
 ## 2019-08-16 – v1.13.0
  * Added support for splitfilled widgets

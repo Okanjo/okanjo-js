@@ -766,7 +766,7 @@ describe('Placements', () => {
                     args.u.should.be.ok().and.startWith('http://proxy.test?u=');
 
                     let targetUrl = Qs.parse(Url.parse(args.u).query).u;
-                    Qs.parse(Url.parse(targetUrl).query).afftrack.should.match(/unknown:.+/);
+                    Qs.parse(Url.parse(targetUrl).query).afftrack.should.match(/SSCLK.+/);
 
                     done();
                 });

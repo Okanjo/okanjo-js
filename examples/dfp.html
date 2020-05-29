@@ -8,7 +8,7 @@ This script will asynchronously load the Ad or Product widget as configured. It 
 outside of the iframe (when able to do so) to enable expandable functionality.
 -->
 <script>
-    /*! Okanjo Placement Loader v3.0.1 - https://developer.okanjo.com/okanjo-js */
+    /*! Okanjo Placement Loader v3.1.0 - https://developer.okanjo.com/okanjo-js */
     (function (config) {
 
         //noinspection ES6ConvertVarToLetConst
@@ -16,11 +16,14 @@ outside of the iframe (when able to do so) to enable expandable functionality.
             win = window,
             container = doc.getElementById('okanjo-placement-container'),
             isTop = win.top === win.self,
-            isFrameLocated = false;
+            isFrameLocated = false,
+            debug = config.debug && function() { console.info.apply(console, arguments); } || function() {};
+        debug('Okanjo: Initializing...');
 
         try {
             // If we're sandboxed to an iframe, try to move the dropzone element to the top-level DOM
             if (!isTop) {
+                debug("Okanjo: Not top frame, locating self...");
 
                 // Locate all the iFrames on the main page
                 //noinspection ES6ConvertVarToLetConst
@@ -33,6 +36,7 @@ outside of the iframe (when able to do so) to enable expandable functionality.
                     try {
                         frameDocument = frame.contentDocument || iframes.contentWindow.document; // <-- this can throw
                         if (frameDocument === document) {
+                            debug("Okanjo: Located self on top: ", frame);
                             // We found our frame! - that means we're friendly and can promote our content
                             // Strip our internal ID off before attaching to the main page
                             container.removeAttribute('id');
@@ -49,6 +53,7 @@ outside of the iframe (when able to do so) to enable expandable functionality.
                         }
                     } catch (e) {
                         // Trying to pull the contentDocument of an unfriendly iframe will throw - so eat the error
+                        debug("Okanjo: Failed to check frame: ", e);
                     }
                 }
             }
@@ -60,7 +65,7 @@ outside of the iframe (when able to do so) to enable expandable functionality.
         // Override if we could not escape and we should have
         if (!isTop && !isFrameLocated) {
             // Report
-            console.warn('[Okanjo]', 'Forcing non-expandable functionality.');
+            console.warn('[Okanjo]', 'Forcing non-expandable functionality. Top=%s, Located=%s', isTop, isFrameLocated);
             // Force non-expandable since we failed to escape
             config.placement && (config.placement.expandable = false);
         }
@@ -70,37 +75,67 @@ outside of the iframe (when able to do so) to enable expandable functionality.
         //
         // Async load Okanjo-JS
         (function (callback) {
+            // this = top window (if self or friendly) or the current frame if sandboxed
             if (this.okanjo) {
                 // Already loaded
+                debug('Okanjo: previously loaded');
                 callback.call(this);
             } else {
                 // The context here should be the window of the target frame
                 //noinspection ES6ConvertVarToLetConst
                 var win = this,
                     document = win.document,
-                    body = document.getElementsByTagName('body')[0],
+                    head = document.head,
                     script = document.createElement('script'),
-                    scriptLoaded = false;
+                    scriptLoaded = false,
+                    retry = 0,
+                    retryIv;
+
                 script.type = 'text/javascript';
                 script.async = true;
                 script.setAttribute('crossorigin', "anonymous");
                 // When the script loads, fire our callback
-                script.onload = script.onreadystatechange = function () {
-                    if (!scriptLoaded &&
-                        (!this.readyState || this.readyState === 'complete' || this.readyState === 'loaded')) {
-                        scriptLoaded = true;
-                        // Framework loaded, move on to widget initialization
-                        callback.call(win);
+
+                script.onload = function (e) {
+                    if (!scriptLoaded) {
+                        debug('Okanjo: SDK loaded, Version=%s, Event=', win.okanjo && win.okanjo.version, e);
+                        if (win.okanjo) {
+                            scriptLoaded = true;
+                            // Framework loaded, move on to widget initialization
+                            callback.call(win);
+                        } else {
+                            debug('Okanjo: SDK did not load, retrying...');
+                            retryIv = setInterval(function() {
+                                // Did it work this time?
+                                if (win.okanjo) {
+                                    debug('Okanjo: SDK loaded, Version=%s, Event=', win.okanjo.version, e);
+                                    scriptLoaded = true;
+                                    clearInterval(retryIv);
+                                    // Framework loaded, move on to widget initialization
+                                    return callback.call(win);
+                                } else if (++retry > 10) {
+                                    clearInterval(retryIv);
+                                    console.error('[Okanjo] Failed to load SDK: retries exceeded. Win=', win);
+                                }
+                            }, 100);
+                        }
                     }
                 };
+
+                script.onerror = function (e) {
+                    console.error('[Okanjo] Failed to load SDK:', e);
+                };
+
                 // Start loading the widget payload
                 script.src = config.src || "//cdn.okanjo.com/js/latest/okanjo-bundle.min.js";
-                body.parentNode.insertBefore(script, body);
+                head.appendChild(script);
             }
         }).call(win, function () {
+            // this = top window (if self or friendly) or the current frame if sandboxed
 
             //noinspection ES6ConvertVarToLetConst
             var win = this, targets = win.okanjo.qwery('.okanjo-placement:not(.loaded)', container), i = 0;
+            debug('Okanjo: Loading placements, Found=%d', targets.length);
 
             // Create a bucket for the widget instance, if not already present (e.g. multiple ads on a page)
             win.__okanjoPlacements = win.__okanjoPlacements || [];
@@ -108,6 +143,7 @@ outside of the iframe (when able to do so) to enable expandable functionality.
             for (; i < targets.length; i++) {
                 targets[i].className += ' loaded';
                 win.__okanjoPlacements.push(new win.okanjo.Placement(targets[i], config.placement));
+                debug('Okanjo: Loaded placement: ', win.__okanjoPlacements[win.__okanjoPlacements.length-1]);
             }
         });
 
@@ -116,6 +152,7 @@ outside of the iframe (when able to do so) to enable expandable functionality.
             // key: 'PUT_YOUR_PLACEMENT_KEY_HERE',
             // expandable: true,
             proxy_url: '%%CLICK_URL_UNESC%%', // (Google DFP macro, change for your ad server)
-        }
+        },
+        debug: true
     });
 </script>
