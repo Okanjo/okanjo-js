@@ -1,4 +1,4 @@
-/*! okanjo-js v1.15.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.16.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -323,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.15.0",
+        version: "1.16.0",
 
         /**
          * Placeholder
@@ -3443,6 +3443,7 @@ var okanjo = function (window, document) {
                 additionalUrlParams.ok_msid = okanjo.metrics.sid || 'unknown';
                 additionalUrlParams.ok_ch = this._metricBase.ch;
                 additionalUrlParams.ok_cx = this._metricBase.cx;
+                additionalUrlParams._okjr = window.location.href.split(/[?#]/)[0];
                 additionalUrlParams.utm_source = 'okanjo';
                 additionalUrlParams.utm_campaign = 'smartserve';
                 // additionalUrlParams.utm_source = window.location.hostname;

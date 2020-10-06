@@ -3,6 +3,9 @@
 
 When stuff changes, it's described here.
 
+## 2020-10-06 - v1.16.0
+ * Added automatic passing _okjr in click-through urls
+
 ## 2020-05-28 – v1.15.0
  * Use server CIDs for vendor tracking params
  * Set SameSite and Secure params on session cookie

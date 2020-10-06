@@ -428,6 +428,7 @@
             additionalUrlParams.ok_msid = okanjo.metrics.sid || 'unknown';
             additionalUrlParams.ok_ch = this._metricBase.ch;
             additionalUrlParams.ok_cx = this._metricBase.cx;
+            additionalUrlParams._okjr = window.location.href.split(/[?#]/)[0];
             additionalUrlParams.utm_source = 'okanjo';
             additionalUrlParams.utm_campaign = 'smartserve';
             // additionalUrlParams.utm_source = window.location.hostname;
