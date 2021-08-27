@@ -24,7 +24,7 @@
 
         return model;
     }, {
-        css: [ 'articles.slab', 'okanjo.slab','okanjo.block2' ]
+        css: [ 'articles.slab', 'okanjo.slab', 'okanjo.block2' ]
     });
 
 })(window);

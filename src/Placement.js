@@ -286,6 +286,7 @@
                 .meta(this.getConfig())
                 .element(this.element) // this might not be all that useful cuz the content hasn't been rendered yet
                 .viewport()
+                .widget(this.element)
                 .send();
 
             // Start watching for a viewable impression
@@ -295,6 +296,7 @@
                     .meta(this.getConfig())
                     .element(this.element)
                     .viewport()
+                    .widget(this.element)
                     .send();
             });
         }
@@ -479,7 +481,8 @@
                 })
                 .event(e)
                 .element(e.currentTarget)
-                .viewport();
+                .viewport()
+                .widget(this.element);
 
             // Pull the proper params out of the resource depending on it's type
             let trackParam = 'url_track_param';
@@ -727,6 +730,7 @@
                             })
                             .element(a)
                             .viewport()
+                            .widget(this.element)
                             .send();
 
                         // Start watching for a viewable impression
@@ -741,6 +745,7 @@
                                 })
                                 .element(a)
                                 .viewport()
+                                .widget(this.element)
                                 .send();
                         });
                     }
@@ -939,6 +944,7 @@
                             })
                             .element(a)
                             .viewport()
+                            .widget(this.element)
                             .send();
 
                         // Start watching for a viewable impression
@@ -953,6 +959,7 @@
                                 })
                                 .element(a)
                                 .viewport()
+                                .widget(this.element)
                                 .send();
                         });
 
@@ -1086,6 +1093,7 @@
                     })
                     .element(frame)
                     .viewport()
+                    .widget(this.element)
                     .toUrl();
 
                 // Transfer references to the frame window
@@ -1102,6 +1110,7 @@
                         })
                         .element(frame)
                         .viewport()
+                        .widget(this.element)
                         .send()
                     ;
 
@@ -1117,6 +1126,7 @@
                             })
                             .element(frame)
                             .viewport()
+                            .widget(this.element)
                             .send()
                         ;
                     });

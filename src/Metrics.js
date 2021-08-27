@@ -330,6 +330,28 @@
             return event;
         }
 
+        static addWidgetInfo(element, event) {
+            const containerSize = okanjo.ui.getElementPosition(element);
+            const innerSize = okanjo.ui.getElementPosition(element.childNodes[0]);
+
+            event = event || {};
+            event.m = event.m || {};
+
+            // placement div size
+            event.m.wox1 = containerSize.x1;
+            event.m.woy1 = containerSize.y1;
+            event.m.wox2 = containerSize.x2;
+            event.m.woy2 = containerSize.y2;
+
+            // inner size (might be centered or something)
+            event.m.wix1 = innerSize.x1;
+            event.m.wiy1 = innerSize.y1;
+            event.m.wix2 = innerSize.x2;
+            event.m.wiy2 = innerSize.y2;
+
+            return event;
+        }
+
         //noinspection JSUnusedGlobalSymbols
         /**
          * Adds viewport dimensions / positional data to the event
@@ -542,6 +564,16 @@
          */
         element(element) {
             Metrics.addElementInfo(element, this);
+            return this;
+        }
+
+        /**
+         * Adds widget DOM element dimensions / positional data to the event
+         * @param element
+         * @returns {MetricEvent}
+         */
+        widget(element) {
+            Metrics.addWidgetInfo(element, this);
             return this;
         }
 

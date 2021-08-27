@@ -367,10 +367,11 @@ class TestUtil {
     handleMetricsRequest(req, reply) {
         req.payload = JSON.parse(req.payload);
 
-        let res;
-        if (this._metricsHandler) res = this._metricsHandler(req, reply);
+        try {
+            let res;
+            if (this._metricsHandler) res = this._metricsHandler(req, reply);
 
-        reply(res || {
+            reply(res || {
                 statusCode: 200,
                 payload: {
                     statusCode: 200,
@@ -378,20 +379,42 @@ class TestUtil {
                         sid: 'MTunittesting1'
                     }
                 }
-            }
-        );
+            });
+        } catch (err) {
+            // assertion probably failed
+            console.error(err);
+            reply(res || {
+                statusCode: 500,
+                payload: {
+                    statusCode: 500,
+                    error: 'Internal Server Error'
+                }
+            });
+        }
     }
 
     handleAdsRequest(req, reply) {
         req.payload = JSON.parse(req.payload);
 
-        let res;
-        if (this._adsHandler) res = this._adsHandler(req, reply);
+        try {
+            let res;
+            if (this._adsHandler) res = this._adsHandler(req, reply);
 
-        reply(res || {
-            statusCode: 200,
-            payload: TestResponses.getExampleProductResponse()
-        });
+            reply(res || {
+                statusCode: 200,
+                payload: TestResponses.getExampleProductResponse()
+            });
+        } catch (err) {
+            // assertion probably failed
+            console.error(err);
+            reply(res || {
+                statusCode: 500,
+                payload: {
+                    statusCode: 500,
+                    error: 'Internal Server Error'
+                }
+            });
+        }
     }
 
     registerMockRoutes(server) {

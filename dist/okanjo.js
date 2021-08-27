@@ -1,4 +1,4 @@
-/*! okanjo-js v1.16.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.17.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -323,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.16.0",
+        version: "1.17.0",
 
         /**
          * Placeholder
@@ -2047,6 +2047,29 @@ var okanjo = function (window, document) {
 
                 return event;
             }
+        }, {
+            key: 'addWidgetInfo',
+            value: function addWidgetInfo(element, event) {
+                var containerSize = okanjo.ui.getElementPosition(element);
+                var innerSize = okanjo.ui.getElementPosition(element.childNodes[0]);
+
+                event = event || {};
+                event.m = event.m || {};
+
+                // placement div size
+                event.m.wox1 = containerSize.x1;
+                event.m.woy1 = containerSize.y1;
+                event.m.wox2 = containerSize.x2;
+                event.m.woy2 = containerSize.y2;
+
+                // inner size (might be centered or something)
+                event.m.wix1 = innerSize.x1;
+                event.m.wiy1 = innerSize.y1;
+                event.m.wix2 = innerSize.x2;
+                event.m.wiy2 = innerSize.y2;
+
+                return event;
+            }
 
             //noinspection JSUnusedGlobalSymbols
             /**
@@ -2293,6 +2316,19 @@ var okanjo = function (window, document) {
             key: 'element',
             value: function element(_element) {
                 Metrics.addElementInfo(_element, this);
+                return this;
+            }
+
+            /**
+             * Adds widget DOM element dimensions / positional data to the event
+             * @param element
+             * @returns {MetricEvent}
+             */
+
+        }, {
+            key: 'widget',
+            value: function widget(element) {
+                Metrics.addWidgetInfo(element, this);
                 return this;
             }
 
@@ -3291,11 +3327,11 @@ var okanjo = function (window, document) {
 
                 // Track impression
                 okanjo.metrics.create(this._metricBase).type(Metrics.Object.widget, Metrics.Event.impression).meta(this.getConfig()).element(this.element) // this might not be all that useful cuz the content hasn't been rendered yet
-                .viewport().send();
+                .viewport().widget(this.element).send();
 
                 // Start watching for a viewable impression
                 this._addOnceViewedHandler(this.element, function () {
-                    okanjo.metrics.create(_this13._metricBase).type(Metrics.Object.widget, Metrics.Event.view).meta(_this13.getConfig()).element(_this13.element).viewport().send();
+                    okanjo.metrics.create(_this13._metricBase).type(Metrics.Object.widget, Metrics.Event.view).meta(_this13.getConfig()).element(_this13.element).viewport().widget(_this13.element).send();
                 });
             }
 
@@ -3490,7 +3526,7 @@ var okanjo = function (window, document) {
                     bf: resource.backfill ? 1 : 0,
                     sf: resource.shortfill ? 1 : 0,
                     spltfl_seg: resource.splitfill_segment || null
-                }).event(e).element(e.currentTarget).viewport();
+                }).event(e).element(e.currentTarget).viewport().widget(this.element);
 
                 // Pull the proper params out of the resource depending on it's type
                 var trackParam = 'url_track_param';
@@ -3752,7 +3788,7 @@ var okanjo = function (window, document) {
                                 bf: product.backfill ? 1 : 0,
                                 sf: product.shortfill ? 1 : 0,
                                 spltfl_seg: product.splitfill_segment || null
-                            }).element(a).viewport().send();
+                            }).element(a).viewport().widget(_this16.element).send();
 
                             // Start watching for a viewable impression
                             _this16._addOnceViewedHandler(a, function () {
@@ -3760,7 +3796,7 @@ var okanjo = function (window, document) {
                                     bf: product.backfill ? 1 : 0,
                                     sf: product.shortfill ? 1 : 0,
                                     spltfl_seg: product.splitfill_segment || null
-                                }).element(a).viewport().send();
+                                }).element(a).viewport().widget(_this16.element).send();
                             });
                         }
                     }
@@ -3954,7 +3990,7 @@ var okanjo = function (window, document) {
                                 bf: article.backfill ? 1 : 0,
                                 sf: article.shortfill ? 1 : 0,
                                 spltfl_seg: article.splitfill_segment || null
-                            }).element(a).viewport().send();
+                            }).element(a).viewport().widget(_this17.element).send();
 
                             // Start watching for a viewable impression
                             _this17._addOnceViewedHandler(a, function () {
@@ -3962,7 +3998,7 @@ var okanjo = function (window, document) {
                                     bf: article.backfill ? 1 : 0,
                                     sf: article.shortfill ? 1 : 0,
                                     spltfl_seg: article.splitfill_segment || null
-                                }).element(a).viewport().send();
+                                }).element(a).viewport().widget(_this17.element).send();
                             });
                         }
                     }
@@ -4097,7 +4133,7 @@ var okanjo = function (window, document) {
                         ta_s: adUnitPath,
                         ta_w: size.width,
                         ta_h: size.height
-                    }).element(frame).viewport().toUrl();
+                    }).element(frame).viewport().widget(this.element).toUrl();
 
                     // Transfer references to the frame window
                     // frame.contentWindow.okanjo = okanjo;
@@ -4107,7 +4143,7 @@ var okanjo = function (window, document) {
                             ta_s: adUnitPath,
                             ta_w: size.width,
                             ta_h: size.height
-                        }).element(frame).viewport().send();
+                        }).element(frame).viewport().widget(_this18.element).send();
 
                         // Start watching for a viewable impression
                         _this18._addOnceViewedHandler(frame, function () {
@@ -4115,7 +4151,7 @@ var okanjo = function (window, document) {
                                 ta_s: adUnitPath,
                                 ta_w: size.width,
                                 ta_h: size.height
-                            }).element(frame).viewport().send();
+                            }).element(frame).viewport().widget(_this18.element).send();
                         });
                     };
 

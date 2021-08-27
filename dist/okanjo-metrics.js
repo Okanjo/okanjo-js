@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v1.16.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v1.17.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -319,7 +319,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.16.0",
+        version: "1.17.0",
 
         /**
          * Placeholder
@@ -1562,6 +1562,29 @@ var okanjo = function (window, document) {
 
                 return event;
             }
+        }, {
+            key: 'addWidgetInfo',
+            value: function addWidgetInfo(element, event) {
+                var containerSize = okanjo.ui.getElementPosition(element);
+                var innerSize = okanjo.ui.getElementPosition(element.childNodes[0]);
+
+                event = event || {};
+                event.m = event.m || {};
+
+                // placement div size
+                event.m.wox1 = containerSize.x1;
+                event.m.woy1 = containerSize.y1;
+                event.m.wox2 = containerSize.x2;
+                event.m.woy2 = containerSize.y2;
+
+                // inner size (might be centered or something)
+                event.m.wix1 = innerSize.x1;
+                event.m.wiy1 = innerSize.y1;
+                event.m.wix2 = innerSize.x2;
+                event.m.wiy2 = innerSize.y2;
+
+                return event;
+            }
 
             //noinspection JSUnusedGlobalSymbols
             /**
@@ -1808,6 +1831,19 @@ var okanjo = function (window, document) {
             key: 'element',
             value: function element(_element) {
                 Metrics.addElementInfo(_element, this);
+                return this;
+            }
+
+            /**
+             * Adds widget DOM element dimensions / positional data to the event
+             * @param element
+             * @returns {MetricEvent}
+             */
+
+        }, {
+            key: 'widget',
+            value: function widget(element) {
+                Metrics.addWidgetInfo(element, this);
                 return this;
             }
 

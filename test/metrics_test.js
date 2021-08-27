@@ -52,6 +52,9 @@ describe('Metrics', () => {
     });
     
     describe('Fluent MetricEvent builder', () => {
+        afterEach(() => {
+            server.routes = [];
+        });
         
         it('should build metric payloads accurately', (done) => {
 
@@ -67,6 +70,7 @@ describe('Metrics', () => {
                 .event(e)
                 .element(el)
                 .viewport()
+                .widget(document.body)
                 .meta({ d: 4, e: [ 5, 6, "7" ]})
                 .type('unit', 'test');
             
@@ -88,6 +92,14 @@ describe('Metrics', () => {
                     vy1: 0,
                     vx2: 0,
                     vy2: 0,
+                    wox1: 0,
+                    woy1: 0,
+                    wox2: 0,
+                    woy2: 0,
+                    wix1: 0,
+                    wiy1: 0,
+                    wix2: 0,
+                    wiy2: 0,
                     d: 4,
                     e: [ 5, 6, '7' ] 
                 },
@@ -119,6 +131,14 @@ describe('Metrics', () => {
                     vy1: '0',
                     vx2: '0',
                     vy2: '0',
+                    wox1: '0',
+                    woy1: '0',
+                    wox2: '0',
+                    woy2: '0',
+                    wix1: '0',
+                    wiy1: '0',
+                    wix2: '0',
+                    wiy2: '0',
                     d: '4',
                     e: '5,6,7',
                     pgid: pageId,
@@ -156,6 +176,14 @@ describe('Metrics', () => {
                                     vy1: 0,
                                     vx2: 0,
                                     vy2: 0,
+                                    wox1: 0,
+                                    woy1: 0,
+                                    wox2: 0,
+                                    woy2: 0,
+                                    wix1: 0,
+                                    wiy1: 0,
+                                    wix2: 0,
+                                    wiy2: 0,
                                     d: 4,
                                     e: '5,6,7',
                                     pgid: pageId,
@@ -215,6 +243,11 @@ describe('Metrics', () => {
 
             let event = null;
             event = Metrics.addElementInfo(el, event);
+            event.should.be.ok();
+            event.m.should.be.ok();
+
+            event = null;
+            event = Metrics.addWidgetInfo(el, event);
             event.should.be.ok();
             event.m.should.be.ok();
 
