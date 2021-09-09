@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v1.17.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v1.18.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -319,7 +319,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.17.0",
+        version: "1.18.0",
 
         /**
          * Placeholder
@@ -657,6 +657,14 @@ var okanjo = function (window, document) {
             return str;
         };
     }();
+
+    /**
+     * Gets the best URL for where we are operating
+     * @returns {string|*}
+     */
+    okanjo.util.getLocation = function () {
+        return window.location !== window.parent.location ? /* istanbul ignore next: oos */document.referrer : document.location.href;
+    };
 
     //endregion
 
@@ -1329,7 +1337,7 @@ var okanjo = function (window, document) {
                 event = event || {};
                 event.object_type = Metrics.Object.page;
                 event.event_type = Metrics.Event.view;
-                event.id = event.id || window.location.href;
+                event.id = event.id || okanjo.util.getLocation();
                 event.ch = event.ch || this.defaultChannel;
 
                 // Queue the event for publishing
@@ -1423,7 +1431,7 @@ var okanjo = function (window, document) {
 
                 var payload = {
                     events: events,
-                    win: window.location.href
+                    win: okanjo.util.getLocation()
                 };
 
                 var route = okanjo.net.getRoute(okanjo.net.routes.metrics_batch);
@@ -1501,7 +1509,7 @@ var okanjo = function (window, document) {
                 }
 
                 // Set the window location
-                event.win = window.location.href;
+                event.win = okanjo.util.getLocation();
             }
 
             /**

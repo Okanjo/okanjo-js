@@ -363,6 +363,12 @@ const okanjo = (function(window, document) {
         };
     })();
 
+    /**
+     * Gets the best URL for where we are operating
+     * @returns {string|*}
+     */
+    okanjo.util.getLocation = () => window.location !== window.parent.location ? /* istanbul ignore next: oos */ document.referrer : document.location.href;
+
     //endregion
 
     //region User Interface

@@ -135,7 +135,7 @@
             event = event || {};
             event.object_type = Metrics.Object.page;
             event.event_type = Metrics.Event.view;
-            event.id = event.id || window.location.href;
+            event.id = event.id || okanjo.util.getLocation();
             event.ch = event.ch || this.defaultChannel;
 
             // Queue the event for publishing
@@ -218,7 +218,7 @@
 
             const payload = {
                 events,
-                win: window.location.href
+                win: okanjo.util.getLocation()
             };
 
             const route = okanjo.net.getRoute(okanjo.net.routes.metrics_batch);
@@ -291,7 +291,7 @@
             }
 
              // Set the window location
-            event.win = window.location.href;
+            event.win = okanjo.util.getLocation();
         }
 
         /**
