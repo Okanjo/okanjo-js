@@ -100,6 +100,7 @@ describe('Metrics', () => {
                     wiy1: 0,
                     wix2: 0,
                     wiy2: 0,
+                    wrps: '',
                     d: 4,
                     e: [ 5, 6, '7' ] 
                 },
@@ -139,6 +140,7 @@ describe('Metrics', () => {
                     wiy1: '0',
                     wix2: '0',
                     wiy2: '0',
+                    wrps: '',
                     d: '4',
                     e: '5,6,7',
                     pgid: pageId,
@@ -184,6 +186,7 @@ describe('Metrics', () => {
                                     wiy1: 0,
                                     wix2: 0,
                                     wiy2: 0,
+                                    wrps: '',
                                     d: 4,
                                     e: '5,6,7',
                                     pgid: pageId,

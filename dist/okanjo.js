@@ -1,4 +1,4 @@
-/*! okanjo-js v1.18.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.19.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -323,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.18.0",
+        version: "1.19.0",
 
         /**
          * Placeholder
@@ -2059,7 +2059,6 @@ var okanjo = function (window, document) {
             key: 'addWidgetInfo',
             value: function addWidgetInfo(element, event) {
                 var containerSize = okanjo.ui.getElementPosition(element);
-                var innerSize = okanjo.ui.getElementPosition(element.childNodes[0]);
 
                 event = event || {};
                 event.m = event.m || {};
@@ -2070,11 +2069,42 @@ var okanjo = function (window, document) {
                 event.m.wox2 = containerSize.x2;
                 event.m.woy2 = containerSize.y2;
 
+                // Inner size is the min/max of the child elements since they may be floating and have no official height/width
+                var resources = okanjo.qwery('.okanjo-resource, .okanjo-adx-container', element);
+                var size = void 0,
+                    wix1 = void 0,
+                    wiy1 = void 0,
+                    wix2 = void 0,
+                    wiy2 = void 0,
+                    boxes = [];
+                var getMin = function getMin(val, current) {
+                    return typeof current === "undefined" || val < current ? val : current;
+                };
+                var getMax = function getMax(val, current) {
+                    return typeof current === "undefined" || val > current ? val : current;
+                };
+                var fallback = function fallback(val, _fallback) {
+                    return typeof val === "undefined" ? _fallback : val;
+                };
+
+                resources.forEach(function (e) {
+                    size = okanjo.ui.getElementPosition(e);
+                    wix1 = getMin(size.x1, wix1);
+                    wiy1 = getMin(size.y1, wiy1);
+                    wix2 = getMax(size.x2, wix2);
+                    wiy2 = getMax(size.y2, wiy2);
+                    boxes.push(size.x1, size.y1, size.x2, size.y2);
+                });
+
                 // inner size (might be centered or something)
-                event.m.wix1 = innerSize.x1;
-                event.m.wiy1 = innerSize.y1;
-                event.m.wix2 = innerSize.x2;
-                event.m.wiy2 = innerSize.y2;
+                // noinspection JSUnusedAssignment
+                event.m.wix1 = fallback(wix1, containerSize.x1); // noinspection JSUnusedAssignment
+                event.m.wiy1 = fallback(wiy1, containerSize.y1); // noinspection JSUnusedAssignment
+                event.m.wix2 = fallback(wix2, containerSize.x2); // noinspection JSUnusedAssignment
+                event.m.wiy2 = fallback(wiy2, containerSize.y2);
+                event.m.wrps = boxes.map(function (v) {
+                    return Math.floor(v);
+                }).join(','); // all resource positions x1,y1,x2,y2,...
 
                 return event;
             }

@@ -332,7 +332,6 @@
 
         static addWidgetInfo(element, event) {
             const containerSize = okanjo.ui.getElementPosition(element);
-            const innerSize = okanjo.ui.getElementPosition(element.childNodes[0]);
 
             event = event || {};
             event.m = event.m || {};
@@ -343,11 +342,29 @@
             event.m.wox2 = containerSize.x2;
             event.m.woy2 = containerSize.y2;
 
+            // Inner size is the min/max of the child elements since they may be floating and have no official height/width
+            const resources = okanjo.qwery('.okanjo-resource, .okanjo-adx-container', element);
+            let size, wix1, wiy1, wix2, wiy2, boxes = [];
+            const getMin = (val, current) => typeof current === "undefined" || val < current ? val : current;
+            const getMax = (val, current) => typeof current === "undefined" || val > current ? val : current;
+            const fallback = (val, fallback) => typeof val === "undefined" ? fallback : val;
+
+            resources.forEach(e => {
+                size = okanjo.ui.getElementPosition(e);
+                wix1 = getMin(size.x1, wix1);
+                wiy1 = getMin(size.y1, wiy1);
+                wix2 = getMax(size.x2, wix2);
+                wiy2 = getMax(size.y2, wiy2);
+                boxes.push(size.x1, size.y1, size.x2, size.y2);
+            });
+
             // inner size (might be centered or something)
-            event.m.wix1 = innerSize.x1;
-            event.m.wiy1 = innerSize.y1;
-            event.m.wix2 = innerSize.x2;
-            event.m.wiy2 = innerSize.y2;
+            // noinspection JSUnusedAssignment
+            event.m.wix1 = fallback(wix1, containerSize.x1); // noinspection JSUnusedAssignment
+            event.m.wiy1 = fallback(wiy1, containerSize.y1); // noinspection JSUnusedAssignment
+            event.m.wix2 = fallback(wix2, containerSize.x2); // noinspection JSUnusedAssignment
+            event.m.wiy2 = fallback(wiy2, containerSize.y2);
+            event.m.wrps = boxes.map(v => Math.floor(v)).join(','); // all resource positions x1,y1,x2,y2,...
 
             return event;
         }
