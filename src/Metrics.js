@@ -300,7 +300,8 @@
          * @private
          */
         _updateSid(sid) {
-            if (!this.sid && sid) {
+            // Not set or changed?
+            if (sid && (!this.sid || this.sid !== sid) ) {
                 this.sid = sid;
                 window.localStorage[Metrics.Params.name] = sid;
                 okanjo.util.cookie.set(Metrics.Params.name, sid, Metrics.Params.ttl);
