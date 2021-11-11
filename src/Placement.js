@@ -140,6 +140,7 @@
                 // Functional settings
                 key: string().strip(), // don't need to resend key on all our requests
                 no_init: bool().strip(), // don't automatically load the placement, do it manually (e.g. (new Placement({no_init:true})).init()
+                no_css: bool().strip(), // don't automatically include stylesheets
                 proxy_url: string().strip(),
                 expandable: bool().strip().default(true),
                 disable_inline_buy: bool().strip().default(false), // stops inline buy functionality
@@ -690,8 +691,12 @@
                 offer._index = index;
             });
 
+            const model = {
+                css: !this.config.no_css
+            };
+
             // Render and display the results
-            this.setMarkup(okanjo.ui.engine.render(templateName, this));
+            this.setMarkup(okanjo.ui.engine.render(templateName, this, model));
 
             // Track widget impression
             if (data.results.length === 0) {
@@ -904,8 +909,12 @@
                 article._index = index;
             });
 
+            const model = {
+                css: !this.config.no_css
+            };
+
             // Render and display the results
-            this.setMarkup(okanjo.ui.engine.render(templateName, this));
+            this.setMarkup(okanjo.ui.engine.render(templateName, this, model));
 
             // Track widget impression
             if (data.results.length === 0) {
@@ -1046,6 +1055,7 @@
 
             // Pass along what the template needs to know to display the ad
             const renderContext = {
+                css: !this.config.no_css,
                 size,
                 adUnitPath
             };

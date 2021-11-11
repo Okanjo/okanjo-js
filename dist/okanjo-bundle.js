@@ -1,4 +1,4 @@
-/*! okanjo-js v1.19.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.20.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -323,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.19.1",
+        version: "1.20.0",
 
         /**
          * Placeholder
@@ -3207,6 +3207,7 @@ var okanjo = function (window, document) {
                     // Functional settings
                     key: string().strip(), // don't need to resend key on all our requests
                     no_init: bool().strip(), // don't automatically load the placement, do it manually (e.g. (new Placement({no_init:true})).init()
+                    no_css: bool().strip(), // don't automatically include stylesheets
                     proxy_url: string().strip(),
                     expandable: bool().strip().default(true),
                     disable_inline_buy: bool().strip().default(false), // stops inline buy functionality
@@ -3793,8 +3794,12 @@ var okanjo = function (window, document) {
                     offer._index = index;
                 });
 
+                var model = {
+                    css: !this.config.no_css
+                };
+
                 // Render and display the results
-                this.setMarkup(okanjo.ui.engine.render(templateName, this));
+                this.setMarkup(okanjo.ui.engine.render(templateName, this, model));
 
                 // Track widget impression
                 if (data.results.length === 0) {
@@ -3995,8 +4000,12 @@ var okanjo = function (window, document) {
                     article._index = index;
                 });
 
+                var model = {
+                    css: !this.config.no_css
+                };
+
                 // Render and display the results
-                this.setMarkup(okanjo.ui.engine.render(templateName, this));
+                this.setMarkup(okanjo.ui.engine.render(templateName, this, model));
 
                 // Track widget impression
                 if (data.results.length === 0) {
@@ -4129,6 +4138,7 @@ var okanjo = function (window, document) {
 
                 // Pass along what the template needs to know to display the ad
                 var renderContext = {
+                    css: !this.config.no_css,
                     size: size,
                     adUnitPath: adUnitPath
                 };
@@ -5082,7 +5092,7 @@ var okanjo = function (window, document) {
 return okanjo;
 }));
 
-/*! okanjo-js v1.19.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.20.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {(function (window) {
 
     var okanjo = window.okanjo;

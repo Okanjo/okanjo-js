@@ -8,7 +8,7 @@ This script will asynchronously load the Ad or Product widget as configured. It 
 outside of the iframe (when able to do so) to enable expandable functionality.
 -->
 <script>
-    /*! Okanjo Placement Loader v3.1.0 - https://developer.okanjo.com/okanjo-js */
+    /*! Okanjo Placement Loader v3.2.0 - https://developer.okanjo.com/okanjo-js */
     (function (config) {
 
         //noinspection ES6ConvertVarToLetConst
@@ -133,6 +133,11 @@ outside of the iframe (when able to do so) to enable expandable functionality.
         }).call(win, function () {
             // this = top window (if self or friendly) or the current frame if sandboxed
 
+            // Before load hook
+            if (config.beforeLoad) {
+                config.beforeLoad(); // no async
+            }
+
             //noinspection ES6ConvertVarToLetConst
             var win = this, targets = win.okanjo.qwery('.okanjo-placement:not(.loaded)', container), i = 0;
             debug('Okanjo: Loading placements, Found=%d', targets.length);
@@ -148,6 +153,9 @@ outside of the iframe (when able to do so) to enable expandable functionality.
         });
 
     })({
+        beforeLoad: function() {
+            // Do something here after Okanjo-JS loaded, before placements load
+        },
         placement: {
             // key: 'PUT_YOUR_PLACEMENT_KEY_HERE',
             // expandable: true,
