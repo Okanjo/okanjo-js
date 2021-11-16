@@ -367,7 +367,24 @@ const okanjo = (function(window, document) {
      * Gets the best URL for where we are operating
      * @returns {string|*}
      */
-    okanjo.util.getLocation = () => window.location !== window.parent.location ? /* istanbul ignore next: oos */ document.referrer : document.location.href;
+    okanjo.util.getLocation = () => {
+        /* istanbul ignore if: hard to reproduce in jsdom at the moment */
+        if (window.location !== window.parent.location) {
+            // attempt to see if the frame is friendly and get the parent
+            try {
+                return window.parent.location.href;
+            } catch (e) {
+                // Not friendly :(
+            }
+
+            // prefer the frame referrer (at least the same as the origin site) over the ad server url
+            if (document.referrer) return document.referrer;
+            return document.referrer;
+        }
+
+        // Direct on page or frame is goofy
+        return window.location.href
+    }
 
     //endregion
 

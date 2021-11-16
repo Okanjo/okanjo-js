@@ -8,17 +8,17 @@ This script will asynchronously load the Ad or Product widget as configured. It 
 outside of the iframe (when able to do so) to enable expandable functionality.
 -->
 <script>
-    /*! Okanjo Placement Loader v3.2.0 - https://developer.okanjo.com/okanjo-js */
-    !function(o){var e=document,n=window,a=e.getElementById("okanjo-placement-container"),t=n.top===n.self,l=!1,c=o.debug&&function(){console.info.apply(console,arguments)}||function(){};c("Okanjo: Initializing...");try{if(!t){c("Okanjo: Not top frame, locating self...");for(var r,d,i=n.top.document.getElementsByTagName("iframe"),s=0;s<i.length;s++){r=i[s];try{if(d=r.contentDocument||i.contentWindow.document,d===document){c("Okanjo: Located self on top: ",r),a.removeAttribute("id"),r.parentNode.appendChild(a),r.style.display="none",e=n.top.document,n=n.top,l=!0;break}}catch(m){c("Okanjo: Failed to check frame: ",m)}}}}catch(m){console.warn("[Okanjo]","Failed to locating parent frame.",m)}t||l||(console.warn("[Okanjo]","Forcing non-expandable functionality. Top=%s, Located=%s",t,l),o.placement&&(o.placement.expandable=!1)),function(e){if(this.okanjo)c("Okanjo: previously loaded"),e.call(this);else{var n,a=this,t=a.document,l=t.head,r=t.createElement("script"),d=!1,i=0;r.type="text/javascript",r.async=!0,r.setAttribute("crossorigin","anonymous"),r.onload=function(o){d||(c("Okanjo: SDK loaded, Version=%s, Event=",a.okanjo&&a.okanjo.version,o),a.okanjo?(d=!0,e.call(a)):(c("Okanjo: SDK did not load, retrying..."),n=setInterval(function(){return a.okanjo?(c("Okanjo: SDK loaded, Version=%s, Event=",a.okanjo.version,o),d=!0,clearInterval(n),e.call(a)):void(++i>10&&(clearInterval(n),console.error("[Okanjo] Failed to load SDK: retries exceeded. Win=",a)))},100)))},r.onerror=function(o){console.error("[Okanjo] Failed to load SDK:",o)},r.src=o.src||"//cdn.okanjo.com/js/latest/okanjo-bundle.min.js",l.appendChild(r)}}.call(n,function(){o.beforeLoad&&o.beforeLoad();var e=this,n=e.okanjo.qwery(".okanjo-placement:not(.loaded)",a),t=0;for(c("Okanjo: Loading placements, Found=%d",n.length),e.__okanjoPlacements=e.__okanjoPlacements||[];t<n.length;t++)n[t].className+=" loaded",e.__okanjoPlacements.push(new e.okanjo.Placement(n[t],o.placement)),c("Okanjo: Loaded placement: ",e.__okanjoPlacements[e.__okanjoPlacements.length-1])})
-    }({
-        // beforeLoad: function() {
-        //     // Do something here after Okanjo-JS loaded, before placements load
-        // },
-        placement: {
-            // key: 'PUT_YOUR_PLACEMENT_KEY_HERE',
-            // expandable: true,
-            proxy_url: '%%CLICK_URL_UNESC%%', // (Google DFP macro, change for your ad server)
-        },
-        // debug: true
-    });
+/*! Okanjo Placement Loader v3.2.0 - https://developer.okanjo.com/okanjo-js */
+!function(o){var e=document,n=window,a=e.getElementById("okanjo-placement-container"),t=n.top===n.self,l=!1,c=o.debug&&function(){console.info.apply(console,arguments)}||function(){};c("Okanjo: Initializing...");try{if(!t){c("Okanjo: Not top frame, locating self...");for(var r,d,i=n.top.document.getElementsByTagName("iframe"),s=0;s<i.length;s++){r=i[s];try{if(d=r.contentDocument||i.contentWindow.document,d===document){c("Okanjo: Located self on top: ",r),a.removeAttribute("id"),r.parentNode.appendChild(a),r.style.display="none",e=n.top.document,n=n.top,l=!0;break}}catch(m){c("Okanjo: Failed to check frame: ",m)}}}}catch(m){console.warn("[Okanjo]","Failed to locating parent frame.",m)}t||l||(console.warn("[Okanjo]","Forcing non-expandable functionality. Top=%s, Located=%s",t,l),o.placement&&(o.placement.expandable=!1)),function(e){if(this.okanjo)c("Okanjo: previously loaded"),e.call(this);else{var n,a=this,t=a.document,l=t.head,r=t.createElement("script"),d=!1,i=0;r.type="text/javascript",r.async=!0,r.setAttribute("crossorigin","anonymous"),r.onload=function(o){d||(c("Okanjo: SDK loaded, Version=%s, Event=",a.okanjo&&a.okanjo.version,o),a.okanjo?(d=!0,e.call(a)):(c("Okanjo: SDK did not load, retrying..."),n=setInterval(function(){return a.okanjo?(c("Okanjo: SDK loaded, Version=%s, Event=",a.okanjo.version,o),d=!0,clearInterval(n),e.call(a)):void(++i>10&&(clearInterval(n),console.error("[Okanjo] Failed to load SDK: retries exceeded. Win=",a)))},100)))},r.onerror=function(o){console.error("[Okanjo] Failed to load SDK:",o)},r.src=o.src||"//cdn.okanjo.com/js/latest/okanjo-bundle.min.js",l.appendChild(r)}}.call(n,function(){o.beforeLoad&&o.beforeLoad();var e=this,n=e.okanjo.qwery(".okanjo-placement:not(.loaded)",a),t=0;for(c("Okanjo: Loading placements, Found=%d",n.length),e.__okanjoPlacements=e.__okanjoPlacements||[];t<n.length;t++)n[t].className+=" loaded",e.__okanjoPlacements.push(new e.okanjo.Placement(n[t],o.placement)),c("Okanjo: Loaded placement: ",e.__okanjoPlacements[e.__okanjoPlacements.length-1])})
+}({
+    // beforeLoad: function() {
+    //     // Do something here after Okanjo-JS loaded, before placements load
+    // },
+    placement: {
+        // key: 'PUT_YOUR_PLACEMENT_KEY_HERE',
+        // expandable: true,
+        proxy_url: '%%CLICK_URL_UNESC%%', // (Google DFP macro, change for your ad server)
+    },
+    // debug: true
+});
 </script>
