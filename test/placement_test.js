@@ -777,7 +777,10 @@ describe('Placements', () => {
 
             it('should handle non-product links too', (done) => {
                 resetDocument();
-                let target = insertDropzone({ key: 'unit_test_key' });
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    verbose_click_data: true
+                });
 
                 // hack our sid too, just for some edge case stuff
                 okanjo.metrics.sid = null;
@@ -1708,10 +1711,10 @@ describe('Placements', () => {
                 args.should.containDeep({
                     // ok_cid: 'L1qgmnMA7',
                     // afftrack: 'MTunittesting1:L1qgmnMA7',
-                    ok_msid: 'MTunittesting1',
-                    ok_ch: 'pw',
-                    ok_cx: 'auto',
-                    expandable: '1'
+                    // ok_msid: 'MTunittesting1',
+                    // ok_ch: 'pw',
+                    // ok_cx: 'auto',
+                    ok_expandable: '1'
                 });
 
                 args.ok_cid.should.be.ok();
@@ -1735,6 +1738,7 @@ describe('Placements', () => {
 
                 // hack it
                 placement.config.expandable = false;
+                placement.config.verbose_click_data = true;
 
                 anchor.dispatchEvent(clickEvent);
 
@@ -1788,22 +1792,32 @@ describe('Placements', () => {
                 args = Qs.parse(parts.query);
 
                 args.should.containDeep({
-                    // ok_cid: 'Uyq15iGRQ',
-                    // afftrack: 'MTunittesting1:Uyq15iGRQ',
+                    // ok_cid: 'SSCLK2EiyYZ5Y4EriWsEaC0Ech7',
+                    // afftrack: 'SSCLK2EiyYZ5Y4EriWsEaC0Ech7', // <-- buy_url_track_param
+                    utm_source: 'okanjo',
+                    // utm_campaign: 'smartserve',
+                    utm_medium: 'smartserve',
+                    ok_expandable: '0',
+                    ok_frame_height: '0',
+                    ok_frame_width: '0',
+
+                    // verbose args
                     ok_msid: 'MTunittesting1',
                     ok_ch: 'pw',
                     ok_cx: 'auto',
-                    expandable: '0',
-                    frame_height: '0',
-                    frame_width: '0'
+                    _okjr: 'YWJvdXQ6Ymxhbms='
                 });
+
+                // console.log('ARGS', args);
 
                 args.ok_cid.should.be.ok();
                 args.afftrack.should.be.ok();
+                should(args.utm_campaign).not.be.ok();
 
                 // Pull this thing off the dom, cuz we have no close button lol
                 iframe.parentNode.removeChild(iframe);
                 placement.config.expandable = true;
+                placement.config.verbose_click_data = false;
             });
 
             it('should pop a window if on mobile', (done) => {
@@ -1968,6 +1982,363 @@ describe('Placements', () => {
 
                 // Make that placement
                 new okanjo.Placement(target);
+            });
+
+        });
+
+        describe('Verbosity', () => {
+
+            let target, placement;
+
+            after(() => {
+                resetDocument();
+                setAdsHandler();
+                setMetricsBulkHandler();
+            });
+
+            it('default click args', async () => {
+
+                // Load the widget
+                await new Promise((resolve) => {
+                    resetDocument();
+                    target = insertDropzone({
+                        key: 'unit_test_key',
+                    });
+
+                    setMetricsBulkHandler(() => {
+                        target.querySelectorAll('.okanjo-product').length.should.be.exactly(2);
+
+                        setMetricsBulkHandler();
+                        setAdsHandler();
+                        resolve();
+                    });
+
+                    setAdsHandler(() => {
+                        const payload = TestResponses.getExampleProductResponse();
+
+                        // clean, no existing args
+                        payload.data.results[0].buy_url = 'https://example.com/path/to/thing'
+
+                        // existing arg
+                        payload.data.results[1].buy_url = 'https://example.com/path/to/thing?existing=abc'
+
+                        return {
+                            statusCode: 200,
+                            payload
+                        };
+                    });
+
+                    placement = new okanjo.Placement(target);
+                });
+
+                // Click and test
+                let anchor = target.querySelector('a');
+                let beforeLink = anchor.href;
+                let event = new window.Event('click', {bubbles: true});
+                event.pageX = 42;
+                event.pageY = 43;
+
+                setMetricsHandler(() => {
+                    console.log('omg jsdom followed it?');
+                });
+
+                anchor.dispatchEvent(event);
+
+                // the click should have triggered the "mousedown" event to go, cuz of the explicit call
+                anchor.href.should.not.be.equal(beforeLink);
+
+                let parts = Url.parse(anchor.href);
+                let args = Qs.parse(parts.query);
+
+                args.should.containDeep({
+                    ch: 'pw',
+                    cx: 'auto',
+                    key: 'unit_test_key',
+                    m: {
+                        wgid: placement.instanceId,
+                        aid: 'article_local_2gT3kBcwVQZ1kpEma',
+                        pten: '0',
+                        decl: '0',
+                        // key: 'unit_test_key',
+                        pw: '0',
+                        ph: '0',
+                        x1: '0',
+                        y1: '0',
+                        x2: '0',
+                        y2: '0',
+                        vx1: '0',
+                        vy1: '0',
+                        vx2: '0',
+                        vy2: '0',
+                        bf: '0',
+                        // cid: '8yXgXzRm',
+                        et: 'Event',
+                        ex: '42',
+                        ey: '43',
+                        pgid: okanjo.metrics.pageId,
+                        ok_ver: '%%OKANJO_VERSION'
+                    },
+                    id: 'product_test_2gT3kBcwVQZ1kpEma',
+                    ea: 'click',
+                    // u: 'http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=575333915&ok_cid=8yXgXzRm&afftrack=MTunittesting1%3A8yXgXzRm&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto',
+                    sid: 'MTunittesting1'
+                });
+
+                args.u.should.be.ok();
+                args.m.cid.should.be.ok();
+                args.win.should.be.ok();
+
+                parts = Url.parse(args.u);
+                args = Qs.parse(parts.query);
+
+                // console.log('ARGS', args)
+
+                args.should.containDeep({
+                    // ok_cid: 'SSCLK2EiyYZ5Y4EriWsEaC0Ech26',
+                    // afftrack: 'SSCLK2EiyYZ5Y4EriWsEaC0Ech26',
+                    ok_msid: 'MTunittesting1',
+                    utm_source: 'okanjo',
+                    utm_medium: 'smartserve'
+                });
+
+                should(args.ok_cid).startWith('SSCLK');
+                should(args.afftrack).startWith('SSCLK');
+                should(args.utm_campaign).not.be.ok();
+                should(args.ok_ch).not.be.ok();
+                should(args.ok_cx).not.be.ok();
+                should(args._okjr).not.be.ok();
+
+                setMetricsHandler();
+            });
+
+            it('verbosity enabled', async () => {
+
+                // Load the widget
+                await new Promise((resolve) => {
+                    resetDocument();
+                    target = insertDropzone({
+                        key: 'unit_test_key',
+                        verbose_click_data: true
+                    });
+
+                    setMetricsBulkHandler(() => {
+                        target.querySelectorAll('.okanjo-product').length.should.be.exactly(2);
+
+                        setMetricsBulkHandler();
+                        setAdsHandler();
+                        resolve();
+                    });
+
+                    setAdsHandler(() => {
+                        const payload = TestResponses.getExampleProductResponse();
+
+                        // clean, no existing args
+                        payload.data.results[0].buy_url = 'https://example.com/path/to/thing'
+
+                        // existing arg
+                        payload.data.results[1].buy_url = 'https://example.com/path/to/thing?existing=abc'
+
+                        return {
+                            statusCode: 200,
+                            payload
+                        };
+                    });
+
+                    placement = new okanjo.Placement(target);
+                });
+
+                // Click and test
+                let anchor = target.querySelector('a');
+                let beforeLink = anchor.href;
+                let event = new window.Event('click', {bubbles: true});
+                event.pageX = 42;
+                event.pageY = 43;
+
+                setMetricsHandler(() => {
+                    console.log('omg jsdom followed it?');
+                });
+
+                anchor.dispatchEvent(event);
+
+                // the click should have triggered the "mousedown" event to go, cuz of the explicit call
+                anchor.href.should.not.be.equal(beforeLink);
+
+                let parts = Url.parse(anchor.href);
+                let args = Qs.parse(parts.query);
+
+                args.should.containDeep({
+                    ch: 'pw',
+                    cx: 'auto',
+                    key: 'unit_test_key',
+                    m: {
+                        wgid: placement.instanceId,
+                        aid: 'article_local_2gT3kBcwVQZ1kpEma',
+                        pten: '0',
+                        decl: '0',
+                        // key: 'unit_test_key',
+                        pw: '0',
+                        ph: '0',
+                        x1: '0',
+                        y1: '0',
+                        x2: '0',
+                        y2: '0',
+                        vx1: '0',
+                        vy1: '0',
+                        vx2: '0',
+                        vy2: '0',
+                        bf: '0',
+                        // cid: '8yXgXzRm',
+                        et: 'Event',
+                        ex: '42',
+                        ey: '43',
+                        pgid: okanjo.metrics.pageId,
+                        ok_ver: '%%OKANJO_VERSION'
+                    },
+                    id: 'product_test_2gT3kBcwVQZ1kpEma',
+                    ea: 'click',
+                    // u: 'http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=575333915&ok_cid=8yXgXzRm&afftrack=MTunittesting1%3A8yXgXzRm&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto',
+                    sid: 'MTunittesting1'
+                });
+
+                args.u.should.be.ok();
+                args.m.cid.should.be.ok();
+                args.win.should.be.ok();
+
+                parts = Url.parse(args.u);
+                args = Qs.parse(parts.query);
+
+                // console.log('ARGS', args)
+
+                args.should.containDeep({
+                    // ok_cid: 'SSCLK2EiyYZ5Y4EriWsEaC0Ech26',
+                    // afftrack: 'SSCLK2EiyYZ5Y4EriWsEaC0Ech26',
+                    ok_msid: 'MTunittesting1',
+                    ok_ch: 'pw',
+                    ok_cx: 'auto',
+                    _okjr: 'YWJvdXQ6Ymxhbms=',
+                    utm_source: 'okanjo',
+                    utm_medium: 'smartserve'
+                });
+
+                should(args.ok_cid).startWith('SSCLK');
+                should(args.afftrack).startWith('SSCLK');
+                should(args.utm_campaign).not.be.ok();
+
+                setMetricsHandler();
+            });
+
+            it('utm disabled', async () => {
+
+                // Load the widget
+                await new Promise((resolve) => {
+                    resetDocument();
+                    target = insertDropzone({
+                        key: 'unit_test_key',
+                        utm_click_data: false
+                    });
+
+                    setMetricsBulkHandler(() => {
+                        target.querySelectorAll('.okanjo-product').length.should.be.exactly(2);
+
+                        setMetricsBulkHandler();
+                        setAdsHandler();
+                        resolve();
+                    });
+
+                    setAdsHandler(() => {
+                        const payload = TestResponses.getExampleProductResponse();
+
+                        // clean, no existing args
+                        payload.data.results[0].buy_url = 'https://example.com/path/to/thing'
+
+                        // existing arg
+                        payload.data.results[1].buy_url = 'https://example.com/path/to/thing?existing=abc'
+
+                        return {
+                            statusCode: 200,
+                            payload
+                        };
+                    });
+
+                    placement = new okanjo.Placement(target);
+                });
+
+                // Click and test
+                let anchor = target.querySelector('a');
+                let beforeLink = anchor.href;
+                let event = new window.Event('click', {bubbles: true});
+                event.pageX = 42;
+                event.pageY = 43;
+
+                setMetricsHandler(() => {
+                    console.log('omg jsdom followed it?');
+                });
+
+                anchor.dispatchEvent(event);
+
+                // the click should have triggered the "mousedown" event to go, cuz of the explicit call
+                anchor.href.should.not.be.equal(beforeLink);
+
+                let parts = Url.parse(anchor.href);
+                let args = Qs.parse(parts.query);
+
+                args.should.containDeep({
+                    ch: 'pw',
+                    cx: 'auto',
+                    key: 'unit_test_key',
+                    m: {
+                        wgid: placement.instanceId,
+                        aid: 'article_local_2gT3kBcwVQZ1kpEma',
+                        pten: '0',
+                        decl: '0',
+                        // key: 'unit_test_key',
+                        pw: '0',
+                        ph: '0',
+                        x1: '0',
+                        y1: '0',
+                        x2: '0',
+                        y2: '0',
+                        vx1: '0',
+                        vy1: '0',
+                        vx2: '0',
+                        vy2: '0',
+                        bf: '0',
+                        // cid: '8yXgXzRm',
+                        et: 'Event',
+                        ex: '42',
+                        ey: '43',
+                        pgid: okanjo.metrics.pageId,
+                        ok_ver: '%%OKANJO_VERSION'
+                    },
+                    id: 'product_test_2gT3kBcwVQZ1kpEma',
+                    ea: 'click',
+                    // u: 'http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=575333915&ok_cid=8yXgXzRm&afftrack=MTunittesting1%3A8yXgXzRm&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto',
+                    sid: 'MTunittesting1'
+                });
+
+                args.u.should.be.ok();
+                args.m.cid.should.be.ok();
+                args.win.should.be.ok();
+
+                parts = Url.parse(args.u);
+                args = Qs.parse(parts.query);
+
+                // console.log('ARGS', args)
+
+                args.should.containDeep({
+                    ok_msid: 'MTunittesting1',
+                });
+
+                should(args.ok_cid).startWith('SSCLK');
+                should(args.afftrack).startWith('SSCLK');
+                should(args.utm_source).not.be.ok();
+                should(args.utm_campaign).not.be.ok();
+                should(args.utm_medium).not.be.ok();
+                should(args.ok_ch).not.be.ok();
+                should(args.ok_cx).not.be.ok();
+                should(args._okjr).not.be.ok();
+
+                setMetricsHandler();
             });
 
         });

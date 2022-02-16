@@ -1,4 +1,4 @@
-/*! okanjo-js v1.20.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.21.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -323,7 +323,7 @@ var okanjo = function (window, document) {
         /**
          * Okanjo version
          */
-        version: "1.20.1",
+        version: "1.21.0",
 
         /**
          * Placeholder
@@ -3223,6 +3223,8 @@ var okanjo = function (window, document) {
                     key: string().strip(), // don't need to resend key on all our requests
                     no_init: bool().strip(), // don't automatically load the placement, do it manually (e.g. (new Placement({no_init:true})).init()
                     no_css: bool().strip(), // don't automatically include stylesheets
+                    verbose_click_data: bool().strip().default(false), // when enabled, sends ok_msid, ok_ch, ok_cx, _okjr to the destination url
+                    utm_click_data: bool().strip().default(true), // when enabled, sends url_source, utm_campaign, and utm_medium to the destination url
                     proxy_url: string().strip(),
                     expandable: bool().strip().default(true),
                     disable_inline_buy: bool().strip().default(false), // stops inline buy functionality
@@ -3532,15 +3534,17 @@ var okanjo = function (window, document) {
                 // Tack on transfer params
                 additionalUrlParams = additionalUrlParams /* istanbul ignore next: paranoia */ || {};
                 additionalUrlParams.ok_msid = okanjo.metrics.sid || 'unknown';
-                additionalUrlParams.ok_ch = this._metricBase.ch;
-                additionalUrlParams.ok_cx = this._metricBase.cx;
-                additionalUrlParams._okjr = window.location.href.split(/[?#]/)[0];
-                additionalUrlParams.utm_source = 'okanjo';
-                additionalUrlParams.utm_campaign = 'smartserve';
-                // additionalUrlParams.utm_source = window.location.hostname;
-                additionalUrlParams.utm_medium = 'smartserve';
-                // additionalUrlParams.utm_campaign = 'smartserve';
-
+                if (this.config.verbose_click_data) {
+                    additionalUrlParams.ok_ch = this._metricBase.ch;
+                    additionalUrlParams.ok_cx = this._metricBase.cx;
+                    additionalUrlParams._okjr = btoa(window.location.href.split(/[?#]/)[0]); // mod_security by default 403's when urls are present as query args
+                }
+                if (this.config.utm_click_data) {
+                    additionalUrlParams.utm_source = 'okanjo';
+                    additionalUrlParams.utm_medium = 'smartserve';
+                    // additionalUrlParams.utm_source = window.location.hostname;
+                    // additionalUrlParams.utm_campaign = 'smartserve';
+                }
 
                 url += joiner + Object.keys(additionalUrlParams).map(function (key) {
                     return encodeURIComponent(key) + '=' + encodeURIComponent(additionalUrlParams[key]);
@@ -3952,7 +3956,7 @@ var okanjo = function (window, document) {
                     });
 
                     // Check whether we're allowed to expand past the bounds of the placement
-                    additionalParams.expandable = this.config.expandable ? 1 : 0;
+                    additionalParams.ok_expandable = this.config.expandable ? 1 : 0;
                     if (!this.config.expandable) {
                         var parent = this.element.querySelector('.okanjo-expansion-root');
                         /* istanbul ignore else: custom templates could break this */
@@ -3964,10 +3968,10 @@ var okanjo = function (window, document) {
                             parent.appendChild(frame);
 
                             var size = okanjo.ui.getElementSize(parent);
-                            additionalParams.frame_height = size.height;
-                            additionalParams.frame_width = size.width;
+                            additionalParams.ok_frame_height = size.height;
+                            additionalParams.ok_frame_width = size.width;
                             /* istanbul ignore next: i'm not writing a whole test for this one config param */
-                            if (this.config.size) additionalParams.ad_size = this.config.size;
+                            if (this.config.size) additionalParams.ok_ad_size = this.config.size;
                         }
                     }
 
@@ -5107,7 +5111,7 @@ var okanjo = function (window, document) {
 return okanjo;
 }));
 
-/*! okanjo-js v1.20.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v1.21.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {(function (window) {
 
     var okanjo = window.okanjo;
