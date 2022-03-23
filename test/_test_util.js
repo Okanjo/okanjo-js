@@ -7,6 +7,7 @@ const should = require('should');
 const Http = require('http');
 const Url = require('url');
 const TestResponses = require('./_test_responses');
+const JSDOM = require('jsdom')
 
 const NOOP = () => {};
 
@@ -15,19 +16,32 @@ class TestUtil {
         this._doneWithDOM = NOOP;
     }
 
-    setupEnvironment(jsDomOptions) {
-        this._doneWithDOM = require('jsdom-global')(undefined, jsDomOptions);
+    setupEnvironment(jsDomOptions = {}) {
+
+        if (jsDomOptions.userAgent) {
+            jsDomOptions.resources = new JSDOM.ResourceLoader({
+                userAgent: jsDomOptions.userAgent
+            });
+        }
+
+        this._doneWithDOM = require('jsdom-global')(undefined, {
+            url: 'https://example.com/',
+            referrer: 'https://example.com/last/page',
+            contentType: 'text/html',
+
+            ...jsDomOptions,
+        });
 
         // Attach storage shim
         //noinspection JSUnusedGlobalSymbols
-        global.window.localStorage = window.sessionStorage = {
-            getItem: function (key) {
-                return this[key];
-            },
-            setItem: function (key, value) {
-                this[key] = value;
-            }
-        };
+        // global.window.localStorage = window.sessionStorage = {
+        //     getItem: function (key) {
+        //         return this[key];
+        //     },
+        //     setItem: function (key, value) {
+        //         this[key] = value;
+        //     }
+        // };
     }
 
     cleanEnvironment() {
@@ -246,7 +260,7 @@ class TestUtil {
 
                 if (req.method === 'OPTIONS') {
                     reply(200, {
-                        'Content-Type': response.contentType || 'application/json; charset=utf-8',
+                        'Content-Type': req.contentType || 'application/json; charset=utf-8',
                         'Content-Length': '0',
                         'access-control-allow-origin': '*',
                         'access-control-allow-methods': 'GET,PUT,POST,DELETE',
@@ -307,9 +321,11 @@ class TestUtil {
             callback(
                 server,
                 (done) => {
-                    server.listener.close(() => {
-                        done();
-                    });
+                    server.listener.close(); //() => {
+                        // console.log('server finally closed');
+                    // });
+                    done(); // for some reason, waiting for client connections to close can take ages
+                    // I suspect jsdom has something to do with keep alives
                 }
             );
         });
@@ -367,8 +383,8 @@ class TestUtil {
     handleMetricsRequest(req, reply) {
         req.payload = JSON.parse(req.payload);
 
+        let res;
         try {
-            let res;
             if (this._metricsHandler) res = this._metricsHandler(req, reply);
 
             reply(res || {
@@ -396,8 +412,8 @@ class TestUtil {
     handleAdsRequest(req, reply) {
         req.payload = JSON.parse(req.payload);
 
+        let res;
         try {
-            let res;
             if (this._adsHandler) res = this._adsHandler(req, reply);
 
             reply(res || {

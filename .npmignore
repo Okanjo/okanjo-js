@@ -9,3 +9,5 @@ lib/mustache.js
 lib/qwery
 lib/raven-js
 aws-credentials.json
+old
+.github

@@ -9,7 +9,9 @@ describe('Cookie', () => {
 
     before(() => {
         // make us a dom
-        TestUtil.setupEnvironment();
+        TestUtil.setupEnvironment({
+            url: "http://okanjo.com/test?query=1#hash=2&nope"
+        });
 
         // get okanjo on the dom
         TestUtil.reloadOkanjo();

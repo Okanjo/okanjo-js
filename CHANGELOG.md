@@ -3,6 +3,41 @@
 
 When stuff changes, it's described here.
 
+## 2022-03-23 - v2.0.0
+Major dependency and build pipeline update
+- Builds on Node v16
+- Updated dependencies to latest
+- Refactoring for coverage and necessary updates 
+
+## 2021-11-16 - v1.21.0
+Legacy click through parameter cleanup
+- Added `verbose_click_data` config option to append `ok_ch`, `ok_cx`, `_okjr` parameters to click through url when enabled (disabled by default)
+- Added `utm_click_data` config option to append `utm_source=okanjo` and `utm_medium=smartserve` parameters to click through url when enabled (enabled by default)
+- Removed `utm_campaign` click through parameter
+- Changed `_okjr` parameter to be base64 encoded (prevent issues with mod_security)
+- Changed inline buy click through parameters to be prefixed with `ok_` (`ok_expandable`, `ok_frame_height`, `ok_frame_width`, `ok_ad_size`)
+
+## 2021-11-16 - v1.20.1
+Added option to disable CSS injection entirely
+- Okanjo.js: Updated getLocation logic to handle more iframe edge cases
+
+## 2021-11-11 - v1.20.0
+Added option to disable CSS injection entirely
+- Placement.js: Added `no_css` option to disable template css injection
+- examples/dfp*.html: Added `beforeLoad` optional hook for executing or injecting custom templates before loading placements (v3.2.0)
+
+## 2021-10-06 - v1.19.1
+- Update sid if requested
+
+## 2021-09-09 - v1.19.0
+- Okanjo.js: Added getLocation helper
+- Metrics.js: Updated to use getLocation helper
+
+## 2021-08-27 - v1.17.0
+- Added widget positional data
+- Metrics.js: Added addWidgetInfo and fluent helper
+- Placement.js: Add widget data in metric events
+
 ## 2020-10-06 - v1.16.0
  * Added automatic passing _okjr in click-through urls
 

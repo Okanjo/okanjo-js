@@ -21,7 +21,7 @@
         }
 
         // Create a new instance
-        const req = new (window.XMLHttpRequest /* istanbul ignore next: old ie */ || window.ActiveXObject)('MSXML2.XMLHTTP.3.0');
+        const req = new (window.XMLHttpRequest || /* istanbul ignore next: old ie */ window.ActiveXObject)('MSXML2.XMLHTTP.3.0');
 
         // Flag to prevent duplicate callbacks / races
         let calledBack = false;

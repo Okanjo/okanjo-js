@@ -66,7 +66,7 @@ describe('Ad', () => {
     });
 
     //noinspection JSUnusedLocalSymbols
-    const debug = () => {
+    const debug = () => { // eslint-disable-line no-unused-vars
         console.log(document.documentElement.innerHTML);
     };
 
@@ -159,7 +159,7 @@ describe('Ad', () => {
             let target = insertDropzone({ key: 'unit_test_key', id: 'PR12345' });
             let placement;
 
-            target.innerHTML = '<img src="http://unit.test/creative" />';
+            target.innerHTML = '<img src="http://unit.test/creative" alt="" />';
 
             setAdsHandler(() => {
                 let payload = TestResponses.getExampleProductResponse();

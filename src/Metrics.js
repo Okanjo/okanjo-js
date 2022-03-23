@@ -286,6 +286,7 @@
             });
 
             // Set page source reference
+            /* istanbul ignore else: jsdom setup with referrer */
             if (document.referrer) {
                 event.ref = document.referrer;
             }

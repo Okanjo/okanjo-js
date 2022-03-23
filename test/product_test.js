@@ -67,7 +67,7 @@ describe('Product', () => {
     });
 
     //noinspection JSUnusedLocalSymbols
-    const debug = () => {
+    const debug = () => { // eslint-disable-line no-unused-vars
         console.log(document.documentElement.innerHTML);
     };
 
@@ -95,7 +95,7 @@ describe('Product', () => {
 
                 let args = req.payload;
                 args.filters.url.should.be.exactly('referrer');
-                args.filters.url_referrer.should.be.exactly('about:blank');
+                args.filters.url_referrer.should.be.exactly('https://example.com/');
                 args.filters.take.should.be.exactly(5); // this was the old default
 
                 let payload = TestResponses.getExampleProductResponse();
@@ -135,7 +135,7 @@ describe('Product', () => {
 
                 let args = req.payload;
                 args.filters.url.should.be.exactly('');
-                args.filters.url_referrer.should.be.exactly('about:blank');
+                args.filters.url_referrer.should.be.exactly('https://example.com/');
                 args.filters.take.should.be.exactly(1); // this was the old default
 
                 let payload = TestResponses.getExampleProductResponse();
@@ -177,7 +177,7 @@ describe('Product', () => {
                 let args = req.payload;
                 args.filters.url.should.be.exactly('');
                 args.filters.ids.should.deepEqual(['PR12345']);
-                args.filters.url_referrer.should.be.exactly('about:blank');
+                args.filters.url_referrer.should.be.exactly('https://example.com/');
                 args.filters.take.should.be.exactly(1); // this was the old default
 
                 let payload = TestResponses.getExampleProductResponse();
@@ -218,7 +218,7 @@ describe('Product', () => {
 
                 let args = req.payload;
                 args.filters.url.should.be.exactly('');
-                args.filters.url_referrer.should.be.exactly('about:blank');
+                args.filters.url_referrer.should.be.exactly('https://example.com/');
                 args.filters.take.should.be.exactly(25); // this was the old default
 
                 let payload = TestResponses.getExampleProductResponse();
@@ -258,7 +258,7 @@ describe('Product', () => {
 
                 let args = req.payload;
                 args.filters.url.should.be.exactly('');
-                args.filters.url_referrer.should.be.exactly('about:blank');
+                args.filters.url_referrer.should.be.exactly('https://example.com/');
                 args.filters.take.should.be.exactly(25); // this was the old default
 
                 let payload = TestResponses.getExampleProductResponse();
@@ -304,7 +304,7 @@ describe('Product', () => {
 
                 let args = req.payload;
                 args.filters.url.should.be.exactly('');
-                args.filters.url_referrer.should.be.exactly('about:blank');
+                args.filters.url_referrer.should.be.exactly('https://example.com/');
                 args.filters.take.should.be.exactly(25); // this was the old default
                 args.filters.store_name.should.be.exactly('okanjo');
                 args.filters.url_selectors.should.be.exactly('a,img,lol');

@@ -163,7 +163,7 @@ describe('Modal', () => {
         let oldOkanjo = window.okanjo;
         TestUtil.cleanEnvironment();
         TestUtil.setupEnvironment({
-            userAgent: 'iPhone/8,1'
+            userAgent: 'iPhone/8,1' // custom option
         });
 
         // Reload okanjo with the new UA

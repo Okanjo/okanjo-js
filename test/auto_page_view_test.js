@@ -64,7 +64,7 @@ describe('AutoPageView', () => {
 
             setMetricsBulkHandler((req) => {
 
-                fired.should.be.exactly(false);
+                should(fired).be.exactly(false);
                 fired = true;
 
                 req.payload.events.length.should.be.exactly(1);

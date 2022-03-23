@@ -43,7 +43,7 @@ describe('Widget', () => {
     });
 
     //noinspection JSUnusedLocalSymbols
-    const debug = () => {
+    const debug = () => { // eslint-disable-line no-unused-vars
         console.log(document.documentElement.innerHTML);
     };
 

@@ -7,13 +7,13 @@
  * Okanjo widget framework namespace
  * @global okanjo
  */
-const okanjo = (function(window, document) {
+const okanjo = (function(window, document) { // eslint-disable-line no-unused-vars
 
     //region Constants
 
     // Environment Vars
     const SUPPORTS_PAGE_OFFSET = window.pageXOffset !== undefined;
-    const CSS1_COMPATIBLE = (document.compatMode /* istanbul ignore next: out of scope */ || "") === "CSS1Compat";
+    const CSS1_COMPATIBLE = (document.compatMode || /* istanbul ignore next: out of scope */ "") === "CSS1Compat";
     const AGENT = window.navigator.userAgent;
     const ELLIPSIFY_PATTERN = /[\s\S](?:\.\.\.)?$/;
     const MOBILE_PATTERN = /(iPhone|iPad|iPod|Android|blackberry)/i;
@@ -456,16 +456,16 @@ const okanjo = (function(window, document) {
          * @return {{vw: number, vh: number}}
          */
         getViewportSize: () => {
-            const element = CSS1_COMPATIBLE ? document.documentElement /* istanbul ignore next: browser diffs */: document.body;
+            const element = CSS1_COMPATIBLE ? document.documentElement : /* istanbul ignore next: browser diffs */ document.body;
             const width = element.clientWidth;
             const height = element.clientHeight;
-            const inWidth = window.innerWidth /* istanbul ignore next: browser diffs */ || 0;
-            const inHeight = window.innerHeight /* istanbul ignore next: browser diffs */ || 0;
+            const inWidth = window.innerWidth || /* istanbul ignore next: browser diffs */ 0;
+            const inHeight = window.innerHeight || /* istanbul ignore next: browser diffs */ 0;
             const isMobileZoom = (inWidth && width > inWidth) || (inHeight && height > inHeight);
 
             return {
-                vw: isMobileZoom /* istanbul ignore next: browser diffs */ ? inWidth : width,
-                vh: isMobileZoom /* istanbul ignore next: browser diffs */ ? inHeight : height
+                vw: isMobileZoom ? /* istanbul ignore next: browser diffs */ inWidth : width,
+                vh: isMobileZoom ? /* istanbul ignore next: browser diffs */ inHeight : height
             };
         },
 
@@ -608,13 +608,11 @@ const okanjo = (function(window, document) {
             targetHeight = okanjo.ui.getElementSize(parent).height,
             useTextContent = element.textContent !== undefined;
 
-        let text = useTextContent ? element.textContent /* istanbul ignore next: browser diffs */ : element.innerText,
+        let text = useTextContent ? element.textContent : /* istanbul ignore next: browser diffs */ element.innerText,
             replacedText = "",
             safety = 5000, // Safety switch to bust out of the loop in the event something goes terribly wrong
-            replacer = (match) => {
-                /* istanbul ignore next: n/a to jsdom */
-                replacedText = match.substr(0, match.length-3) + replacedText;
-                /* istanbul ignore next: n/a to jsdom */
+            replacer = /* istanbul ignore next: n/a to jsdom */ (match) => {
+                replacedText = match.substring(0, match.length-3) + replacedText;
                 return '...';
             };
 
@@ -645,10 +643,10 @@ const okanjo = (function(window, document) {
             span.setAttribute('class','okanjo-visually-hidden');
 
             if (useTextContent) {
-                content.textContent = text.substr(0, text.length-3);
+                content.textContent = text.substring(0, text.length-3);
                 span.textContent = replacedText;
             } else {
-                content.innerText = text.substr(0, text.length-3);
+                content.innerText = text.substring(0, text.length-3);
                 span.innerText = replacedText;
             }
 
@@ -666,8 +664,8 @@ const okanjo = (function(window, document) {
      */
     okanjo.ui.fitImages = function(element) {
         // Detect objectFit support
-        /* istanbul ignore else: n/a to jsdom */
-        if ('objectFit' in document.documentElement.style === false) {
+        /* istanbul ignore if: jsdom has objectFit defined and refuses to let you hack it */
+        if (!('objectFit' in document.documentElement.style)) {
             // Find images to fit
             element.querySelectorAll('img.okanjo-fit').forEach((img) => {
 

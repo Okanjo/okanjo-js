@@ -1,5 +1,7 @@
 # SmartServe SDK
 
+[![Node.js CI](https://github.com/Okanjo/okanjo-js/actions/workflows/node.js.yml/badge.svg)](https://github.com/Okanjo/okanjo-js/actions/workflows/node.js.yml) [![Coverage Status](https://coveralls.io/repos/github/Okanjo/okanjo-js/badge.svg?branch=master)](https://coveralls.io/github/Okanjo/okanjo-js?branch=master)
+
 The Okanjo SmartServe SDK is [Okanjo's](http://okanjo.com) extensible widget framework for displaying recommended content 
 units on a web page.
 

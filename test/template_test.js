@@ -33,7 +33,7 @@ describe('Templates', () => {
     });
 
     it('should have loaded templates', () => {
-        okanjo.ui.engine._css.should.not.be.empty();
+        should(okanjo.ui.engine._css).not.be.empty();
         okanjo.ui.engine._templates.should.not.be.empty();
     });
 

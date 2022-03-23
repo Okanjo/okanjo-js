@@ -117,6 +117,17 @@ describe('Okanjo Core', () => {
 
         });
 
+        describe('okanjo.net.request', () => {
+
+            it('should noop', () => {
+
+                should(okanjo.net.request).be.a.Function();
+                okanjo.net.request();
+
+            });
+
+        });
+
     });
 
     describe('Util Methods', () => {

@@ -146,7 +146,8 @@ describe('Metrics', () => {
                     pgid: pageId,
                     ok_ver: '%%OKANJO_VERSION',
                 },
-                win: 'about:blank'
+                ref: "https://example.com/last/page",
+                win: 'https://example.com/'
             });
 
 
@@ -193,10 +194,11 @@ describe('Metrics', () => {
                                     ok_ver: '%%OKANJO_VERSION'
                                 },
                                 object_type: 'unit',
-                                event_type: 'test' 
+                                event_type: 'test',
+                                ref: "https://example.com/last/page",
                             } 
                         ],
-                        win: 'about:blank'
+                        win: 'https://example.com/'
                     });
                     
                     reply({
@@ -468,10 +470,11 @@ describe('Metrics', () => {
                                         ok_ver: "%%OKANJO_VERSION",
                                         pgid: pageId
                                     },
+                                    ref: "https://example.com/last/page",
                                     // sid: 'MTunittesting1' // doesn't have the sid yet
                                 }
                             ],
-                            win: 'about:blank'
+                            win: 'https://example.com/'
                             // sid: 'MTunittesting1'
                         });
 

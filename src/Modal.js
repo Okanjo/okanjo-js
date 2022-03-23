@@ -38,9 +38,9 @@
 
             // Page elements
             //noinspection JSUnresolvedFunction
-            $html = document.documentElement /* istanbul ignore next: old browsers */ || document.querySelector('html');
+            $html = document.documentElement || /* istanbul ignore next: old browsers */ document.querySelector('html');
             //noinspection JSUnresolvedFunction
-            $body = document.body /* istanbul ignore next: old browsers */ || document.querySelector('body');
+            $body = document.body || /* istanbul ignore next: old browsers */ document.querySelector('body');
 
             // Modal elements
             $modalContainer = document.createElement('div');
@@ -91,7 +91,7 @@
         },
 
         getWindowHeight = function() {
-            return window.innerHeight /* istanbul ignore next: old browsers */ || document.documentElement.clientHeight;
+            return window.innerHeight || /* istanbul ignore next: old browsers */ document.documentElement.clientHeight;
         },
 
         handleReposition = function() {

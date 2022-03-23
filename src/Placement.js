@@ -229,7 +229,7 @@
             this._fetchContent((err) => {
                 if (err) {
                     // Report the widget load as declined
-                    this._reportWidgetLoad("fetch failed: " + err.statusCode /* istanbul ignore next: out of scope */ || err.toString());
+                    this._reportWidgetLoad("fetch failed: " + err.statusCode || /* istanbul ignore next: out of scope */ err.toString());
                 } else {
                     // Merge display settings from response
                     this._mergeResponseSettings();
@@ -429,7 +429,7 @@
             const joiner = url.indexOf('?') >= 0 ? '&' : '?';
 
             // Tack on transfer params
-            additionalUrlParams = additionalUrlParams /* istanbul ignore next: paranoia */ || {};
+            additionalUrlParams = additionalUrlParams || /* istanbul ignore next: paranoia */ {};
             additionalUrlParams.ok_msid = okanjo.metrics.sid || 'unknown';
             if (this.config.verbose_click_data) {
                 additionalUrlParams.ok_ch = this._metricBase.ch;

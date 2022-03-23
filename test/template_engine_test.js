@@ -223,7 +223,7 @@ describe('TemplateEngine', () => {
 
             it('should attach style to the body when head is missing', () => {
                 // Strip head off the dom
-                let head = document.documentElement.removeChild(document.querySelector('head'));
+                document.documentElement.removeChild(document.querySelector('head'));
                 should(document.querySelector('head')).not.be.ok();
                 should(document.head).not.be.ok();
 
@@ -240,7 +240,7 @@ describe('TemplateEngine', () => {
 
             it('should report if there is no body or head', () => {
                 // Strip head off the dom
-                let body = document.documentElement.removeChild(document.querySelector('body'));
+                document.documentElement.removeChild(document.querySelector('body'));
                 should(document.querySelector('body')).not.be.ok();
                 should(document.body).not.be.ok();
 

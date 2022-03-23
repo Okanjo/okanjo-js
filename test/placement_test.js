@@ -67,7 +67,7 @@ describe('Placements', () => {
     });
 
     //noinspection JSUnusedLocalSymbols
-    const debug = () => {
+    const debug = () => { // eslint-disable-line no-unused-vars
         console.log(document.documentElement.innerHTML);
     };
 
@@ -258,7 +258,7 @@ describe('Placements', () => {
 
                 // Make the server return an error
                 setAdsHandler((req) => {
-                    req.payload.filters.url_referrer.should.be.exactly('about:blank');
+                    req.payload.filters.url_referrer.should.be.exactly('https://example.com/');
                     return {
                         statusCode: 500,
                         payload: {
@@ -1805,7 +1805,8 @@ describe('Placements', () => {
                     ok_msid: 'MTunittesting1',
                     ok_ch: 'pw',
                     ok_cx: 'auto',
-                    _okjr: 'YWJvdXQ6Ymxhbms='
+                    // _okjr: 'YWJvdXQ6Ymxhbms='    // about:blank
+                    _okjr: 'aHR0cHM6Ly9leGFtcGxlLmNvbS8=' // https://example.com
                 });
 
                 // console.log('ARGS', args);
@@ -2215,7 +2216,8 @@ describe('Placements', () => {
                     ok_msid: 'MTunittesting1',
                     ok_ch: 'pw',
                     ok_cx: 'auto',
-                    _okjr: 'YWJvdXQ6Ymxhbms=',
+                    // _okjr: 'YWJvdXQ6Ymxhbms='    // about:blank
+                    _okjr: 'aHR0cHM6Ly9leGFtcGxlLmNvbS8=', // https://example.com
                     utm_source: 'okanjo',
                     utm_medium: 'smartserve'
                 });
@@ -3002,7 +3004,7 @@ describe('Placements', () => {
                             "ea": "click",
                             // "u": "http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=575333915&ok_cid=UkxzzJttMf&afftrack=MTunittesting1%3AUkxzzJttMf&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
                             "sid": "MTunittesting1",
-                            "win": "about:blank"
+                            "win": "https://example.com/"
                         });
 
                         // check dynamic params to be present
@@ -3072,7 +3074,7 @@ describe('Placements', () => {
                             "ea": "click",
                             // "u": "http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=675783405&ok_cid=81xJ-bFFfM&afftrack=MTunittesting1%3A81xJ-bFFfM&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
                             "sid": "MTunittesting1",
-                            "win": "about:blank"
+                            "win": "https://example.com/"
                         });
 
                         // check dynamic params to be present
@@ -3249,7 +3251,7 @@ describe('Placements', () => {
                             "ea": "click",
                             // "u": "http://unit.test/1?ok_cid=Iyz1G_KFzz&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
                             "sid": "MTunittesting1",
-                            "win": "about:blank"
+                            "win": "https://example.com/"
 
                         });
 
@@ -3322,7 +3324,7 @@ describe('Placements', () => {
                             "ea": "click",
                             // "u": "http://unit.test/2?ok_cid=UJQkf_tFMf&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
                             "sid": "MTunittesting1",
-                            "win": "about:blank"
+                            "win": "https://example.com/"
 
                         });
 
