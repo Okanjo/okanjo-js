@@ -126,7 +126,7 @@
 
                         /* istanbul ignore else: old ie */
                         if (style.hasOwnProperty) { // old ie
-                            style.innerHTML = css.markup;
+                            style.textContent = css.markup;
                         } else {
                             style.styleSheet.cssText = css.markup;
                         }
@@ -147,6 +147,35 @@
                 }
             } else {
                 okanjo.report('Attempted to add CSS template "'+name+'" to the DOM, however it does not appear to be registered?');
+            }
+        }
+
+        /**
+         * Ensures that a custom CSS stylesheet has been added to the DOM
+         * @param url
+         */
+        ensureExternalCss(url) {
+            const id = 'okanjo-custom-css-'+url;
+            if (document.getElementById(id)) return;
+
+            const head = document.head,
+                link = document.createElement('link');
+
+            link.id = id;
+            link.setAttribute('rel', 'stylesheet');
+            link.setAttribute('href', url);
+
+            if (head) {
+                head.appendChild(link);
+            } else {
+                // NO HEAD, just prepend to body then
+                const body = document.body;
+                if (body) {
+                    body.appendChild(link);
+                } else {
+                    // And if this doesn't work, just give up
+                    okanjo.report('Cannot add custom CSS stylesheet to document. Does it not have a body or head?');
+                }
             }
         }
 

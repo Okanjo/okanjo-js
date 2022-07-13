@@ -1,4 +1,4 @@
-/*! okanjo-js v2.0.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v2.1.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -343,7 +343,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "2.0.0",
+    version: "2.1.0",
 
     /**
      * Placeholder
@@ -1343,7 +1343,7 @@ var okanjo = function (window, document) {
 
               if (style.hasOwnProperty) {
                 // old ie
-                style.innerHTML = css.markup;
+                style.textContent = css.markup;
               } else {
                 style.styleSheet.cssText = css.markup;
               }
@@ -1365,6 +1365,36 @@ var okanjo = function (window, document) {
           }
         } else {
           okanjo.report('Attempted to add CSS template "' + name + '" to the DOM, however it does not appear to be registered?');
+        }
+      }
+      /**
+       * Ensures that a custom CSS stylesheet has been added to the DOM
+       * @param url
+       */
+
+    }, {
+      key: "ensureExternalCss",
+      value: function ensureExternalCss(url) {
+        var id = 'okanjo-custom-css-' + url;
+        if (document.getElementById(id)) return;
+        var head = document.head,
+            link = document.createElement('link');
+        link.id = id;
+        link.setAttribute('rel', 'stylesheet');
+        link.setAttribute('href', url);
+
+        if (head) {
+          head.appendChild(link);
+        } else {
+          // NO HEAD, just prepend to body then
+          var body = document.body;
+
+          if (body) {
+            body.appendChild(link);
+          } else {
+            // And if this doesn't work, just give up
+            okanjo.report('Cannot add custom CSS stylesheet to document. Does it not have a body or head?');
+          }
         }
       }
       /**
@@ -3110,6 +3140,9 @@ var okanjo = function (window, document) {
           template_cta_color: string().group(DISPLAY),
           adx_unit_path: string().group(DISPLAY),
           // Custom DFP ad unit path
+          // Custom CSS
+          custom_css_url: string().group(DISPLAY),
+          custom_css: string().group(DISPLAY),
           // Article metadata
           url_category: array().group(ARTICLE_META),
           url_keywords: array().group(ARTICLE_META),
@@ -3585,7 +3618,7 @@ var okanjo = function (window, document) {
         }
       }
       /**
-       * Register a custom
+       * Handles custom styling display settings
        * @private
        */
 
@@ -3594,12 +3627,26 @@ var okanjo = function (window, document) {
       value: function
         /*prefix, buttonClass*/
       _registerCustomBranding() {
-        var brandColor = this.config.template_cta_color;
+        var brandColor = this.config.template_cta_color,
+            brandCSSId = "okanjo-wgid-" + this.instanceId;
+        var brandCSS = '';
 
         if (brandColor) {
-          var brandCSS,
-              brandCSSId = "okanjo-wgid-" + this.instanceId;
           brandCSS = "\n                    .okanjo-block2.".concat(brandCSSId, " .okanjo-resource-cta-button, .okanjo-block2.").concat(brandCSSId, " .okanjo-resource-buy-button { color: ").concat(brandColor, " !important; } \n                    .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-cta-button, .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-buy-button { border-color: ").concat(brandColor, " !important; } \n                    .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-cta-button:hover, .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-buy-button:hover { background: ").concat(brandColor, " !important; color: #fff !important; } \n                ");
+        } // Append custom inline css to the element
+
+
+        if (this.config.custom_css) {
+          brandCSS += '\n\n' + this.config.custom_css;
+        } // Custom external stylesheet first (so inline styles can get priority)
+
+
+        if (this.config.custom_css_url) {
+          okanjo.ui.engine.ensureExternalCss(this.config.custom_css_url);
+        } // Append the custom widget css to the dom
+
+
+        if (brandCSS) {
           okanjo.ui.engine.registerCss(brandCSSId, brandCSS, {
             id: brandCSSId
           });
@@ -5210,7 +5257,7 @@ var okanjo = function (window, document) {
 return okanjo;
 }));
 
-/*! okanjo-js v2.0.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v2.1.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {(function (window) {
   var okanjo = window.okanjo;
   okanjo.ui.engine.registerCss("adx.block2", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-block2.okanjo-adx{padding:0}.okanjo-block2.okanjo-adx:after,.okanjo-block2.okanjo-adx:before{content:\" \";display:table}.okanjo-block2.okanjo-adx:after{clear:both}.okanjo-block2.okanjo-adx .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-adx .okanjo-adx-container{text-align:center;padding:0}.okanjo-block2.okanjo-adx .okanjo-adx-frame{margin:0}", {

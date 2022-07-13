@@ -133,6 +133,10 @@
                 template_cta_color: string().group(DISPLAY),
                 adx_unit_path: string().group(DISPLAY), // Custom DFP ad unit path
 
+                // Custom CSS
+                custom_css_url: string().group(DISPLAY),
+                custom_css: string().group(DISPLAY),
+
                 // Article metadata
                 url_category: array().group(ARTICLE_META),
                 url_keywords: array().group(ARTICLE_META),
@@ -577,21 +581,34 @@
         }
 
         /**
-         * Register a custom
+         * Handles custom styling display settings
          * @private
          */
         _registerCustomBranding(/*prefix, buttonClass*/) {
-            const brandColor = this.config.template_cta_color;
-            if (brandColor) {
-                let brandCSS,
-                    brandCSSId = "okanjo-wgid-" + this.instanceId;
+            const brandColor = this.config.template_cta_color,
+                brandCSSId = "okanjo-wgid-" + this.instanceId;
+            let brandCSS = '';
 
+            if (brandColor) {
                 brandCSS = `
                     .okanjo-block2.${brandCSSId} .okanjo-resource-cta-button, .okanjo-block2.${brandCSSId} .okanjo-resource-buy-button { color: ${brandColor} !important; } 
                     .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button { border-color: ${brandColor} !important; } 
                     .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button:hover, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button:hover { background: ${brandColor} !important; color: #fff !important; } 
                 `;
+            }
 
+            // Append custom inline css to the element
+            if (this.config.custom_css) {
+                brandCSS += '\n\n' + this.config.custom_css;
+            }
+
+            // Custom external stylesheet first (so inline styles can get priority)
+            if (this.config.custom_css_url) {
+                okanjo.ui.engine.ensureExternalCss(this.config.custom_css_url);
+            }
+
+            // Append the custom widget css to the dom
+            if (brandCSS) {
                 okanjo.ui.engine.registerCss(brandCSSId, brandCSS, { id: brandCSSId });
                 okanjo.ui.engine.ensureCss(brandCSSId);
             }

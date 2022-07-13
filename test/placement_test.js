@@ -2625,6 +2625,86 @@ describe('Placements', () => {
                 document.documentElement.innerHTML.should.containEql('.okanjo-resource-buy-button { color: #ff0000 !important;');
             });
 
+            it('should register a custom inline stylesheet when custom_css is set', () => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    custom_css: '.okanjo-resource { color: red }'
+                });
+
+                // We don't need to fully load to test this
+                let placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._registerCustomBranding(/*'.okanjo-product', 'buy-button'*/);
+                document.documentElement.innerHTML.should.containEql('.okanjo-resource { color: red }');
+            });
+
+            it('should register a custom external stylesheet when custom_css_url is set', () => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    custom_css_url: 'https://example.com/stylesheet.css'
+                });
+
+                // We don't need to fully load to test this
+                let placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._registerCustomBranding(/*'.okanjo-product', 'buy-button'*/);
+                document.documentElement.innerHTML.should.containEql('rel="stylesheet" href="https://example.com/stylesheet.css"');
+
+                // Doing it a second time, shouldn't change the dom?
+                placement._registerCustomBranding(/*'.okanjo-product', 'buy-button'*/);
+                document.documentElement.querySelectorAll('link').length.should.be.exactly(1);
+
+            });
+
+            it('should register a custom external stylesheet when the document has no head', () => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    custom_css_url: 'https://example.com/stylesheet.css'
+                });
+
+                document.documentElement.removeChild(document.querySelector('head'));
+
+                // We don't need to fully load to test this
+                let placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._registerCustomBranding(/*'.okanjo-product', 'buy-button'*/);
+                document.documentElement.innerHTML.should.containEql('rel="stylesheet" href="https://example.com/stylesheet.css"');
+
+                // Doing it a second time, shouldn't change the dom?
+                placement._registerCustomBranding(/*'.okanjo-product', 'buy-button'*/);
+                document.documentElement.querySelectorAll('link').length.should.be.exactly(1);
+
+            });
+
+            it('should report an error when adding a custom external stylesheet when the document has no head or body', () => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    custom_css_url: 'https://example.com/stylesheet.css'
+                });
+
+                document.documentElement.removeChild(document.querySelector('body'));
+                document.documentElement.removeChild(document.querySelector('head'));
+
+                // We don't need to fully load to test this
+                let placement = new okanjo.Placement(target, { no_init: true });
+                placement._applyConfiguration();
+
+                //noinspection JSAccessibilityCheck
+                placement._registerCustomBranding(/*'.okanjo-product', 'buy-button'*/);
+                document.documentElement.querySelectorAll('link').length.should.be.exactly(0);
+
+            });
+
         });
 
     });
