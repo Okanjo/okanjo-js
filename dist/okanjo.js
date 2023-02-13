@@ -1,4 +1,4 @@
-/*! okanjo-js v2.1.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v2.2.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -343,7 +343,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "2.1.0",
+    version: "2.2.0",
 
     /**
      * Placeholder
@@ -4157,10 +4157,11 @@ var okanjo = function (window, document) {
               }).element(frame).viewport().widget(_this18.element).send();
             });
           }; // Load Google ad!
+          // See: https://developers.google.com/publisher-tag/reference#googletag.events.SlotRenderEndedEvent
 
 
           frame.contentWindow.document.open();
-          frame.contentWindow.document.write("<html><head><style type=\"text/css\">html,body {margin: 0; padding: 0;}</style></head><body>\n<" + "script type=\"text/javascript\" src=\"https://www.googletagservices.com/tag/js/gpt.js\">\n    googletag.pubads().addEventListener('slotRenderEnded', function(e) { \n        trackImpression(e);\n    });\n    googletag.pubads()\n        .definePassback(\"".concat(adUnitPath.replace(/"/g, '\\"'), "\", [[").concat(size.width, ", ").concat(size.height, "]])\n        .setClickUrl(\"").concat(clickUrl, "&u=\")\n        .display();\n<") + "/script>\n</body></html>");
+          frame.contentWindow.document.write("<html><head><style type=\"text/css\">html,body {margin: 0; padding: 0;}</style></head><body><div id=\"gpt-passback\">\n<" + "script type=\"text/javascript\" src=\"https://securepubads.g.doubleclick.net/tag/js/gpt.js\">\n    \n    window.googletag = window.googletag || {cmd: []};\n    googletag.cmd.push(function() {\n        \n        // Define the slot\n        googletag.defineSlot(\"".concat(adUnitPath.replace(/"/g, '\\"'), "\", [[").concat(size.width, ", ").concat(size.height, "]], 'gpt-passback')\n            .setClickUrl(\"").concat(clickUrl, "&u=\")     // Track click event on the okanjo side\n            .addService(googletag.pubads())    // Service the ad\n        ;\n        \n        // Track load/view events\n        googletag.pubads().addEventListener('slotRenderEnded', function(e) { \n            trackImpression(e);\n        });\n        \n        // Go time\n        googletag.enableServices();\n        googletag.display('gpt-passback');\n    });\n    \n<") + "/script></div>\n</body></html>");
           frame.contentWindow.document.close(); // TODO future event hooks
           // googletag.pubads().addEventListener('impressionViewable', function(e) { future )});
           // googletag.pubads().addEventListener('slotOnload', function(e) { future });

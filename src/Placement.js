@@ -1164,18 +1164,32 @@
                 };
 
                 // Load Google ad!
+                // See: https://developers.google.com/publisher-tag/reference#googletag.events.SlotRenderEndedEvent
                 frame.contentWindow.document.open();
                 frame.contentWindow.document.write(
-`<html><head><style type="text/css">html,body {margin: 0; padding: 0;}</style></head><body>
-<`+`script type="text/javascript" src="https://www.googletagservices.com/tag/js/gpt.js">
-    googletag.pubads().addEventListener('slotRenderEnded', function(e) { 
-        trackImpression(e);
+`<html><head><style type="text/css">html,body {margin: 0; padding: 0;}</style></head><body><div id="gpt-passback">
+<`+`script type="text/javascript" src="https://securepubads.g.doubleclick.net/tag/js/gpt.js">
+    
+    window.googletag = window.googletag || {cmd: []};
+    googletag.cmd.push(function() {
+        
+        // Define the slot
+        googletag.defineSlot("${adUnitPath.replace(/"/g, '\\"')}", [[${size.width}, ${size.height}]], 'gpt-passback')
+            .setClickUrl("${clickUrl}&u=")     // Track click event on the okanjo side
+            .addService(googletag.pubads())    // Service the ad
+        ;
+        
+        // Track load/view events
+        googletag.pubads().addEventListener('slotRenderEnded', function(e) { 
+            trackImpression(e);
+        });
+        
+        // Go time
+        googletag.enableServices();
+        googletag.display('gpt-passback');
     });
-    googletag.pubads()
-        .definePassback("${adUnitPath.replace(/"/g, '\\"')}", [[${size.width}, ${size.height}]])
-        .setClickUrl("${clickUrl}&u=")
-        .display();
-<`+`/script>
+    
+<`+`/script></div>
 </body></html>`);
                 frame.contentWindow.document.close();
 
