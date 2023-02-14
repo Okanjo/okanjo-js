@@ -1,4 +1,4 @@
-/*! okanjo-js v2.2.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v2.3.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -343,7 +343,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "2.2.0",
+    version: "2.3.0",
 
     /**
      * Placeholder
@@ -3140,6 +3140,9 @@ var okanjo = function (window, document) {
           template_cta_color: string().group(DISPLAY),
           adx_unit_path: string().group(DISPLAY),
           // Custom DFP ad unit path
+          // Flexbox
+          align: string().group(DISPLAY)["default"]('none'),
+          justify: string().group(DISPLAY)["default"]('none'),
           // Custom CSS
           custom_css_url: string().group(DISPLAY),
           custom_css: string().group(DISPLAY),

@@ -133,6 +133,10 @@
                 template_cta_color: string().group(DISPLAY),
                 adx_unit_path: string().group(DISPLAY), // Custom DFP ad unit path
 
+                // Flexbox
+                align: string().group(DISPLAY).default('none'),
+                justify: string().group(DISPLAY).default('none'),
+
                 // Custom CSS
                 custom_css_url: string().group(DISPLAY),
                 custom_css: string().group(DISPLAY),
