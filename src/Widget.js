@@ -192,6 +192,17 @@
          */
         setMarkup(markup) {
             this.element.innerHTML = markup;
+            this.setFlexClasses(); // implicitly set the classes
+        }
+
+        /**
+         * Sets the flex classes for the placement container element
+         */
+        setFlexClasses() {
+            const align = this.config.align;
+            const justify = this.config.justify;
+            if (align) this.element.classList.add('okanjo-align-'+align);
+            if (justify) this.element.classList.add('okanjo-justify-'+justify);
         }
 
         //noinspection JSUnusedGlobalSymbols

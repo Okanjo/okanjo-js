@@ -1215,6 +1215,42 @@ describe('Placements', () => {
                 // Make that placement
                 placement = new okanjo.Placement(target);
             });
+
+            it('handles justify / align', (done) => {
+                resetDocument();
+                let target = insertDropzone({ key: 'unit_test_key' });
+                let placement;
+
+                setMetricsBulkHandler(() => {
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    placement.element.classList.contains('okanjo-align-center').should.be.exactly(true);
+                    placement.element.classList.contains('okanjo-justify-center').should.be.exactly(true);
+
+                    done();
+                });
+
+                setAdsHandler(() => {
+                    const payload = TestResponses.getExampleProductResponse();
+
+                    // Set align/justify on settings
+                    payload.data.settings.display = {
+                        align: 'center',
+                        justify: 'center'
+                    };
+
+                    return {
+                        statusCode: 200,
+                        payload
+                    };
+                });
+
+                // Make that placement
+                placement = new okanjo.Placement(target);
+            });
         });
 
         describe('_showArticles', () => {

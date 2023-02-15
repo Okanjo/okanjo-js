@@ -1,4 +1,4 @@
-/*! okanjo-js v2.3.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v2.3.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -343,7 +343,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "2.3.0",
+    version: "2.3.1",
 
     /**
      * Placeholder
@@ -2758,6 +2758,19 @@ var okanjo = function (window, document) {
       key: "setMarkup",
       value: function setMarkup(markup) {
         this.element.innerHTML = markup;
+        this.setFlexClasses(); // implicitly set the classes
+      }
+      /**
+       * Sets the flex classes for the placement container element
+       */
+
+    }, {
+      key: "setFlexClasses",
+      value: function setFlexClasses() {
+        var align = this.config.align;
+        var justify = this.config.justify;
+        if (align) this.element.classList.add('okanjo-align-' + align);
+        if (justify) this.element.classList.add('okanjo-justify-' + justify);
       } //noinspection JSUnusedGlobalSymbols
 
       /**
@@ -3141,8 +3154,8 @@ var okanjo = function (window, document) {
           adx_unit_path: string().group(DISPLAY),
           // Custom DFP ad unit path
           // Flexbox
-          align: string().group(DISPLAY)["default"]('none'),
-          justify: string().group(DISPLAY)["default"]('none'),
+          align: string().group(DISPLAY),
+          justify: string().group(DISPLAY),
           // Custom CSS
           custom_css_url: string().group(DISPLAY),
           custom_css: string().group(DISPLAY),
