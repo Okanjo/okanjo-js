@@ -723,6 +723,15 @@
             // Render and display the results
             this.setMarkup(okanjo.ui.engine.render(templateName, this, model));
 
+            // Detect broken images
+            this.element.querySelectorAll('.okanjo-resource-image').forEach((img) => {
+                img.addEventListener('error', () => {
+                    img.src = okanjo.ui.inlineSVG(okanjo.ui.productSVG());
+                    console.error('[okanjo] Failed to load product image: ' + img.getAttribute('data-id'));
+                    // TODO: notify of resource failure
+                });
+            });
+
             // Track widget impression
             if (data.results.length === 0) {
                 // Hook point for no results found
@@ -940,6 +949,15 @@
 
             // Render and display the results
             this.setMarkup(okanjo.ui.engine.render(templateName, this, model));
+
+            // Detect broken images
+            this.element.querySelectorAll('.okanjo-resource-image').forEach((img) => {
+                img.addEventListener('error', () => {
+                    img.src = okanjo.ui.inlineSVG(okanjo.ui.articleSVG());
+                    console.error('[okanjo] Failed to load article image: ' + img.getAttribute('data-id'));
+                    // TODO: notify of resource failure
+                });
+            });
 
             // Track widget impression
             if (data.results.length === 0) {

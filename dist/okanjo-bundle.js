@@ -1,4 +1,4 @@
-/*! okanjo-js v2.3.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v2.4.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -343,7 +343,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "2.3.1",
+    version: "2.4.0",
 
     /**
      * Placeholder
@@ -986,6 +986,34 @@ var okanjo = function (window, document) {
         parent.style.backgroundposition = 'center center';
       });
     }
+  };
+  /**
+   * Returns the SVG content for an article icon
+   * @return {string}
+   */
+
+
+  okanjo.ui.articleSVG = function () {
+    return "<svg version=\"1.1\" id=\"Layer_1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"0px\" y=\"0px\" viewBox=\"0 0 48 48\" style=\"enable-background:new 0 0 48 48;\" xml:space=\"preserve\"> <g id=\"newspaper_1_\"> <g id=\"newspaper_2_\"> <path id=\"newspaper_6_\" d=\"M21.5,23h-5c-0.276,0-0.5-0.224-0.5-0.5v-5c0-0.276,0.224-0.5,0.5-0.5h5c0.276,0,0.5,0.224,0.5,0.5v5 C22,22.776,21.776,23,21.5,23z M37,32c0,1.654-1.346,3-3,3h-2H15c-1.654,0-3-1.346-3-3V14c0-0.552,0.448-1,1-1h17 c0.552,0,1,0.448,1,1v18c0,0.552,0.449,1,1,1h2c0.551,0,1-0.448,1-1V17h-1v14.75c0,0.138-0.112,0.25-0.25,0.25h-1.5 C32.112,32,32,31.888,32,31.75V16c0-0.552,0.448-1,1-1h3c0.552,0,1,0.448,1,1v1V32z M15,33h14.184C29.072,32.686,29,32.352,29,32 V15H14v17C14,32.552,14.449,33,15,33z M26.5,19h-2c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5h2 c0.276,0,0.5,0.224,0.5,0.5v1C27,18.776,26.776,19,26.5,19z M26.5,23h-2c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5 h2c0.276,0,0.5,0.224,0.5,0.5v1C27,22.776,26.776,23,26.5,23z M26.5,27h-10c-0.276,0-0.5-0.224-0.5-0.5v-1 c0-0.276,0.224-0.5,0.5-0.5h10c0.276,0,0.5,0.224,0.5,0.5v1C27,26.776,26.776,27,26.5,27z M26.5,31h-10 c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5h10c0.276,0,0.5,0.224,0.5,0.5v1C27,30.776,26.776,31,26.5,31z\"/> </g> </g> </svg>";
+  };
+  /**
+   * Returns the SVG content for a product icon
+   * @return {string}
+   */
+
+
+  okanjo.ui.productSVG = function () {
+    return "<svg id=\"glyphicons-basic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"> <path id=\"cart\" d=\"M13,26.5A1.5,1.5,0,1,1,11.5,25,1.5,1.5,0,0,1,13,26.5ZM21.5,25A1.5,1.5,0,1,0,23,26.5,1.5,1.5,0,0,0,21.5,25ZM27.96436,8.82544l-2,9A1.49988,1.49988,0,0,1,24.5,19H11.77l.4375,2H23a1,1,0,0,1,1,1v1a1,1,0,0,1-1,1H11a1.5,1.5,0,0,1-1.46533-1.17944L6.29248,8H4A1,1,0,0,1,3,7V6A1,1,0,0,1,4,5H7.5A1.49993,1.49993,0,0,1,8.96533,6.17944L9.14484,7H26.5a1.50029,1.50029,0,0,1,1.46436,1.82544ZM24.62988,10H9.80115l1.31256,6H23.29688Z\"/></svg>";
+  };
+  /**
+   * Returns the inline SVG src attribute
+   * @param svg
+   * @return {string}
+   */
+
+
+  okanjo.ui.inlineSVG = function (svg) {
+    return 'data:image/svg+xml;base64,' + btoa('<?xml version="1.0" encoding="UTF-8" standalone="no"?>' + svg);
   }; //endregion
   // Export the root namespace
 
@@ -3780,7 +3808,14 @@ var okanjo = function (window, document) {
           css: !this.config.no_css
         }; // Render and display the results
 
-        this.setMarkup(okanjo.ui.engine.render(templateName, this, model)); // Track widget impression
+        this.setMarkup(okanjo.ui.engine.render(templateName, this, model)); // Detect broken images
+
+        this.element.querySelectorAll('.okanjo-resource-image').forEach(function (img) {
+          img.addEventListener('error', function () {
+            img.src = okanjo.ui.inlineSVG(okanjo.ui.productSVG());
+            console.error('[okanjo] Failed to load product image: ' + img.getAttribute('data-id')); // TODO: notify of resource failure
+          });
+        }); // Track widget impression
 
         if (data.results.length === 0) {
           // Hook point for no results found
@@ -3980,7 +4015,14 @@ var okanjo = function (window, document) {
           css: !this.config.no_css
         }; // Render and display the results
 
-        this.setMarkup(okanjo.ui.engine.render(templateName, this, model)); // Track widget impression
+        this.setMarkup(okanjo.ui.engine.render(templateName, this, model)); // Detect broken images
+
+        this.element.querySelectorAll('.okanjo-resource-image').forEach(function (img) {
+          img.addEventListener('error', function () {
+            img.src = okanjo.ui.inlineSVG(okanjo.ui.articleSVG());
+            console.error('[okanjo] Failed to load article image: ' + img.getAttribute('data-id')); // TODO: notify of resource failure
+          });
+        }); // Track widget impression
 
         if (data.results.length === 0) {
           // Hook point for no results found
@@ -5274,7 +5316,7 @@ var okanjo = function (window, document) {
 return okanjo;
 }));
 
-/*! okanjo-js v2.3.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v2.4.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {(function (window) {
   var okanjo = window.okanjo;
   okanjo.ui.engine.registerCss("adx.block2", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-align-start{display:flex;align-items:flex-start}.okanjo-align-end{display:flex;align-items:flex-end}.okanjo-align-center{display:flex;align-items:center}.okanjo-align-baseline{display:flex;align-items:baseline}.okanjo-align-stretch{display:flex;align-items:stretch}.okanjo-justify-start{display:flex;justify-content:flex-start}.okanjo-justify-end{display:flex;justify-content:flex-end}.okanjo-justify-center{display:flex;justify-content:center}.okanjo-justify-between{display:flex;justify-content:space-between}.okanjo-justify-around{display:flex;justify-content:space-around}.okanjo-justify-evenly{display:flex;justify-content:space-evenly}.okanjo-block2.okanjo-adx{padding:0}.okanjo-block2.okanjo-adx:after,.okanjo-block2.okanjo-adx:before{content:\" \";display:table}.okanjo-block2.okanjo-adx:after{clear:both}.okanjo-block2.okanjo-adx .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-adx .okanjo-adx-container{text-align:center;padding:0}.okanjo-block2.okanjo-adx .okanjo-adx-frame{margin:0}", {
@@ -5296,7 +5338,7 @@ return okanjo;
   okanjo.ui.engine.registerCss("articles.block2", ".okanjo-block2 .okanjo-article.okanjo-cta-style-button .okanjo-resource-title-container{height:52px}.okanjo-block2 .okanjo-article .okanjo-resource-title-container.modern{height:44px}.okanjo-block2.leaderboard .okanjo-article .okanjo-resource-title-container{margin-top:2px;margin-bottom:4px}", {
     id: 'okanjo-article-block2'
   });
-  okanjo.ui.__article_block2 = "<div class=\"okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} theme-{{ template_theme }}{{^template_theme}}modern{{/template_theme}} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}\"><div class=okanjo-resource-list itemscope itemtype=http://schema.org/ItemList data-instance-id=\"{{ instanceId }}\">{{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }} {{#articles}}<div class=\"okanjo-resource okanjo-article {{#config}}{{ template_layout }}{{/config}}\" itemscope itemtype=http://schema.org/Article><a href=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\" data-id=\"{{ id }}\" data-index=\"{{ _index }}\" target=_blank itemprop=url title=\"Read More: {{ title }}\"><div class=okanjo-resource-image-container>{{#image}} <img class=\"okanjo-resource-image {{ fitImage }}\" src=\"{{ image }}\" title=\"{{ name }}\" itemprop=image> {{/image}} {{^image}} <svg version=1.1 id=Layer_1 xmlns=http://www.w3.org/2000/svg xmlns:xlink=http://www.w3.org/1999/xlink x=0px y=0px viewBox=\"0 0 48 48\" style=\"enable-background:new 0 0 48 48;\" xml:space=preserve><g id=newspaper_1_><g id=newspaper_2_><path id=newspaper_6_ d=\"M21.5,23h-5c-0.276,0-0.5-0.224-0.5-0.5v-5c0-0.276,0.224-0.5,0.5-0.5h5c0.276,0,0.5,0.224,0.5,0.5v5\n                                    C22,22.776,21.776,23,21.5,23z M37,32c0,1.654-1.346,3-3,3h-2H15c-1.654,0-3-1.346-3-3V14c0-0.552,0.448-1,1-1h17\n                                    c0.552,0,1,0.448,1,1v18c0,0.552,0.449,1,1,1h2c0.551,0,1-0.448,1-1V17h-1v14.75c0,0.138-0.112,0.25-0.25,0.25h-1.5\n                                    C32.112,32,32,31.888,32,31.75V16c0-0.552,0.448-1,1-1h3c0.552,0,1,0.448,1,1v1V32z M15,33h14.184C29.072,32.686,29,32.352,29,32\n                                    V15H14v17C14,32.552,14.449,33,15,33z M26.5,19h-2c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5h2\n                                    c0.276,0,0.5,0.224,0.5,0.5v1C27,18.776,26.776,19,26.5,19z M26.5,23h-2c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5\n                                    h2c0.276,0,0.5,0.224,0.5,0.5v1C27,22.776,26.776,23,26.5,23z M26.5,27h-10c-0.276,0-0.5-0.224-0.5-0.5v-1\n                                    c0-0.276,0.224-0.5,0.5-0.5h10c0.276,0,0.5,0.224,0.5,0.5v1C27,26.776,26.776,27,26.5,27z M26.5,31h-10\n                                    c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5h10c0.276,0,0.5,0.224,0.5,0.5v1C27,30.776,26.776,31,26.5,31z\"/></g></g></svg> {{/image}}</div><div class=okanjo-resource-info-container><div class=okanjo-resource-publisher-container itemprop=publisher itemscope itemtype=http://schema.org/Organization><span class=okanjo-resource-publisher itemprop=name title=\"{{ publisher_name }}\">{{ publisher_name }}{{^publisher_name}}&nbsp;{{/publisher_name}}</span></div><div class=okanjo-resource-title-container><span class=okanjo-resource-title itemprop=name>{{ title }}</span></div><div class=\"okanjo-resource-description-container okanjo-visually-hidden\"><div class=okanjo-resource-description itemprop=description>{{ description }}</div></div><div><div class=okanjo-resource-button-container><div class=okanjo-resource-cta-button><span>{{meta.cta_text}}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Read Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div><meta property=url itemprop=url content=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\"></div></div><div class=\"okanjo-resource-meta okanjo-visually-hidden\">{{#author}}<span itemprop=author>{{ author }}</span>{{/author}} {{#published}}<span itemprop=dateCreated>{{ published }}</span>{{/published}} <img src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div></a></div>{{/articles}}</div><div class=\"okanjo-resource-meta okanjo-visually-hidden\"></div></div>";
+  okanjo.ui.__article_block2 = "<div class=\"okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} theme-{{ template_theme }}{{^template_theme}}modern{{/template_theme}} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}\"><div class=okanjo-resource-list itemscope itemtype=http://schema.org/ItemList data-instance-id=\"{{ instanceId }}\">{{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }} {{#articles}}<div class=\"okanjo-resource okanjo-article {{#config}}{{ template_layout }}{{/config}}\" itemscope itemtype=http://schema.org/Article><a href=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\" data-id=\"{{ id }}\" data-index=\"{{ _index }}\" data-backfill=\"{{ backfill }}\" target=_blank itemprop=url title=\"Read More: {{ title }}\"><div class=okanjo-resource-image-container>{{#image}} <img class=\"okanjo-resource-image {{ fitImage }}\" src=\"{{ image }}\" title=\"{{ name }}\" itemprop=image data-id=\"{{ id }}\"> {{/image}} {{^image}} {{{fallbackSVG}}} {{/image}}</div><div class=okanjo-resource-info-container><div class=okanjo-resource-publisher-container itemprop=publisher itemscope itemtype=http://schema.org/Organization><span class=okanjo-resource-publisher itemprop=name title=\"{{ publisher_name }}\">{{ publisher_name }}{{^publisher_name}}&nbsp;{{/publisher_name}}</span></div><div class=okanjo-resource-title-container><span class=okanjo-resource-title itemprop=name>{{ title }}</span></div><div class=\"okanjo-resource-description-container okanjo-visually-hidden\"><div class=okanjo-resource-description itemprop=description>{{ description }}</div></div><div><div class=okanjo-resource-button-container><div class=okanjo-resource-cta-button><span>{{meta.cta_text}}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Read Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div><meta property=url itemprop=url content=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\"></div></div><div class=\"okanjo-resource-meta okanjo-visually-hidden\">{{#author}}<span itemprop=author>{{ author }}</span>{{/author}} {{#published}}<span itemprop=dateCreated>{{ published }}</span>{{/published}} <img src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div></a></div>{{/articles}}</div><div class=\"okanjo-resource-meta okanjo-visually-hidden\"></div></div>";
   okanjo.ui.engine.registerTemplate("articles.block2", okanjo.ui.__article_block2, function (model) {
     var data = (this._response || {
       data: {
@@ -5310,7 +5352,8 @@ return okanjo;
     model.instanceId = this.instanceId;
     model.metricChannel = this._metricBase.ch;
     model.metricContext = this._metricBase.cx;
-    model.metricParams = okanjo.net.request.stringify(this._metricBase); // Enforce format restrictions
+    model.metricParams = okanjo.net.request.stringify(this._metricBase);
+    model.fallbackSVG = okanjo.ui.articleSVG(); // Enforce format restrictions
 
     this._enforceLayoutOptions(); // Add branding if necessary
 
@@ -5394,7 +5437,7 @@ return okanjo;
   okanjo.ui.engine.registerCss("products.block2", "", {
     id: 'okanjo-product-block2'
   });
-  okanjo.ui.__product_block2 = "<div class=\"okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} theme-{{ template_theme }}{{^template_theme}}modern{{/template_theme}} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}\"><div class=okanjo-resource-list itemscope itemtype=http://schema.org/ItemList data-instance-id=\"{{ instanceId }}\">{{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }} {{#products}}<div class=\"okanjo-resource okanjo-product {{#config}}{{ template_layout }}{{/config}}\" itemscope itemtype=http://schema.org/Product><a href=\"//{{ okanjoMetricUrl }}/metrics/pr/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_buy_url }}\" data-id=\"{{ id }}\" data-index=\"{{ _index }}\" data-backfill=\"{{ backfill }}\" target=_blank itemprop=url title=\"Buy now: {{ name }}\"><div class=okanjo-resource-image-container><img class=\"okanjo-resource-image {{ fitImage }}\" src=\"{{ _image_url }}\" title=\"{{ name }}\" itemprop=image></div><div class=okanjo-resource-info-container><div class=okanjo-resource-seller-container itemprop=seller itemscope itemtype=http://schema.org/Organization><span class=okanjo-resource-seller itemprop=name title=\"{{ store_name }}\">{{ store_name }}{{^store_name}}&nbsp;{{/store_name}}</span></div><div class=okanjo-resource-title-container><span class=okanjo-resource-title itemprop=name>{{ name }}</span></div><div><div class=okanjo-resource-price-container><span content=\"{{ currency }}\">$</span><span class=okanjo-resource-price>{{ _price_formatted }}</span></div><div class=okanjo-resource-button-container><div class=okanjo-resource-buy-button><span>{{ meta.cta_text }}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Shop Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div><meta property=url itemprop=url content=\"//{{ okanjoMetricUrl }}/metrics/pr/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_buy_url }}\"></div></div><div class=\"okanjo-resource-meta okanjo-visually-hidden\">{{#impression_url}}<img src=\"{{ impression_url }}\" alt=\"\">{{/impression_url}} {{#upc}}<span itemprop=productID>upc:{{ upc }}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{ manufacturer }}</span>{{/manufacturer}} <img src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div></a></div>{{/products}}</div><div class=\"okanjo-resource-meta okanjo-visually-hidden\"></div></div>";
+  okanjo.ui.__product_block2 = "<div class=\"okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} theme-{{ template_theme }}{{^template_theme}}modern{{/template_theme}} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}\"><div class=okanjo-resource-list itemscope itemtype=http://schema.org/ItemList data-instance-id=\"{{ instanceId }}\">{{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }} {{#products}}<div class=\"okanjo-resource okanjo-product {{#config}}{{ template_layout }}{{/config}}\" itemscope itemtype=http://schema.org/Product><a href=\"//{{ okanjoMetricUrl }}/metrics/pr/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_buy_url }}\" data-id=\"{{ id }}\" data-index=\"{{ _index }}\" data-backfill=\"{{ backfill }}\" target=_blank itemprop=url title=\"Buy now: {{ name }}\"><div class=okanjo-resource-image-container><img class=\"okanjo-resource-image {{ fitImage }}\" src=\"{{ _image_url }}\" title=\"{{ name }}\" itemprop=image data-id=\"{{ id }}\"></div><div class=okanjo-resource-info-container><div class=okanjo-resource-seller-container itemprop=seller itemscope itemtype=http://schema.org/Organization><span class=okanjo-resource-seller itemprop=name title=\"{{ store_name }}\">{{ store_name }}{{^store_name}}&nbsp;{{/store_name}}</span></div><div class=okanjo-resource-title-container><span class=okanjo-resource-title itemprop=name>{{ name }}</span></div><div><div class=okanjo-resource-price-container><span content=\"{{ currency }}\">$</span><span class=okanjo-resource-price>{{ _price_formatted }}</span></div><div class=okanjo-resource-button-container><div class=okanjo-resource-buy-button><span>{{ meta.cta_text }}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Shop Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div><meta property=url itemprop=url content=\"//{{ okanjoMetricUrl }}/metrics/pr/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_buy_url }}\"></div></div><div class=\"okanjo-resource-meta okanjo-visually-hidden\">{{#impression_url}}<img src=\"{{ impression_url }}\" alt=\"\">{{/impression_url}} {{#upc}}<span itemprop=productID>upc:{{ upc }}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{ manufacturer }}</span>{{/manufacturer}} <img src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div></a></div>{{/products}}</div><div class=\"okanjo-resource-meta okanjo-visually-hidden\"></div></div>";
   okanjo.ui.engine.registerTemplate("products.block2", okanjo.ui.__product_block2, function (model) {
     // Attach placement properties
     var data = (this._response || {

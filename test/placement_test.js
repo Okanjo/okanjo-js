@@ -1251,6 +1251,53 @@ describe('Placements', () => {
                 // Make that placement
                 placement = new okanjo.Placement(target);
             });
+
+            it('handles fallback images', function (done) {
+                this.timeout(5000);
+                resetDocument();
+                let target = insertDropzone({ key: 'unit_test_key' });
+                let placement;
+
+                setMetricsBulkHandler(() => {
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    // should(placement._response.data.results[0]._escaped_inline_buy_url).be.ok();
+                    // placement._response.data.results[1].backfill.should.be.exactly(true);
+                    // placement._response.data.results[1]._image_url.should.be.exactly('');
+                    //
+                    // placement._response.data.results[2].backfill.should.be.exactly(false);
+                    // placement._response.data.results[2].shortfill.should.be.exactly(true);
+
+                    const e = document.createEvent('Event');
+                    e.initEvent("error", false, false);
+
+                    placement.element.querySelectorAll('.okanjo-resource-image')[0].dispatchEvent(e);
+
+                    should(placement.element.querySelectorAll('.okanjo-resource-image')[0].src).startWith('data:image/svg');
+
+                    done();
+                });
+
+                setAdsHandler(() => {
+                    const payload = TestResponses.getExampleProductResponse();
+
+                    // Empty the results
+                    payload.data.results.push(JSON.parse(JSON.stringify(payload.data.results[0])));
+                    payload.data.results[0].image_urls = ['http://localhhost:9999/nope.png']; // lolwut
+
+                    return {
+                        statusCode: 200,
+                        payload
+                    };
+                });
+
+                // Make that placement
+                placement = new okanjo.Placement(target);
+            });
+
         });
 
         describe('_showArticles', () => {
@@ -1356,6 +1403,41 @@ describe('Placements', () => {
 
                 // Make that placement
                 placement = new okanjo.Placement(target);
+            });
+
+            it('handles fallback images', (done) => {
+                resetDocument();
+                let target = insertDropzone({ key: 'unit_test_key' });
+                let placement;
+
+                setMetricsBulkHandler(() => {
+                    setMetricsBulkHandler();
+
+                    const e = document.createEvent('Event');
+                    e.initEvent("error", false, false);
+
+                    placement.element.querySelectorAll('.okanjo-resource-image')[0].dispatchEvent(e);
+
+                    console.log(placement.element.querySelectorAll('.okanjo-resource-image')[0].src)
+                    should(placement.element.querySelectorAll('.okanjo-resource-image')[0].src).startWith('data:image/svg');
+                    done();
+                });
+
+                setAdsHandler(() => {
+                    const payload = TestResponses.getExampleArticlesResponse();
+
+                    // Empty the results
+                    payload.data.results[0].image = 'http://localhhost:9999/nope.png';
+
+                    return {
+                        statusCode: 200,
+                        payload
+                    };
+                });
+
+                // Make that placement
+                placement = new okanjo.Placement(target);
+
             });
 
         });

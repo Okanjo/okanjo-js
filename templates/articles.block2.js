@@ -13,6 +13,7 @@
         model.metricChannel = this._metricBase.ch;
         model.metricContext = this._metricBase.cx;
         model.metricParams = okanjo.net.request.stringify(this._metricBase);
+        model.fallbackSVG = okanjo.ui.articleSVG();
 
         // Enforce format restrictions
         this._enforceLayoutOptions();

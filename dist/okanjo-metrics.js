@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v2.3.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v2.4.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -331,7 +331,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "2.3.1",
+    version: "2.4.0",
 
     /**
      * Placeholder
@@ -974,6 +974,34 @@ var okanjo = function (window, document) {
         parent.style.backgroundposition = 'center center';
       });
     }
+  };
+  /**
+   * Returns the SVG content for an article icon
+   * @return {string}
+   */
+
+
+  okanjo.ui.articleSVG = function () {
+    return "<svg version=\"1.1\" id=\"Layer_1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"0px\" y=\"0px\" viewBox=\"0 0 48 48\" style=\"enable-background:new 0 0 48 48;\" xml:space=\"preserve\"> <g id=\"newspaper_1_\"> <g id=\"newspaper_2_\"> <path id=\"newspaper_6_\" d=\"M21.5,23h-5c-0.276,0-0.5-0.224-0.5-0.5v-5c0-0.276,0.224-0.5,0.5-0.5h5c0.276,0,0.5,0.224,0.5,0.5v5 C22,22.776,21.776,23,21.5,23z M37,32c0,1.654-1.346,3-3,3h-2H15c-1.654,0-3-1.346-3-3V14c0-0.552,0.448-1,1-1h17 c0.552,0,1,0.448,1,1v18c0,0.552,0.449,1,1,1h2c0.551,0,1-0.448,1-1V17h-1v14.75c0,0.138-0.112,0.25-0.25,0.25h-1.5 C32.112,32,32,31.888,32,31.75V16c0-0.552,0.448-1,1-1h3c0.552,0,1,0.448,1,1v1V32z M15,33h14.184C29.072,32.686,29,32.352,29,32 V15H14v17C14,32.552,14.449,33,15,33z M26.5,19h-2c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5h2 c0.276,0,0.5,0.224,0.5,0.5v1C27,18.776,26.776,19,26.5,19z M26.5,23h-2c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5 h2c0.276,0,0.5,0.224,0.5,0.5v1C27,22.776,26.776,23,26.5,23z M26.5,27h-10c-0.276,0-0.5-0.224-0.5-0.5v-1 c0-0.276,0.224-0.5,0.5-0.5h10c0.276,0,0.5,0.224,0.5,0.5v1C27,26.776,26.776,27,26.5,27z M26.5,31h-10 c-0.276,0-0.5-0.224-0.5-0.5v-1c0-0.276,0.224-0.5,0.5-0.5h10c0.276,0,0.5,0.224,0.5,0.5v1C27,30.776,26.776,31,26.5,31z\"/> </g> </g> </svg>";
+  };
+  /**
+   * Returns the SVG content for a product icon
+   * @return {string}
+   */
+
+
+  okanjo.ui.productSVG = function () {
+    return "<svg id=\"glyphicons-basic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"> <path id=\"cart\" d=\"M13,26.5A1.5,1.5,0,1,1,11.5,25,1.5,1.5,0,0,1,13,26.5ZM21.5,25A1.5,1.5,0,1,0,23,26.5,1.5,1.5,0,0,0,21.5,25ZM27.96436,8.82544l-2,9A1.49988,1.49988,0,0,1,24.5,19H11.77l.4375,2H23a1,1,0,0,1,1,1v1a1,1,0,0,1-1,1H11a1.5,1.5,0,0,1-1.46533-1.17944L6.29248,8H4A1,1,0,0,1,3,7V6A1,1,0,0,1,4,5H7.5A1.49993,1.49993,0,0,1,8.96533,6.17944L9.14484,7H26.5a1.50029,1.50029,0,0,1,1.46436,1.82544ZM24.62988,10H9.80115l1.31256,6H23.29688Z\"/></svg>";
+  };
+  /**
+   * Returns the inline SVG src attribute
+   * @param svg
+   * @return {string}
+   */
+
+
+  okanjo.ui.inlineSVG = function (svg) {
+    return 'data:image/svg+xml;base64,' + btoa('<?xml version="1.0" encoding="UTF-8" standalone="no"?>' + svg);
   }; //endregion
   // Export the root namespace
 
