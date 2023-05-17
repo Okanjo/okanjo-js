@@ -16,7 +16,7 @@
             super();
 
             // Verify element was given (we can't load unless we have one)
-            if (!element || element === null || element.nodeType === undefined) {
+            if (!element || typeof element.nodeType === "undefined") {
                 okanjo.report('Invalid or missing element on widget construction', { widget: this, element, options });
                 throw new Error('Okanjo: Invalid element - make sure to pass a valid DOM element when constructing Okanjo Widgets.');
             }
@@ -187,7 +187,7 @@
         }
 
         /**
-         * Sets the markup of the widget's element
+         * Replaces the markup of the widget's element
          * @param markup
          */
         setMarkup(markup) {

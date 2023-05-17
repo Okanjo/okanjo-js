@@ -5,14 +5,13 @@
 
     // Reuses block2 markup layout, extended css
     okanjo.ui.engine.registerTemplate("articles.slab", okanjo.ui.__article_block2, function (model) {
-        const data = (this._response || { data: { results: [] } }).data || { results: [] };
         model.blockClasses = ['okanjo-slab'];
-        model.articles = data.results;
         model.config = this.config;
         model.instanceId = this.instanceId;
         model.metricChannel = this._metricBase.ch;
         model.metricContext = this._metricBase.cx;
         model.metricParams = okanjo.net.request.stringify(this._metricBase);
+        model.fallbackSVG = okanjo.ui.articleSVG();
         model.fitImage = 'okanjo-fit';
 
         // Enforce format restrictions

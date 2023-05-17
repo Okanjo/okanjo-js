@@ -6,8 +6,6 @@
     okanjo.ui.__article_block2 = "@@include(jsStringEscape('articles.block2.mustache'))";
 
     okanjo.ui.engine.registerTemplate("articles.block2", okanjo.ui.__article_block2, function (model) {
-        const data = (this._response || { data: { results: [] } }).data || { results: [] };
-        model.articles = data.results;
         model.config = this.config;
         model.instanceId = this.instanceId;
         model.metricChannel = this._metricBase.ch;

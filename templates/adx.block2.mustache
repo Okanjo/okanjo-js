@@ -1,9 +1,15 @@
-<div class="okanjo-block2 okanjo-adx {{classDetects}}">
-    <div class="okanjo-adx-container okanjo-expansion-root" data-size="{{size.width}}x{{size.height}}">
+<div class="okanjo-resource okanjo-adx">
+    <div class="okanjo-adx-container"
+         data-size="{{size.width}}x{{size.height}}"
+         data-width="{{size.width}}"
+         data-height="{{size.height}}"
+         data-path="{{adUnitPath}}"
+         data-segment="{{segmentIndex}}"
+    >
         <!-- insert ad here -->
     </div>
     <div class="okanjo-visually-hidden">
         <!--suppress HtmlUnknownTarget -->
-        <img src="//cdn.okanjo.com/px/1.gif?n={{ now }}" />
+        <img alt="" src="//cdn.okanjo.com/px/1.gif?n={{ now }}" />
     </div>
 </div>

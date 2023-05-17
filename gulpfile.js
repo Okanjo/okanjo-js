@@ -307,6 +307,8 @@ const join_templates = series(
 const templatejs = series(
     join_templates,
     function templatejs_main() {
+        let s1 = Size();
+        let s2 = Size();
         return src("build/templates/*.js")
             .pipe(SourceMaps.init())
             .pipe(Concat('okanjo-templates.js'))
@@ -314,11 +316,20 @@ const templatejs = series(
             .pipe(Replace(/"use strict";\s*/m, ''))
             .pipe(Wrap('(function(okanjo) {<%= contents %>})(okanjo);'))
             .pipe(Insert.prepend(getHeader()))
+            .pipe(s1)
             .pipe(dest('dist'))
             .pipe(Uglify(uglifyOptions))
             .pipe(Rename('okanjo-templates.min.js'))
+            .pipe(s2)
             .pipe(SourceMaps.write('../dist', { sourceRoot: './' }))
             .pipe(dest('dist'))
+            .pipe(Notify({
+                onLast: true,
+                message: function () {
+                    //noinspection JSUnresolvedVariable
+                    return 'Okanjo-Templates.js – size: ' + s1.prettySize + ', minified: ' + s2.prettySize;
+                }
+            }))
         ;
     }
 );
@@ -391,8 +402,8 @@ const bundle = series(
             .pipe(Uglify(uglifyOptions))
             // .pipe(Insert.prepend(getHeader()))
             .pipe(SourceMaps.init())
-            .pipe(Rename('okanjo-bundle.min.js'))
             .pipe(s2)
+            .pipe(Rename('okanjo-bundle.min.js'))
             .pipe(SourceMaps.write('../dist', { sourceRoot: './' }))
             .pipe(dest('dist'))
             .pipe(Notify({

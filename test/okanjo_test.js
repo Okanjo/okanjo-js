@@ -371,6 +371,18 @@ describe('Okanjo Core', () => {
 
         });
 
+        describe('okanjo.util.ifDefined', () => {
+
+            it('should handle defined values', () => {
+                okanjo.util.ifDefined("string").should.be.exactly("string");
+                okanjo.util.ifDefined(42).should.be.exactly(42);
+                okanjo.util.ifDefined(0).should.be.exactly(0); // falsy but has a value!
+                should(okanjo.util.ifDefined(null)).be.exactly(null);
+                should(okanjo.util.ifDefined(undefined)).be.exactly(null);
+            });
+
+        });
+
     });
 
     describe('UI Methods', () => {

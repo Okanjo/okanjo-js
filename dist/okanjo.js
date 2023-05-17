@@ -1,4 +1,4 @@
-/*! okanjo-js v2.4.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v3.0.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -343,7 +343,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "2.4.0",
+    version: "3.0.0",
 
     /**
      * Placeholder
@@ -530,6 +530,15 @@ var okanjo = function (window, document) {
         return queryArgs[key] = hashArgs[key];
       });
       return queryArgs;
+    },
+
+    /**
+     * Returns the value if defined and not null
+     * @param val Value to use if defined
+     * @returns {*|null} Defined value or null
+     */
+    ifDefined: function ifDefined(val) {
+      return typeof val !== "undefined" && val !== null ? val : null;
     }
   };
   /**
@@ -1987,14 +1996,13 @@ var okanjo = function (window, document) {
         event.key = event.key || event.m.key || okanjo.key || undefined; // Set session
 
         if (this.sid) event.sid = this.sid; // Clone the metadata, since it might be a direct reference to a widget property
-        // Deleting properties on the meta object could be very destructive
+        // Deleting properties on the meta object, could be very destructive
 
         event.m = Object.assign({}, event.m); // event.m should be flat
         // Strip meta keys that should be excluded
-
-        Object.keys(Metrics.Meta.exclude).forEach(function (key) {
-          return delete event.m[key];
-        }); // Set referral channel / context
+        // Object.keys(Metrics.Meta.exclude).forEach((key) => delete event.m[key]);
+        // ^ this is now done after flattening as an include-only model in v3.x+
+        // Set referral channel / context
 
         if (this.sourceCh) {
           event.m.ref_ch = this.sourceCh;
@@ -2011,6 +2019,11 @@ var okanjo = function (window, document) {
 
         event.m = okanjo.util.flatten(event.m, {
           arrayToCsv: true
+        }); // Only send allowed meta keys - rest will get stripped
+
+        var allowedKeys = new Set(Metrics.Meta.include);
+        Object.keys(event.m).forEach(function (key) {
+          if (!allowedKeys.has(key)) delete event.m[key];
         }); // Ensure metadata strings won't exceed the imposed limit
 
         Object.keys(event.m).forEach(function (key) {
@@ -2235,11 +2248,12 @@ var okanjo = function (window, document) {
   };
   /**
    * Event Metadata configuration
-   * @type {{exclude: [*]}}
+   * @type {{exclude: [*], include: [*]}}
    */
 
   Metrics.Meta = {
-    exclude: ['key', 'callback', 'metrics_channel_context', 'metrics_context', 'mode']
+    exclude: ['key', 'callback', 'metrics_channel_context', 'metrics_context', 'mode'],
+    include: ['decl', 'ex', 'ey', 'filters_sort_by', 'filters_sort_direction', 'filters_take', 'filters_type', 'filters_url', 'ok_ver', 'ph', 'pw', 'pten', 'ptid', 'res_bf', 'res_length', 'res_sf', 'res_spltfl', 'res_type', 'bf', 'sf', 'spltfl_seg', 'vx1', 'vx2', 'vy1', 'vy2', 'pgid', 'wgid', 'wix1', 'wix2', 'wiy1', 'wiy2', 'wox1', 'wox2', 'woy1', 'woy2', 'wrps', 'x1', 'x2', 'y1', 'y2', 'cid', 'campaign_id', 'expandable', 'res_total']
   };
   /**
    * Event Types
@@ -2593,7 +2607,7 @@ var okanjo = function (window, document) {
 
       _this7 = _super.call(this); // Verify element was given (we can't load unless we have one)
 
-      if (!element || element === null || element.nodeType === undefined) {
+      if (!element || typeof element.nodeType === "undefined") {
         okanjo.report('Invalid or missing element on widget construction', {
           widget: _assertThisInitialized(_this7),
           element: element,
@@ -2778,7 +2792,7 @@ var okanjo = function (window, document) {
         }));
       }
       /**
-       * Sets the markup of the widget's element
+       * Replaces the markup of the widget's element
        * @param markup
        */
 
@@ -3102,7 +3116,8 @@ var okanjo = function (window, document) {
       _this10.name = 'Placement';
       _this10._metricBase = {}; // placeholder for metrics
 
-      _this10._response = null; // Aggregate view watchers into a single interval fn
+      _this10._response = null; // placeholder for api response
+      // Aggregate view watchers into a single interval fn
 
       _this10._viewWatcherIv = null;
       _this10._viewedWatchers = []; // Start loading content
@@ -3199,7 +3214,7 @@ var okanjo = function (window, document) {
           // don't automatically include stylesheets
           verbose_click_data: bool().strip()["default"](false),
           // when enabled, sends ok_msid, ok_ch, ok_cx, _okjr to the destination url
-          utm_click_data: bool().strip()["default"](true),
+          utm_click_data: bool().strip()["default"](false),
           // when enabled, sends url_source, utm_campaign, and utm_medium to the destination url
           proxy_url: string().strip(),
           expandable: bool().strip()["default"](true),
@@ -3351,24 +3366,39 @@ var okanjo = function (window, document) {
       value: function _reportWidgetLoad(declined) {
         var _this13 = this;
 
-        var res = this._response || {};
-        var data = res.data || {
-          results: []
-        }; // If this is declined, mark future events as declined too
+        var segments = this._getResponseData(); // widget stats now aggregate all segments
+
+
+        var backfilled = segments.find(function (s) {
+          return s.backfilled;
+        }) ? 1 : 0,
+            shortfilled = segments.find(function (s) {
+          return s.shortfilled;
+        }) ? 1 : 0,
+            splitfilled = segments.length > 1 ? 1 : 0,
+            res_total = segments.reduce(function (a, c) {
+          return a + (c.total || 0);
+        }, 0),
+            res_length = segments.reduce(function (a, c) {
+          return a + (c.results && c.results.length || 0);
+        }, 0),
+            res_types = Array.from(new Set(segments.map(function (s) {
+          return s.type;
+        }))); // If this is declined, mark future events as declined too
 
         this._metricBase.m.decl = declined || '0'; // Attach other main response attributes to all future events
 
-        this._metricBase.m.res_bf = data.backfilled ? 1 : 0; // whether the response used the back fill flow
+        this._metricBase.m.res_bf = backfilled; // whether the response used the backfill flow
 
-        this._metricBase.m.res_sf = data.shortfilled ? 1 : 0; // whether the response used the short fill flow
+        this._metricBase.m.res_sf = shortfilled; // whether the response used the shortfill flow
 
-        this._metricBase.m.res_spltfl = data.splitfilled ? 1 : 0; // whether the response used the short fill flow
+        this._metricBase.m.res_spltfl = splitfilled; // whether the response used the splitfill flow
 
-        this._metricBase.m.res_total = data.total || 0; // how many total candidate results were available given filters
+        this._metricBase.m.res_total = res_total; // how many total candidate results were available given filters
 
-        this._metricBase.m.res_type = data.type; // what the given resource type was
+        this._metricBase.m.res_type = res_types.length > 1 ? Placement.ContentTypes.mixed : res_types[0]; // what the given resource type was
 
-        this._metricBase.m.res_length = data.results.length; // number of resources delivered
+        this._metricBase.m.res_length = res_length; // number of resources delivered
         // Track impression
 
         okanjo.metrics.create(this._metricBase).type(Metrics.Object.widget, Metrics.Event.impression).meta(this.getConfig()).element(this.element) // this might not be all that useful cuz the content hasn't been rendered yet
@@ -3423,6 +3453,18 @@ var okanjo = function (window, document) {
         });
       }
       /**
+       * Extracts the response data from the payload (segments)
+       * @returns {*[]}
+       * @private
+       */
+
+    }, {
+      key: "_getResponseData",
+      value: function _getResponseData() {
+        var res = this._response;
+        return [].concat(res && res.data || [{}]); // will force the old response data into an array
+      }
+      /**
        * Applies response filters and display settings into the widget configuration
        * @private
        */
@@ -3432,8 +3474,10 @@ var okanjo = function (window, document) {
       value: function _mergeResponseSettings() {
         var _this15 = this;
 
-        var res = this._response;
-        var data = res.data || {};
+        // Apply the base segment settings as the main widget display settings
+        var data = this._getResponseData()[0]; // Merge the base results
+
+
         var settings = data.settings || {};
 
         if (settings.filters) {
@@ -3457,7 +3501,8 @@ var okanjo = function (window, document) {
       key: "_updateBaseMetaFromResponse",
       value: function _updateBaseMetaFromResponse() {
         // Update the base metric data with info from the response
-        var data = (this._response || {}).data || {};
+        // SmartServe can now return an array of result objects
+        var data = this._getResponseData()[0] || {};
         this._metricBase.m = this._metricBase.m || {};
         var meta = this._metricBase.m; // Article
 
@@ -3479,27 +3524,81 @@ var okanjo = function (window, document) {
     }, {
       key: "_showContent",
       value: function _showContent() {
-        var data = (this._response || {}).data || {}; // Known content types we can display
+        var segments = this._getResponseData(); // 1. Render each segment to list html, store in array
+        // 2a. If array is empty, handle empty decline
+        // 2b. If not empty, render container html passing contents to embed
+        // 3. Set markup to final container render
+        // 4. Do follow-up event binding and cleanup stuff
+        // If there are multiple segments, force responsive slab template for now
 
-        if (data.type === Placement.ContentTypes.products) {
-          this._showProducts();
-        } else if (data.type === Placement.ContentTypes.articles) {
-          this._showArticles();
-        } else if (data.type === Placement.ContentTypes.adx) {
-          this._showADX();
-        } else {
-          // Unknown response type!
-          // Report the widget load as declined
-          var msg = 'Unknown response content type: ' + data.type;
-          okanjo.report(msg, {
-            placement: this
-          });
-          this.setMarkup(''); // Don't show anything
 
-          this.emit('error', msg);
+        if (segments.length > 1) {
+          this.config.template_name = 'slab';
+          this.config.size = 'responsive';
+        } // Assemble list contents
 
-          this._reportWidgetLoad(msg);
-        }
+
+        var renderedSegments = [];
+
+        for (var segment, i = 0; i < segments.length; i++) {
+          segment = segments[i]; // Known content types we can display
+
+          if (segment.type === Placement.ContentTypes.products) {
+            renderedSegments.push(this._renderProductSegment(segment, i));
+          } else if (segment.type === Placement.ContentTypes.articles) {
+            renderedSegments.push(this._renderArticleSegment(segment, i));
+          } else if (segment.type === Placement.ContentTypes.adx) {
+            renderedSegments.push(this._renderADXSegment(segment, i));
+          } else {
+            // Unknown response type!
+            // Report the widget load as declined
+            var msg = 'Unknown response content type: ' + segment.type;
+            okanjo.report(msg, {
+              placement: this
+            }); // this.setMarkup(''); // Don't show anything
+
+            this.emit('error', msg); // this._reportWidgetLoad(msg);
+          }
+        } // Filter empty segments
+        // console.log('rendered segs', renderedSegments)
+
+
+        renderedSegments = renderedSegments.filter(function (html) {
+          return !!html;
+        }); // No segments? Decline
+
+        if (renderedSegments.length === 0) {
+          this.emit('empty');
+
+          this._reportWidgetLoad('empty'); // decline the impression
+
+
+          return;
+        } // Render the container and insert the markup
+
+
+        var model = {
+          css: !this.config.no_css,
+          segmentContent: renderedSegments.join('')
+        };
+
+        var templateName = this._getTemplate(Placement.ContentTypes.container, Placement.DefaultTemplates.container);
+
+        this.setMarkup(okanjo.ui.engine.render(templateName, this, model)); // Report load
+
+        this._reportWidgetLoad(); // Handle resource post-render events
+
+
+        this._postProductRender();
+
+        this._postArticleRender();
+
+        this._postADXRender(); // Fit images
+
+
+        okanjo.ui.fitImages(this.element); // Hook point that the widget is done loading
+
+        this.emit('load');
       }
       /**
        * Generates the click url using the event, proxy_url, and additional params
@@ -3568,7 +3667,7 @@ var okanjo = function (window, document) {
         }).meta({
           bf: resource.backfill ? 1 : 0,
           sf: resource.shortfill ? 1 : 0,
-          spltfl_seg: resource.splitfill_segment || null
+          spltfl_seg: okanjo.util.ifDefined(resource.splitfill_segment)
         }).event(e).element(e.currentTarget).viewport().widget(this.element); // Pull the proper params out of the resource depending on it's type
 
         var trackParam = 'url_track_param';
@@ -3771,25 +3870,20 @@ var okanjo = function (window, document) {
       //region Product Handling
 
       /**
-       * Renders a product response
+       * Renders a product segment
+       * @param data SmartServe segment data
+       * @param segmentIndex Segment index number
+       * @returns {string} Rendered segment HTML
        * @private
        */
 
     }, {
-      key: "_showProducts",
-      value: function _showProducts() {
+      key: "_renderProductSegment",
+      value: function _renderProductSegment(data, segmentIndex) {
         var _this16 = this;
 
-        var data = (this._response || {
-          data: {
-            results: []
-          }
-        }).data || {
-          results: []
-        }; // Determine template to render, using custom template name if it exists
-
-        var templateName = this._getTemplate(Placement.ContentTypes.products, Placement.DefaultTemplates.products); // - render
-        // Format products
+        // Determine template to render, using custom template name if it exists
+        var templateName = this._getTemplate(Placement.ContentTypes.products, Placement.DefaultTemplates.products); // Format products
 
 
         data.results.forEach(function (offer, index) {
@@ -3803,74 +3897,80 @@ var okanjo = function (window, document) {
 
           offer._price_formatted = TemplateEngine.formatCurrency(offer.price);
           offer._index = index;
+          offer.splitfill_segment = segmentIndex;
+          offer._segmentIndex = segmentIndex;
         });
         var model = {
+          resources: data.results,
           css: !this.config.no_css
-        }; // Render and display the results
+        }; // Render and return html (will get concatenated later)
 
-        this.setMarkup(okanjo.ui.engine.render(templateName, this, model)); // Detect broken images
+        return okanjo.ui.engine.render(templateName, this, model);
+      }
+      /**
+       * Handles post-render events for product resources
+       * @private
+       */
 
-        this.element.querySelectorAll('.okanjo-resource-image').forEach(function (img) {
+    }, {
+      key: "_postProductRender",
+      value: function _postProductRender() {
+        var _this17 = this;
+
+        // Detect broken images
+        this.element.querySelectorAll('.okanjo-product .okanjo-resource-image').forEach(function (img) {
           img.addEventListener('error', function () {
             img.src = okanjo.ui.inlineSVG(okanjo.ui.productSVG());
             console.error('[okanjo] Failed to load product image: ' + img.getAttribute('data-id')); // TODO: notify of resource failure
           });
-        }); // Track widget impression
+        }); // Bind interaction handlers and track impressions
 
-        if (data.results.length === 0) {
-          // Hook point for no results found
-          this.emit('empty');
+        var segments = this._getResponseData();
 
-          this._reportWidgetLoad('empty'); // decline the impression
-
-        } else {
-          this._reportWidgetLoad();
-        } // Bind interaction handlers and track impressions
-
-
-        this.element.querySelectorAll('a').forEach(function (a) {
+        this.element.querySelectorAll('.okanjo-product > a').forEach(function (a) {
           var id = a.getAttribute('data-id'),
-              index = a.getAttribute('data-index'); // Don't bind links that are not tile links
+              segment = parseInt(a.getAttribute('data-segment')),
+              index = parseInt(a.getAttribute('data-index')); // Don't bind links that are not tile links
 
           /* istanbul ignore else: custom templates could break it */
 
-          if (id && index >= 0) {
-            var product = _this16._response.data.results[index];
+          if (id && index >= 0 && segment >= 0) {
+            var data = segments[segment];
+            /* istanbul ignore if: custom templates could break it */
+
+            if (!data) return;
+            var product = data.results[index];
             /* istanbul ignore else: custom templates could break it */
 
             if (product) {
               // Bind interaction listener
-              a.addEventListener('mousedown', _this16._handleResourceMouseDown.bind(_this16, Metrics.Object.product, product));
-              a.addEventListener('click', _this16._handleProductClick.bind(_this16, product)); // Track impression
+              a.addEventListener('mousedown', _this17._handleResourceMouseDown.bind(_this17, Metrics.Object.product, product));
+              a.addEventListener('click', _this17._handleProductClick.bind(_this17, product)); // Track impression
 
-              okanjo.metrics.create(_this16._metricBase, {
+              okanjo.metrics.create(_this17._metricBase, {
                 id: product.id
-              }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this16.getConfig()).meta({
+              }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this17.getConfig()).meta({
                 bf: product.backfill ? 1 : 0,
                 sf: product.shortfill ? 1 : 0,
-                spltfl_seg: product.splitfill_segment || null
-              }).element(a).viewport().widget(_this16.element).send(); // Start watching for a viewable impression
+                spltfl_seg: okanjo.util.ifDefined(product.splitfill_segment)
+              }).element(a).viewport().widget(_this17.element).send(); // Start watching for a viewable impression
 
-              _this16._addOnceViewedHandler(a, function () {
-                okanjo.metrics.create(_this16._metricBase, {
+              _this17._addOnceViewedHandler(a, function () {
+                okanjo.metrics.create(_this17._metricBase, {
                   id: product.id
-                }).type(Metrics.Object.product, Metrics.Event.view).meta(_this16.getConfig()).meta({
+                }).type(Metrics.Object.product, Metrics.Event.view).meta(_this17.getConfig()).meta({
                   bf: product.backfill ? 1 : 0,
                   sf: product.shortfill ? 1 : 0,
-                  spltfl_seg: product.splitfill_segment || null
-                }).element(a).viewport().widget(_this16.element).send();
+                  spltfl_seg: okanjo.util.ifDefined(product.splitfill_segment)
+                }).element(a).viewport().widget(_this17.element).send();
               });
             }
           }
         }); // Truncate product name to fit the space
 
-        this.element.querySelectorAll('.okanjo-resource-title').forEach(function (element) {
+        this.element.querySelectorAll('.okanjo-product .okanjo-resource-title').forEach(function (element) {
           okanjo.ui.ellipsify(element);
-        }); // Fit images
-
-        okanjo.ui.fitImages(this.element); // Hook point that the widget is done loading
-
-        this.emit('load');
+        });
       }
       /**
        * Handles the product click process
@@ -3985,23 +4085,17 @@ var okanjo = function (window, document) {
       //region Article Handling
 
       /**
-       * Renders an article response
+       * Renders an article segment
+       * @param data SmartServe segment data
+       * @param segmentIndex Segment index number
+       * @returns {string} Rendered segment HTML
        * @private
        */
 
     }, {
-      key: "_showArticles",
-      value: function _showArticles() {
-        var _this17 = this;
-
-        var data = (this._response || {
-          data: {
-            results: []
-          }
-        }).data || {
-          results: []
-        }; // Determine template to render, using custom template name if it exists
-
+      key: "_renderArticleSegment",
+      value: function _renderArticleSegment(data, segmentIndex) {
+        // Determine template to render, using custom template name if it exists
         var templateName = this._getTemplate(Placement.ContentTypes.articles, Placement.DefaultTemplates.articles); // - render
         // Format articles
 
@@ -4010,74 +4104,80 @@ var okanjo = function (window, document) {
           // Escape url (fixme: does not include proxy_url!)
           article._escaped_url = encodeURIComponent(article.url);
           article._index = index;
+          article.splitfill_segment = segmentIndex;
+          article._segmentIndex = segmentIndex;
         });
         var model = {
+          resources: data.results,
           css: !this.config.no_css
-        }; // Render and display the results
+        }; // Render and return html (will get concatenated later)
 
-        this.setMarkup(okanjo.ui.engine.render(templateName, this, model)); // Detect broken images
+        return okanjo.ui.engine.render(templateName, this, model);
+      }
+      /**
+       * Handles post-render events for article resources
+       * @private
+       */
 
-        this.element.querySelectorAll('.okanjo-resource-image').forEach(function (img) {
+    }, {
+      key: "_postArticleRender",
+      value: function _postArticleRender() {
+        var _this18 = this;
+
+        // Detect broken images
+        this.element.querySelectorAll('.okanjo-article .okanjo-resource-image').forEach(function (img) {
           img.addEventListener('error', function () {
             img.src = okanjo.ui.inlineSVG(okanjo.ui.articleSVG());
             console.error('[okanjo] Failed to load article image: ' + img.getAttribute('data-id')); // TODO: notify of resource failure
           });
-        }); // Track widget impression
+        }); // Bind interaction handlers and track impressions
 
-        if (data.results.length === 0) {
-          // Hook point for no results found
-          this.emit('empty');
+        var segments = this._getResponseData();
 
-          this._reportWidgetLoad('empty'); // decline the impression
-
-        } else {
-          this._reportWidgetLoad();
-        } // Bind interaction handlers and track impressions
-
-
-        this.element.querySelectorAll('a').forEach(function (a) {
+        this.element.querySelectorAll('.okanjo-article > a').forEach(function (a) {
           var id = a.getAttribute('data-id'),
-              index = a.getAttribute('data-index'); // Don't bind links that are not tile links
+              segment = parseInt(a.getAttribute('data-segment')),
+              index = parseInt(a.getAttribute('data-index')); // Don't bind links that are not tile links
 
           /* istanbul ignore else: custom templates could break this */
 
-          if (id && index >= 0) {
-            var article = _this17._response.data.results[index];
+          if (id && index >= 0 && segment >= 0) {
+            var data = segments[segment];
+            /* istanbul ignore if: custom templates could break it */
+
+            if (!data) return;
+            var article = data.results[index];
             /* istanbul ignore else: custom templates could break this */
 
             if (article) {
               // Bind interaction listener
-              a.addEventListener('mousedown', _this17._handleResourceMouseDown.bind(_this17, Metrics.Object.article, article));
-              a.addEventListener('click', _this17._handleArticleClick.bind(_this17, article)); // Track impression
+              a.addEventListener('mousedown', _this18._handleResourceMouseDown.bind(_this18, Metrics.Object.article, article));
+              a.addEventListener('click', _this18._handleArticleClick.bind(_this18, article)); // Track impression
 
-              okanjo.metrics.create(_this17._metricBase, {
+              okanjo.metrics.create(_this18._metricBase, {
                 id: article.id
-              }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this17.getConfig()).meta({
+              }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this18.getConfig()).meta({
                 bf: article.backfill ? 1 : 0,
                 sf: article.shortfill ? 1 : 0,
-                spltfl_seg: article.splitfill_segment || null
-              }).element(a).viewport().widget(_this17.element).send(); // Start watching for a viewable impression
+                spltfl_seg: okanjo.util.ifDefined(article.splitfill_segment)
+              }).element(a).viewport().widget(_this18.element).send(); // Start watching for a viewable impression
 
-              _this17._addOnceViewedHandler(a, function () {
-                okanjo.metrics.create(_this17._metricBase, {
+              _this18._addOnceViewedHandler(a, function () {
+                okanjo.metrics.create(_this18._metricBase, {
                   id: article.id
-                }).type(Metrics.Object.article, Metrics.Event.view).meta(_this17.getConfig()).meta({
+                }).type(Metrics.Object.article, Metrics.Event.view).meta(_this18.getConfig()).meta({
                   bf: article.backfill ? 1 : 0,
                   sf: article.shortfill ? 1 : 0,
-                  spltfl_seg: article.splitfill_segment || null
-                }).element(a).viewport().widget(_this17.element).send();
+                  spltfl_seg: okanjo.util.ifDefined(article.splitfill_segment)
+                }).element(a).viewport().widget(_this18.element).send();
               });
             }
           }
         }); // Truncate product name to fit the space
 
-        this.element.querySelectorAll('.okanjo-resource-title').forEach(function (element) {
+        this.element.querySelectorAll('.okanjo-article .okanjo-resource-title').forEach(function (element) {
           okanjo.ui.ellipsify(element);
-        }); // Fit images
-
-        okanjo.ui.fitImages(this.element); // Hook point that the widget is done loading
-
-        this.emit('load');
+        });
       }
       /**
        * Handles the article click process
@@ -4105,23 +4205,17 @@ var okanjo = function (window, document) {
       //region ADX Handling
 
       /**
-       * Renders a Google DFP/ADX response
+       * Renders a DFP/ADX/GPT segment
+       * @param data SmartServe segment data
+       * @param segmentIndex Segment index number
+       * @returns {string} Rendered segment HTML
        * @private
        */
 
     }, {
-      key: "_showADX",
-      value: function _showADX() {
-        var _this18 = this;
-
-        var data = (this._response || {
-          data: {
-            settings: {}
-          }
-        }).data || {
-          settings: {}
-        }; // Get the template we should use to render the google ad
-
+      key: "_renderADXSegment",
+      value: function _renderADXSegment(data, segmentIndex) {
+        // Get the template we should use to render the google ad
         var templateName = this._getTemplate(Placement.ContentTypes.adx, Placement.DefaultTemplates.adx); // Determine what size ad we can place here
 
 
@@ -4147,31 +4241,51 @@ var okanjo = function (window, document) {
         if (!size) size = Placement.Sizes["default"]; // If we're using okanjo's ad slot, then track the impression
         // otherwise decline it because we're just passing through to the publishers account
 
-        var adUnitPath = '/90447967/okanjo:<publisher>';
-        var declineReason;
+        var adUnitPath = '/90447967/okanjo:<publisher>'; // let declineReason;
 
         if (data.settings.display && data.settings.display.adx_unit_path) {
-          adUnitPath = data.settings.display.adx_unit_path;
-          declineReason = 'custom_ad_unit';
+          adUnitPath = data.settings.display.adx_unit_path; // declineReason = 'custom_ad_unit';
         } // Pass along what the template needs to know to display the ad
 
 
         var renderContext = {
           css: !this.config.no_css,
           size: size,
-          adUnitPath: adUnitPath
+          adUnitPath: adUnitPath,
+          segmentIndex: segmentIndex
         }; // Render the container
 
-        this.setMarkup(okanjo.ui.engine.render(templateName, this, renderContext)); // Report the impression
+        return okanjo.ui.engine.render(templateName, this, renderContext);
+      }
+      /**
+       * Handles post-render events for DFP/ADX/GPT resources
+       * @private
+       */
 
-        this._reportWidgetLoad(declineReason); // Insert the actual ad into the container
+    }, {
+      key: "_postADXRender",
+      value: function _postADXRender() {
+        var _this19 = this;
 
+        // Insert the actual ads into their containers
+        var segments = this._getResponseData();
 
-        var container = this.element.querySelector('.okanjo-adx-container');
-        /* istanbul ignore else: custom templates could break this */
+        this.element.querySelectorAll('.okanjo-adx .okanjo-adx-container').forEach(function (container) {
+          var path = container.getAttribute('data-path'),
+              segment = parseInt(container.getAttribute('data-segment')),
+              width = parseInt(container.getAttribute('data-width')),
+              height = parseInt(container.getAttribute('data-height'));
+          var data = segments[segment];
+          /* istanbul ignore if: custom templates could break it */
 
-        if (container) {
-          // Make the frame element
+          if (!data) return;
+          var meta = {
+            ta_s: path,
+            ta_w: width,
+            ta_h: height,
+            spltfl_seg: okanjo.util.ifDefined(segment)
+          }; // Make the frame element
+
           var frame = document.createElement('iframe');
           var attributes = {
             'class': 'okanjo-adx-frame',
@@ -4182,53 +4296,40 @@ var okanjo = function (window, document) {
             mozallowfullscreen: '',
             allowfullscreen: '',
             scrolling: 'auto',
-            width: size.width,
-            height: size.height
+            width: width,
+            height: height
           }; // Apply attributes
 
           Object.keys(attributes).forEach(function (key) {
             return frame.setAttribute(key, attributes[key]);
-          }); // Attach to dOM
+          }); // Hold a ref to the frame for later
 
-          container.appendChild(frame); // Build a click-through tracking url so we know when an ad is clicked too
+          data._frame = frame; // Attach to DOM
 
-          var clickUrl = okanjo.metrics.create(this._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.interaction).meta(this.getConfig()).meta({
-            ta_s: adUnitPath,
-            ta_w: size.width,
-            ta_h: size.height
-          }).element(frame).viewport().widget(this.element).toUrl(); // Transfer references to the frame window
+          container.appendChild(frame); // Build a click-through tracking url, so we know when an ad is clicked too
+
+          var clickUrl = okanjo.metrics.create(_this19._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.interaction).meta(_this19.getConfig()).meta(meta).element(frame).viewport().widget(_this19.element).toUrl(); // Transfer references to the frame window
           // frame.contentWindow.okanjo = okanjo;
           // frame.contentWindow.placement = this;
 
           frame.contentWindow.trackImpression = function () {
-            okanjo.metrics.create(_this18._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.impression).meta(_this18.getConfig()).meta({
-              ta_s: adUnitPath,
-              ta_w: size.width,
-              ta_h: size.height
-            }).element(frame).viewport().widget(_this18.element).send(); // Start watching for a viewable impression
+            okanjo.metrics.create(_this19._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.impression).meta(_this19.getConfig()).meta(meta).element(frame).viewport().widget(_this19.element).send(); // Start watching for a viewable impression
 
-            _this18._addOnceViewedHandler(frame, function () {
-              okanjo.metrics.create(_this18._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.view).meta(_this18.getConfig()).meta({
-                ta_s: adUnitPath,
-                ta_w: size.width,
-                ta_h: size.height
-              }).element(frame).viewport().widget(_this18.element).send();
+            _this19._addOnceViewedHandler(frame, function () {
+              okanjo.metrics.create(_this19._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.view).meta(_this19.getConfig()).meta(meta).element(frame).viewport().widget(_this19.element).send();
             });
           }; // Load Google ad!
           // See: https://developers.google.com/publisher-tag/reference#googletag.events.SlotRenderEndedEvent
 
 
           frame.contentWindow.document.open();
-          frame.contentWindow.document.write("<html><head><style type=\"text/css\">html,body {margin: 0; padding: 0;}</style></head><body><div id=\"gpt-passback\">\n<" + "script type=\"text/javascript\" src=\"https://securepubads.g.doubleclick.net/tag/js/gpt.js\">\n    \n    window.googletag = window.googletag || {cmd: []};\n    googletag.cmd.push(function() {\n        \n        // Define the slot\n        googletag.defineSlot(\"".concat(adUnitPath.replace(/"/g, '\\"'), "\", [[").concat(size.width, ", ").concat(size.height, "]], 'gpt-passback')\n            .setClickUrl(\"").concat(clickUrl, "&u=\")     // Track click event on the okanjo side\n            .addService(googletag.pubads())    // Service the ad\n        ;\n        \n        // Track load/view events\n        googletag.pubads().addEventListener('slotRenderEnded', function(e) { \n            trackImpression(e);\n        });\n        \n        // Go time\n        googletag.enableServices();\n        googletag.display('gpt-passback');\n    });\n    \n<") + "/script></div>\n</body></html>");
+          frame.contentWindow.document.write("<html><head><style type=\"text/css\">html,body {margin: 0; padding: 0;}</style></head><body><div id=\"gpt-passback\">\n<" + "script type=\"text/javascript\" src=\"https://securepubads.g.doubleclick.net/tag/js/gpt.js\">\n    \n    window.googletag = window.googletag || {cmd: []};\n    googletag.cmd.push(function() {\n        \n        // Define the slot\n        googletag.defineSlot(\"".concat(path.replace(/"/g, '\\"'), "\", [[").concat(width, ", ").concat(height, "]], 'gpt-passback')\n            .setClickUrl(\"").concat(clickUrl, "&u=\")     // Track click event on the okanjo side\n            .addService(googletag.pubads())    // Service the ad\n        ;\n        \n        // Track load/view events\n        googletag.pubads().addEventListener('slotRenderEnded', function(e) { \n            trackImpression(e);\n        });\n        \n        // Go time\n        googletag.enableServices();\n        googletag.display('gpt-passback');\n    });\n    \n<") + "/script></div>\n</body></html>");
           frame.contentWindow.document.close(); // TODO future event hooks
           // googletag.pubads().addEventListener('impressionViewable', function(e) { future )});
           // googletag.pubads().addEventListener('slotOnload', function(e) { future });
           // googletag.pubads().addEventListener('slotVisibilityChangedEvent', function(e) { future );
           // Impression tracking is done from within the iframe. Crazy, right?
-        } // Hook point that the widget is done loading
-
-
-        this.emit('load');
+        });
       } //endregion
 
     }]);
@@ -4352,23 +4453,31 @@ var okanjo = function (window, document) {
   Placement.Sizes["default"] = Placement.Sizes.medium_rectangle;
   /**
    * Placement content types
-   * @type {{products: string, articles: string, adx: string}}
+   * @type {{adx: string, articles: string, products: string, mixed: string, container: string}}
    */
 
   Placement.ContentTypes = {
     products: 'products',
+    // only products
     articles: 'articles',
-    adx: 'adx'
+    // only articles
+    adx: 'adx',
+    // only display ad
+    mixed: 'mixed',
+    // mix of two or more of the above (used for metrics responses, not a template)
+    container: 'container' // Widget container - segment content gets rendered into this one at the end
+
   };
   /**
    * Default templates for each content type
-   * @type {{products: string, articles: string, adx: string}}
+   * @type {{products: string, articles: string, adx: string, container: string}}
    */
 
   Placement.DefaultTemplates = {
     products: 'block2',
     articles: 'block2',
-    adx: 'block2'
+    adx: 'block2',
+    container: 'block2'
   }; //endregion
 
   return okanjo.Placement = Placement;
@@ -4391,7 +4500,7 @@ var okanjo = function (window, document) {
     var _super3 = _createSuper(Product);
 
     function Product(element, options) {
-      var _this19;
+      var _this20;
 
       _classCallCheck(this, Product);
 
@@ -4400,18 +4509,18 @@ var okanjo = function (window, document) {
       var no_init = options.no_init; // hold original no_init flag, if set
 
       options.no_init = true;
-      _this19 = _super3.call(this, element, options);
+      _this20 = _super3.call(this, element, options);
       okanjo.warn('Product widget has been deprecated. Use Placement instead (may require configuration changes)', {
-        widget: _assertThisInitialized(_this19)
+        widget: _assertThisInitialized(_this20)
       }); // Start loading content
 
       if (!no_init) {
-        delete _this19.config.no_init;
+        delete _this20.config.no_init;
 
-        _this19.init();
+        _this20.init();
       }
 
-      return _this19;
+      return _this20;
     } //noinspection JSUnusedGlobalSymbols
 
     /**
@@ -4496,7 +4605,7 @@ var okanjo = function (window, document) {
     var _super4 = _createSuper(Ad);
 
     function Ad(element, options) {
-      var _this20;
+      var _this21;
 
       _classCallCheck(this, Ad);
 
@@ -4505,18 +4614,18 @@ var okanjo = function (window, document) {
       var no_init = options.no_init; // hold original no_init flag, if set
 
       options.no_init = true;
-      _this20 = _super4.call(this, element, options);
+      _this21 = _super4.call(this, element, options);
       okanjo.warn('Ad widget has been deprecated. Use Placement instead (may require configuration changes)', {
-        widget: _assertThisInitialized(_this20)
+        widget: _assertThisInitialized(_this21)
       }); // Start loading content
 
       if (!no_init) {
-        delete _this20.config.no_init;
+        delete _this21.config.no_init;
 
-        _this20.init();
+        _this21.init();
       }
 
-      return _this20;
+      return _this21;
     } //noinspection JSUnusedGlobalSymbols
 
     /**

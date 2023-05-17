@@ -1,4 +1,4 @@
-/*! okanjo-js v2.4.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v3.0.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -343,7 +343,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "2.4.0",
+    version: "3.0.0",
 
     /**
      * Placeholder
@@ -530,6 +530,15 @@ var okanjo = function (window, document) {
         return queryArgs[key] = hashArgs[key];
       });
       return queryArgs;
+    },
+
+    /**
+     * Returns the value if defined and not null
+     * @param val Value to use if defined
+     * @returns {*|null} Defined value or null
+     */
+    ifDefined: function ifDefined(val) {
+      return typeof val !== "undefined" && val !== null ? val : null;
     }
   };
   /**
@@ -1987,14 +1996,13 @@ var okanjo = function (window, document) {
         event.key = event.key || event.m.key || okanjo.key || undefined; // Set session
 
         if (this.sid) event.sid = this.sid; // Clone the metadata, since it might be a direct reference to a widget property
-        // Deleting properties on the meta object could be very destructive
+        // Deleting properties on the meta object, could be very destructive
 
         event.m = Object.assign({}, event.m); // event.m should be flat
         // Strip meta keys that should be excluded
-
-        Object.keys(Metrics.Meta.exclude).forEach(function (key) {
-          return delete event.m[key];
-        }); // Set referral channel / context
+        // Object.keys(Metrics.Meta.exclude).forEach((key) => delete event.m[key]);
+        // ^ this is now done after flattening as an include-only model in v3.x+
+        // Set referral channel / context
 
         if (this.sourceCh) {
           event.m.ref_ch = this.sourceCh;
@@ -2011,6 +2019,11 @@ var okanjo = function (window, document) {
 
         event.m = okanjo.util.flatten(event.m, {
           arrayToCsv: true
+        }); // Only send allowed meta keys - rest will get stripped
+
+        var allowedKeys = new Set(Metrics.Meta.include);
+        Object.keys(event.m).forEach(function (key) {
+          if (!allowedKeys.has(key)) delete event.m[key];
         }); // Ensure metadata strings won't exceed the imposed limit
 
         Object.keys(event.m).forEach(function (key) {
@@ -2235,11 +2248,12 @@ var okanjo = function (window, document) {
   };
   /**
    * Event Metadata configuration
-   * @type {{exclude: [*]}}
+   * @type {{exclude: [*], include: [*]}}
    */
 
   Metrics.Meta = {
-    exclude: ['key', 'callback', 'metrics_channel_context', 'metrics_context', 'mode']
+    exclude: ['key', 'callback', 'metrics_channel_context', 'metrics_context', 'mode'],
+    include: ['decl', 'ex', 'ey', 'filters_sort_by', 'filters_sort_direction', 'filters_take', 'filters_type', 'filters_url', 'ok_ver', 'ph', 'pw', 'pten', 'ptid', 'res_bf', 'res_length', 'res_sf', 'res_spltfl', 'res_type', 'bf', 'sf', 'spltfl_seg', 'vx1', 'vx2', 'vy1', 'vy2', 'pgid', 'wgid', 'wix1', 'wix2', 'wiy1', 'wiy2', 'wox1', 'wox2', 'woy1', 'woy2', 'wrps', 'x1', 'x2', 'y1', 'y2', 'cid', 'campaign_id', 'expandable', 'res_total']
   };
   /**
    * Event Types
@@ -2593,7 +2607,7 @@ var okanjo = function (window, document) {
 
       _this7 = _super.call(this); // Verify element was given (we can't load unless we have one)
 
-      if (!element || element === null || element.nodeType === undefined) {
+      if (!element || typeof element.nodeType === "undefined") {
         okanjo.report('Invalid or missing element on widget construction', {
           widget: _assertThisInitialized(_this7),
           element: element,
@@ -2778,7 +2792,7 @@ var okanjo = function (window, document) {
         }));
       }
       /**
-       * Sets the markup of the widget's element
+       * Replaces the markup of the widget's element
        * @param markup
        */
 
@@ -3102,7 +3116,8 @@ var okanjo = function (window, document) {
       _this10.name = 'Placement';
       _this10._metricBase = {}; // placeholder for metrics
 
-      _this10._response = null; // Aggregate view watchers into a single interval fn
+      _this10._response = null; // placeholder for api response
+      // Aggregate view watchers into a single interval fn
 
       _this10._viewWatcherIv = null;
       _this10._viewedWatchers = []; // Start loading content
@@ -3199,7 +3214,7 @@ var okanjo = function (window, document) {
           // don't automatically include stylesheets
           verbose_click_data: bool().strip()["default"](false),
           // when enabled, sends ok_msid, ok_ch, ok_cx, _okjr to the destination url
-          utm_click_data: bool().strip()["default"](true),
+          utm_click_data: bool().strip()["default"](false),
           // when enabled, sends url_source, utm_campaign, and utm_medium to the destination url
           proxy_url: string().strip(),
           expandable: bool().strip()["default"](true),
@@ -3351,24 +3366,39 @@ var okanjo = function (window, document) {
       value: function _reportWidgetLoad(declined) {
         var _this13 = this;
 
-        var res = this._response || {};
-        var data = res.data || {
-          results: []
-        }; // If this is declined, mark future events as declined too
+        var segments = this._getResponseData(); // widget stats now aggregate all segments
+
+
+        var backfilled = segments.find(function (s) {
+          return s.backfilled;
+        }) ? 1 : 0,
+            shortfilled = segments.find(function (s) {
+          return s.shortfilled;
+        }) ? 1 : 0,
+            splitfilled = segments.length > 1 ? 1 : 0,
+            res_total = segments.reduce(function (a, c) {
+          return a + (c.total || 0);
+        }, 0),
+            res_length = segments.reduce(function (a, c) {
+          return a + (c.results && c.results.length || 0);
+        }, 0),
+            res_types = Array.from(new Set(segments.map(function (s) {
+          return s.type;
+        }))); // If this is declined, mark future events as declined too
 
         this._metricBase.m.decl = declined || '0'; // Attach other main response attributes to all future events
 
-        this._metricBase.m.res_bf = data.backfilled ? 1 : 0; // whether the response used the back fill flow
+        this._metricBase.m.res_bf = backfilled; // whether the response used the backfill flow
 
-        this._metricBase.m.res_sf = data.shortfilled ? 1 : 0; // whether the response used the short fill flow
+        this._metricBase.m.res_sf = shortfilled; // whether the response used the shortfill flow
 
-        this._metricBase.m.res_spltfl = data.splitfilled ? 1 : 0; // whether the response used the short fill flow
+        this._metricBase.m.res_spltfl = splitfilled; // whether the response used the splitfill flow
 
-        this._metricBase.m.res_total = data.total || 0; // how many total candidate results were available given filters
+        this._metricBase.m.res_total = res_total; // how many total candidate results were available given filters
 
-        this._metricBase.m.res_type = data.type; // what the given resource type was
+        this._metricBase.m.res_type = res_types.length > 1 ? Placement.ContentTypes.mixed : res_types[0]; // what the given resource type was
 
-        this._metricBase.m.res_length = data.results.length; // number of resources delivered
+        this._metricBase.m.res_length = res_length; // number of resources delivered
         // Track impression
 
         okanjo.metrics.create(this._metricBase).type(Metrics.Object.widget, Metrics.Event.impression).meta(this.getConfig()).element(this.element) // this might not be all that useful cuz the content hasn't been rendered yet
@@ -3423,6 +3453,18 @@ var okanjo = function (window, document) {
         });
       }
       /**
+       * Extracts the response data from the payload (segments)
+       * @returns {*[]}
+       * @private
+       */
+
+    }, {
+      key: "_getResponseData",
+      value: function _getResponseData() {
+        var res = this._response;
+        return [].concat(res && res.data || [{}]); // will force the old response data into an array
+      }
+      /**
        * Applies response filters and display settings into the widget configuration
        * @private
        */
@@ -3432,8 +3474,10 @@ var okanjo = function (window, document) {
       value: function _mergeResponseSettings() {
         var _this15 = this;
 
-        var res = this._response;
-        var data = res.data || {};
+        // Apply the base segment settings as the main widget display settings
+        var data = this._getResponseData()[0]; // Merge the base results
+
+
         var settings = data.settings || {};
 
         if (settings.filters) {
@@ -3457,7 +3501,8 @@ var okanjo = function (window, document) {
       key: "_updateBaseMetaFromResponse",
       value: function _updateBaseMetaFromResponse() {
         // Update the base metric data with info from the response
-        var data = (this._response || {}).data || {};
+        // SmartServe can now return an array of result objects
+        var data = this._getResponseData()[0] || {};
         this._metricBase.m = this._metricBase.m || {};
         var meta = this._metricBase.m; // Article
 
@@ -3479,27 +3524,81 @@ var okanjo = function (window, document) {
     }, {
       key: "_showContent",
       value: function _showContent() {
-        var data = (this._response || {}).data || {}; // Known content types we can display
+        var segments = this._getResponseData(); // 1. Render each segment to list html, store in array
+        // 2a. If array is empty, handle empty decline
+        // 2b. If not empty, render container html passing contents to embed
+        // 3. Set markup to final container render
+        // 4. Do follow-up event binding and cleanup stuff
+        // If there are multiple segments, force responsive slab template for now
 
-        if (data.type === Placement.ContentTypes.products) {
-          this._showProducts();
-        } else if (data.type === Placement.ContentTypes.articles) {
-          this._showArticles();
-        } else if (data.type === Placement.ContentTypes.adx) {
-          this._showADX();
-        } else {
-          // Unknown response type!
-          // Report the widget load as declined
-          var msg = 'Unknown response content type: ' + data.type;
-          okanjo.report(msg, {
-            placement: this
-          });
-          this.setMarkup(''); // Don't show anything
 
-          this.emit('error', msg);
+        if (segments.length > 1) {
+          this.config.template_name = 'slab';
+          this.config.size = 'responsive';
+        } // Assemble list contents
 
-          this._reportWidgetLoad(msg);
-        }
+
+        var renderedSegments = [];
+
+        for (var segment, i = 0; i < segments.length; i++) {
+          segment = segments[i]; // Known content types we can display
+
+          if (segment.type === Placement.ContentTypes.products) {
+            renderedSegments.push(this._renderProductSegment(segment, i));
+          } else if (segment.type === Placement.ContentTypes.articles) {
+            renderedSegments.push(this._renderArticleSegment(segment, i));
+          } else if (segment.type === Placement.ContentTypes.adx) {
+            renderedSegments.push(this._renderADXSegment(segment, i));
+          } else {
+            // Unknown response type!
+            // Report the widget load as declined
+            var msg = 'Unknown response content type: ' + segment.type;
+            okanjo.report(msg, {
+              placement: this
+            }); // this.setMarkup(''); // Don't show anything
+
+            this.emit('error', msg); // this._reportWidgetLoad(msg);
+          }
+        } // Filter empty segments
+        // console.log('rendered segs', renderedSegments)
+
+
+        renderedSegments = renderedSegments.filter(function (html) {
+          return !!html;
+        }); // No segments? Decline
+
+        if (renderedSegments.length === 0) {
+          this.emit('empty');
+
+          this._reportWidgetLoad('empty'); // decline the impression
+
+
+          return;
+        } // Render the container and insert the markup
+
+
+        var model = {
+          css: !this.config.no_css,
+          segmentContent: renderedSegments.join('')
+        };
+
+        var templateName = this._getTemplate(Placement.ContentTypes.container, Placement.DefaultTemplates.container);
+
+        this.setMarkup(okanjo.ui.engine.render(templateName, this, model)); // Report load
+
+        this._reportWidgetLoad(); // Handle resource post-render events
+
+
+        this._postProductRender();
+
+        this._postArticleRender();
+
+        this._postADXRender(); // Fit images
+
+
+        okanjo.ui.fitImages(this.element); // Hook point that the widget is done loading
+
+        this.emit('load');
       }
       /**
        * Generates the click url using the event, proxy_url, and additional params
@@ -3568,7 +3667,7 @@ var okanjo = function (window, document) {
         }).meta({
           bf: resource.backfill ? 1 : 0,
           sf: resource.shortfill ? 1 : 0,
-          spltfl_seg: resource.splitfill_segment || null
+          spltfl_seg: okanjo.util.ifDefined(resource.splitfill_segment)
         }).event(e).element(e.currentTarget).viewport().widget(this.element); // Pull the proper params out of the resource depending on it's type
 
         var trackParam = 'url_track_param';
@@ -3771,25 +3870,20 @@ var okanjo = function (window, document) {
       //region Product Handling
 
       /**
-       * Renders a product response
+       * Renders a product segment
+       * @param data SmartServe segment data
+       * @param segmentIndex Segment index number
+       * @returns {string} Rendered segment HTML
        * @private
        */
 
     }, {
-      key: "_showProducts",
-      value: function _showProducts() {
+      key: "_renderProductSegment",
+      value: function _renderProductSegment(data, segmentIndex) {
         var _this16 = this;
 
-        var data = (this._response || {
-          data: {
-            results: []
-          }
-        }).data || {
-          results: []
-        }; // Determine template to render, using custom template name if it exists
-
-        var templateName = this._getTemplate(Placement.ContentTypes.products, Placement.DefaultTemplates.products); // - render
-        // Format products
+        // Determine template to render, using custom template name if it exists
+        var templateName = this._getTemplate(Placement.ContentTypes.products, Placement.DefaultTemplates.products); // Format products
 
 
         data.results.forEach(function (offer, index) {
@@ -3803,74 +3897,80 @@ var okanjo = function (window, document) {
 
           offer._price_formatted = TemplateEngine.formatCurrency(offer.price);
           offer._index = index;
+          offer.splitfill_segment = segmentIndex;
+          offer._segmentIndex = segmentIndex;
         });
         var model = {
+          resources: data.results,
           css: !this.config.no_css
-        }; // Render and display the results
+        }; // Render and return html (will get concatenated later)
 
-        this.setMarkup(okanjo.ui.engine.render(templateName, this, model)); // Detect broken images
+        return okanjo.ui.engine.render(templateName, this, model);
+      }
+      /**
+       * Handles post-render events for product resources
+       * @private
+       */
 
-        this.element.querySelectorAll('.okanjo-resource-image').forEach(function (img) {
+    }, {
+      key: "_postProductRender",
+      value: function _postProductRender() {
+        var _this17 = this;
+
+        // Detect broken images
+        this.element.querySelectorAll('.okanjo-product .okanjo-resource-image').forEach(function (img) {
           img.addEventListener('error', function () {
             img.src = okanjo.ui.inlineSVG(okanjo.ui.productSVG());
             console.error('[okanjo] Failed to load product image: ' + img.getAttribute('data-id')); // TODO: notify of resource failure
           });
-        }); // Track widget impression
+        }); // Bind interaction handlers and track impressions
 
-        if (data.results.length === 0) {
-          // Hook point for no results found
-          this.emit('empty');
+        var segments = this._getResponseData();
 
-          this._reportWidgetLoad('empty'); // decline the impression
-
-        } else {
-          this._reportWidgetLoad();
-        } // Bind interaction handlers and track impressions
-
-
-        this.element.querySelectorAll('a').forEach(function (a) {
+        this.element.querySelectorAll('.okanjo-product > a').forEach(function (a) {
           var id = a.getAttribute('data-id'),
-              index = a.getAttribute('data-index'); // Don't bind links that are not tile links
+              segment = parseInt(a.getAttribute('data-segment')),
+              index = parseInt(a.getAttribute('data-index')); // Don't bind links that are not tile links
 
           /* istanbul ignore else: custom templates could break it */
 
-          if (id && index >= 0) {
-            var product = _this16._response.data.results[index];
+          if (id && index >= 0 && segment >= 0) {
+            var data = segments[segment];
+            /* istanbul ignore if: custom templates could break it */
+
+            if (!data) return;
+            var product = data.results[index];
             /* istanbul ignore else: custom templates could break it */
 
             if (product) {
               // Bind interaction listener
-              a.addEventListener('mousedown', _this16._handleResourceMouseDown.bind(_this16, Metrics.Object.product, product));
-              a.addEventListener('click', _this16._handleProductClick.bind(_this16, product)); // Track impression
+              a.addEventListener('mousedown', _this17._handleResourceMouseDown.bind(_this17, Metrics.Object.product, product));
+              a.addEventListener('click', _this17._handleProductClick.bind(_this17, product)); // Track impression
 
-              okanjo.metrics.create(_this16._metricBase, {
+              okanjo.metrics.create(_this17._metricBase, {
                 id: product.id
-              }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this16.getConfig()).meta({
+              }).type(Metrics.Object.product, Metrics.Event.impression).meta(_this17.getConfig()).meta({
                 bf: product.backfill ? 1 : 0,
                 sf: product.shortfill ? 1 : 0,
-                spltfl_seg: product.splitfill_segment || null
-              }).element(a).viewport().widget(_this16.element).send(); // Start watching for a viewable impression
+                spltfl_seg: okanjo.util.ifDefined(product.splitfill_segment)
+              }).element(a).viewport().widget(_this17.element).send(); // Start watching for a viewable impression
 
-              _this16._addOnceViewedHandler(a, function () {
-                okanjo.metrics.create(_this16._metricBase, {
+              _this17._addOnceViewedHandler(a, function () {
+                okanjo.metrics.create(_this17._metricBase, {
                   id: product.id
-                }).type(Metrics.Object.product, Metrics.Event.view).meta(_this16.getConfig()).meta({
+                }).type(Metrics.Object.product, Metrics.Event.view).meta(_this17.getConfig()).meta({
                   bf: product.backfill ? 1 : 0,
                   sf: product.shortfill ? 1 : 0,
-                  spltfl_seg: product.splitfill_segment || null
-                }).element(a).viewport().widget(_this16.element).send();
+                  spltfl_seg: okanjo.util.ifDefined(product.splitfill_segment)
+                }).element(a).viewport().widget(_this17.element).send();
               });
             }
           }
         }); // Truncate product name to fit the space
 
-        this.element.querySelectorAll('.okanjo-resource-title').forEach(function (element) {
+        this.element.querySelectorAll('.okanjo-product .okanjo-resource-title').forEach(function (element) {
           okanjo.ui.ellipsify(element);
-        }); // Fit images
-
-        okanjo.ui.fitImages(this.element); // Hook point that the widget is done loading
-
-        this.emit('load');
+        });
       }
       /**
        * Handles the product click process
@@ -3985,23 +4085,17 @@ var okanjo = function (window, document) {
       //region Article Handling
 
       /**
-       * Renders an article response
+       * Renders an article segment
+       * @param data SmartServe segment data
+       * @param segmentIndex Segment index number
+       * @returns {string} Rendered segment HTML
        * @private
        */
 
     }, {
-      key: "_showArticles",
-      value: function _showArticles() {
-        var _this17 = this;
-
-        var data = (this._response || {
-          data: {
-            results: []
-          }
-        }).data || {
-          results: []
-        }; // Determine template to render, using custom template name if it exists
-
+      key: "_renderArticleSegment",
+      value: function _renderArticleSegment(data, segmentIndex) {
+        // Determine template to render, using custom template name if it exists
         var templateName = this._getTemplate(Placement.ContentTypes.articles, Placement.DefaultTemplates.articles); // - render
         // Format articles
 
@@ -4010,74 +4104,80 @@ var okanjo = function (window, document) {
           // Escape url (fixme: does not include proxy_url!)
           article._escaped_url = encodeURIComponent(article.url);
           article._index = index;
+          article.splitfill_segment = segmentIndex;
+          article._segmentIndex = segmentIndex;
         });
         var model = {
+          resources: data.results,
           css: !this.config.no_css
-        }; // Render and display the results
+        }; // Render and return html (will get concatenated later)
 
-        this.setMarkup(okanjo.ui.engine.render(templateName, this, model)); // Detect broken images
+        return okanjo.ui.engine.render(templateName, this, model);
+      }
+      /**
+       * Handles post-render events for article resources
+       * @private
+       */
 
-        this.element.querySelectorAll('.okanjo-resource-image').forEach(function (img) {
+    }, {
+      key: "_postArticleRender",
+      value: function _postArticleRender() {
+        var _this18 = this;
+
+        // Detect broken images
+        this.element.querySelectorAll('.okanjo-article .okanjo-resource-image').forEach(function (img) {
           img.addEventListener('error', function () {
             img.src = okanjo.ui.inlineSVG(okanjo.ui.articleSVG());
             console.error('[okanjo] Failed to load article image: ' + img.getAttribute('data-id')); // TODO: notify of resource failure
           });
-        }); // Track widget impression
+        }); // Bind interaction handlers and track impressions
 
-        if (data.results.length === 0) {
-          // Hook point for no results found
-          this.emit('empty');
+        var segments = this._getResponseData();
 
-          this._reportWidgetLoad('empty'); // decline the impression
-
-        } else {
-          this._reportWidgetLoad();
-        } // Bind interaction handlers and track impressions
-
-
-        this.element.querySelectorAll('a').forEach(function (a) {
+        this.element.querySelectorAll('.okanjo-article > a').forEach(function (a) {
           var id = a.getAttribute('data-id'),
-              index = a.getAttribute('data-index'); // Don't bind links that are not tile links
+              segment = parseInt(a.getAttribute('data-segment')),
+              index = parseInt(a.getAttribute('data-index')); // Don't bind links that are not tile links
 
           /* istanbul ignore else: custom templates could break this */
 
-          if (id && index >= 0) {
-            var article = _this17._response.data.results[index];
+          if (id && index >= 0 && segment >= 0) {
+            var data = segments[segment];
+            /* istanbul ignore if: custom templates could break it */
+
+            if (!data) return;
+            var article = data.results[index];
             /* istanbul ignore else: custom templates could break this */
 
             if (article) {
               // Bind interaction listener
-              a.addEventListener('mousedown', _this17._handleResourceMouseDown.bind(_this17, Metrics.Object.article, article));
-              a.addEventListener('click', _this17._handleArticleClick.bind(_this17, article)); // Track impression
+              a.addEventListener('mousedown', _this18._handleResourceMouseDown.bind(_this18, Metrics.Object.article, article));
+              a.addEventListener('click', _this18._handleArticleClick.bind(_this18, article)); // Track impression
 
-              okanjo.metrics.create(_this17._metricBase, {
+              okanjo.metrics.create(_this18._metricBase, {
                 id: article.id
-              }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this17.getConfig()).meta({
+              }).type(Metrics.Object.article, Metrics.Event.impression).meta(_this18.getConfig()).meta({
                 bf: article.backfill ? 1 : 0,
                 sf: article.shortfill ? 1 : 0,
-                spltfl_seg: article.splitfill_segment || null
-              }).element(a).viewport().widget(_this17.element).send(); // Start watching for a viewable impression
+                spltfl_seg: okanjo.util.ifDefined(article.splitfill_segment)
+              }).element(a).viewport().widget(_this18.element).send(); // Start watching for a viewable impression
 
-              _this17._addOnceViewedHandler(a, function () {
-                okanjo.metrics.create(_this17._metricBase, {
+              _this18._addOnceViewedHandler(a, function () {
+                okanjo.metrics.create(_this18._metricBase, {
                   id: article.id
-                }).type(Metrics.Object.article, Metrics.Event.view).meta(_this17.getConfig()).meta({
+                }).type(Metrics.Object.article, Metrics.Event.view).meta(_this18.getConfig()).meta({
                   bf: article.backfill ? 1 : 0,
                   sf: article.shortfill ? 1 : 0,
-                  spltfl_seg: article.splitfill_segment || null
-                }).element(a).viewport().widget(_this17.element).send();
+                  spltfl_seg: okanjo.util.ifDefined(article.splitfill_segment)
+                }).element(a).viewport().widget(_this18.element).send();
               });
             }
           }
         }); // Truncate product name to fit the space
 
-        this.element.querySelectorAll('.okanjo-resource-title').forEach(function (element) {
+        this.element.querySelectorAll('.okanjo-article .okanjo-resource-title').forEach(function (element) {
           okanjo.ui.ellipsify(element);
-        }); // Fit images
-
-        okanjo.ui.fitImages(this.element); // Hook point that the widget is done loading
-
-        this.emit('load');
+        });
       }
       /**
        * Handles the article click process
@@ -4105,23 +4205,17 @@ var okanjo = function (window, document) {
       //region ADX Handling
 
       /**
-       * Renders a Google DFP/ADX response
+       * Renders a DFP/ADX/GPT segment
+       * @param data SmartServe segment data
+       * @param segmentIndex Segment index number
+       * @returns {string} Rendered segment HTML
        * @private
        */
 
     }, {
-      key: "_showADX",
-      value: function _showADX() {
-        var _this18 = this;
-
-        var data = (this._response || {
-          data: {
-            settings: {}
-          }
-        }).data || {
-          settings: {}
-        }; // Get the template we should use to render the google ad
-
+      key: "_renderADXSegment",
+      value: function _renderADXSegment(data, segmentIndex) {
+        // Get the template we should use to render the google ad
         var templateName = this._getTemplate(Placement.ContentTypes.adx, Placement.DefaultTemplates.adx); // Determine what size ad we can place here
 
 
@@ -4147,31 +4241,51 @@ var okanjo = function (window, document) {
         if (!size) size = Placement.Sizes["default"]; // If we're using okanjo's ad slot, then track the impression
         // otherwise decline it because we're just passing through to the publishers account
 
-        var adUnitPath = '/90447967/okanjo:<publisher>';
-        var declineReason;
+        var adUnitPath = '/90447967/okanjo:<publisher>'; // let declineReason;
 
         if (data.settings.display && data.settings.display.adx_unit_path) {
-          adUnitPath = data.settings.display.adx_unit_path;
-          declineReason = 'custom_ad_unit';
+          adUnitPath = data.settings.display.adx_unit_path; // declineReason = 'custom_ad_unit';
         } // Pass along what the template needs to know to display the ad
 
 
         var renderContext = {
           css: !this.config.no_css,
           size: size,
-          adUnitPath: adUnitPath
+          adUnitPath: adUnitPath,
+          segmentIndex: segmentIndex
         }; // Render the container
 
-        this.setMarkup(okanjo.ui.engine.render(templateName, this, renderContext)); // Report the impression
+        return okanjo.ui.engine.render(templateName, this, renderContext);
+      }
+      /**
+       * Handles post-render events for DFP/ADX/GPT resources
+       * @private
+       */
 
-        this._reportWidgetLoad(declineReason); // Insert the actual ad into the container
+    }, {
+      key: "_postADXRender",
+      value: function _postADXRender() {
+        var _this19 = this;
 
+        // Insert the actual ads into their containers
+        var segments = this._getResponseData();
 
-        var container = this.element.querySelector('.okanjo-adx-container');
-        /* istanbul ignore else: custom templates could break this */
+        this.element.querySelectorAll('.okanjo-adx .okanjo-adx-container').forEach(function (container) {
+          var path = container.getAttribute('data-path'),
+              segment = parseInt(container.getAttribute('data-segment')),
+              width = parseInt(container.getAttribute('data-width')),
+              height = parseInt(container.getAttribute('data-height'));
+          var data = segments[segment];
+          /* istanbul ignore if: custom templates could break it */
 
-        if (container) {
-          // Make the frame element
+          if (!data) return;
+          var meta = {
+            ta_s: path,
+            ta_w: width,
+            ta_h: height,
+            spltfl_seg: okanjo.util.ifDefined(segment)
+          }; // Make the frame element
+
           var frame = document.createElement('iframe');
           var attributes = {
             'class': 'okanjo-adx-frame',
@@ -4182,53 +4296,40 @@ var okanjo = function (window, document) {
             mozallowfullscreen: '',
             allowfullscreen: '',
             scrolling: 'auto',
-            width: size.width,
-            height: size.height
+            width: width,
+            height: height
           }; // Apply attributes
 
           Object.keys(attributes).forEach(function (key) {
             return frame.setAttribute(key, attributes[key]);
-          }); // Attach to dOM
+          }); // Hold a ref to the frame for later
 
-          container.appendChild(frame); // Build a click-through tracking url so we know when an ad is clicked too
+          data._frame = frame; // Attach to DOM
 
-          var clickUrl = okanjo.metrics.create(this._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.interaction).meta(this.getConfig()).meta({
-            ta_s: adUnitPath,
-            ta_w: size.width,
-            ta_h: size.height
-          }).element(frame).viewport().widget(this.element).toUrl(); // Transfer references to the frame window
+          container.appendChild(frame); // Build a click-through tracking url, so we know when an ad is clicked too
+
+          var clickUrl = okanjo.metrics.create(_this19._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.interaction).meta(_this19.getConfig()).meta(meta).element(frame).viewport().widget(_this19.element).toUrl(); // Transfer references to the frame window
           // frame.contentWindow.okanjo = okanjo;
           // frame.contentWindow.placement = this;
 
           frame.contentWindow.trackImpression = function () {
-            okanjo.metrics.create(_this18._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.impression).meta(_this18.getConfig()).meta({
-              ta_s: adUnitPath,
-              ta_w: size.width,
-              ta_h: size.height
-            }).element(frame).viewport().widget(_this18.element).send(); // Start watching for a viewable impression
+            okanjo.metrics.create(_this19._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.impression).meta(_this19.getConfig()).meta(meta).element(frame).viewport().widget(_this19.element).send(); // Start watching for a viewable impression
 
-            _this18._addOnceViewedHandler(frame, function () {
-              okanjo.metrics.create(_this18._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.view).meta(_this18.getConfig()).meta({
-                ta_s: adUnitPath,
-                ta_w: size.width,
-                ta_h: size.height
-              }).element(frame).viewport().widget(_this18.element).send();
+            _this19._addOnceViewedHandler(frame, function () {
+              okanjo.metrics.create(_this19._metricBase).type(Metrics.Object.thirdparty_ad, Metrics.Event.view).meta(_this19.getConfig()).meta(meta).element(frame).viewport().widget(_this19.element).send();
             });
           }; // Load Google ad!
           // See: https://developers.google.com/publisher-tag/reference#googletag.events.SlotRenderEndedEvent
 
 
           frame.contentWindow.document.open();
-          frame.contentWindow.document.write("<html><head><style type=\"text/css\">html,body {margin: 0; padding: 0;}</style></head><body><div id=\"gpt-passback\">\n<" + "script type=\"text/javascript\" src=\"https://securepubads.g.doubleclick.net/tag/js/gpt.js\">\n    \n    window.googletag = window.googletag || {cmd: []};\n    googletag.cmd.push(function() {\n        \n        // Define the slot\n        googletag.defineSlot(\"".concat(adUnitPath.replace(/"/g, '\\"'), "\", [[").concat(size.width, ", ").concat(size.height, "]], 'gpt-passback')\n            .setClickUrl(\"").concat(clickUrl, "&u=\")     // Track click event on the okanjo side\n            .addService(googletag.pubads())    // Service the ad\n        ;\n        \n        // Track load/view events\n        googletag.pubads().addEventListener('slotRenderEnded', function(e) { \n            trackImpression(e);\n        });\n        \n        // Go time\n        googletag.enableServices();\n        googletag.display('gpt-passback');\n    });\n    \n<") + "/script></div>\n</body></html>");
+          frame.contentWindow.document.write("<html><head><style type=\"text/css\">html,body {margin: 0; padding: 0;}</style></head><body><div id=\"gpt-passback\">\n<" + "script type=\"text/javascript\" src=\"https://securepubads.g.doubleclick.net/tag/js/gpt.js\">\n    \n    window.googletag = window.googletag || {cmd: []};\n    googletag.cmd.push(function() {\n        \n        // Define the slot\n        googletag.defineSlot(\"".concat(path.replace(/"/g, '\\"'), "\", [[").concat(width, ", ").concat(height, "]], 'gpt-passback')\n            .setClickUrl(\"").concat(clickUrl, "&u=\")     // Track click event on the okanjo side\n            .addService(googletag.pubads())    // Service the ad\n        ;\n        \n        // Track load/view events\n        googletag.pubads().addEventListener('slotRenderEnded', function(e) { \n            trackImpression(e);\n        });\n        \n        // Go time\n        googletag.enableServices();\n        googletag.display('gpt-passback');\n    });\n    \n<") + "/script></div>\n</body></html>");
           frame.contentWindow.document.close(); // TODO future event hooks
           // googletag.pubads().addEventListener('impressionViewable', function(e) { future )});
           // googletag.pubads().addEventListener('slotOnload', function(e) { future });
           // googletag.pubads().addEventListener('slotVisibilityChangedEvent', function(e) { future );
           // Impression tracking is done from within the iframe. Crazy, right?
-        } // Hook point that the widget is done loading
-
-
-        this.emit('load');
+        });
       } //endregion
 
     }]);
@@ -4352,23 +4453,31 @@ var okanjo = function (window, document) {
   Placement.Sizes["default"] = Placement.Sizes.medium_rectangle;
   /**
    * Placement content types
-   * @type {{products: string, articles: string, adx: string}}
+   * @type {{adx: string, articles: string, products: string, mixed: string, container: string}}
    */
 
   Placement.ContentTypes = {
     products: 'products',
+    // only products
     articles: 'articles',
-    adx: 'adx'
+    // only articles
+    adx: 'adx',
+    // only display ad
+    mixed: 'mixed',
+    // mix of two or more of the above (used for metrics responses, not a template)
+    container: 'container' // Widget container - segment content gets rendered into this one at the end
+
   };
   /**
    * Default templates for each content type
-   * @type {{products: string, articles: string, adx: string}}
+   * @type {{products: string, articles: string, adx: string, container: string}}
    */
 
   Placement.DefaultTemplates = {
     products: 'block2',
     articles: 'block2',
-    adx: 'block2'
+    adx: 'block2',
+    container: 'block2'
   }; //endregion
 
   return okanjo.Placement = Placement;
@@ -4391,7 +4500,7 @@ var okanjo = function (window, document) {
     var _super3 = _createSuper(Product);
 
     function Product(element, options) {
-      var _this19;
+      var _this20;
 
       _classCallCheck(this, Product);
 
@@ -4400,18 +4509,18 @@ var okanjo = function (window, document) {
       var no_init = options.no_init; // hold original no_init flag, if set
 
       options.no_init = true;
-      _this19 = _super3.call(this, element, options);
+      _this20 = _super3.call(this, element, options);
       okanjo.warn('Product widget has been deprecated. Use Placement instead (may require configuration changes)', {
-        widget: _assertThisInitialized(_this19)
+        widget: _assertThisInitialized(_this20)
       }); // Start loading content
 
       if (!no_init) {
-        delete _this19.config.no_init;
+        delete _this20.config.no_init;
 
-        _this19.init();
+        _this20.init();
       }
 
-      return _this19;
+      return _this20;
     } //noinspection JSUnusedGlobalSymbols
 
     /**
@@ -4496,7 +4605,7 @@ var okanjo = function (window, document) {
     var _super4 = _createSuper(Ad);
 
     function Ad(element, options) {
-      var _this20;
+      var _this21;
 
       _classCallCheck(this, Ad);
 
@@ -4505,18 +4614,18 @@ var okanjo = function (window, document) {
       var no_init = options.no_init; // hold original no_init flag, if set
 
       options.no_init = true;
-      _this20 = _super4.call(this, element, options);
+      _this21 = _super4.call(this, element, options);
       okanjo.warn('Ad widget has been deprecated. Use Placement instead (may require configuration changes)', {
-        widget: _assertThisInitialized(_this20)
+        widget: _assertThisInitialized(_this21)
       }); // Start loading content
 
       if (!no_init) {
-        delete _this20.config.no_init;
+        delete _this21.config.no_init;
 
-        _this20.init();
+        _this21.init();
       }
 
-      return _this20;
+      return _this21;
     } //noinspection JSUnusedGlobalSymbols
 
     /**
@@ -5316,13 +5425,13 @@ var okanjo = function (window, document) {
 return okanjo;
 }));
 
-/*! okanjo-js v2.4.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v3.0.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {(function (window) {
   var okanjo = window.okanjo;
-  okanjo.ui.engine.registerCss("adx.block2", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-align-start{display:flex;align-items:flex-start}.okanjo-align-end{display:flex;align-items:flex-end}.okanjo-align-center{display:flex;align-items:center}.okanjo-align-baseline{display:flex;align-items:baseline}.okanjo-align-stretch{display:flex;align-items:stretch}.okanjo-justify-start{display:flex;justify-content:flex-start}.okanjo-justify-end{display:flex;justify-content:flex-end}.okanjo-justify-center{display:flex;justify-content:center}.okanjo-justify-between{display:flex;justify-content:space-between}.okanjo-justify-around{display:flex;justify-content:space-around}.okanjo-justify-evenly{display:flex;justify-content:space-evenly}.okanjo-block2.okanjo-adx{padding:0}.okanjo-block2.okanjo-adx:after,.okanjo-block2.okanjo-adx:before{content:\" \";display:table}.okanjo-block2.okanjo-adx:after{clear:both}.okanjo-block2.okanjo-adx .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-adx .okanjo-adx-container{text-align:center;padding:0}.okanjo-block2.okanjo-adx .okanjo-adx-frame{margin:0}", {
+  okanjo.ui.engine.registerCss("adx.block2", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-align-start{display:flex;align-items:flex-start}.okanjo-align-end{display:flex;align-items:flex-end}.okanjo-align-center{display:flex;align-items:center}.okanjo-align-baseline{display:flex;align-items:baseline}.okanjo-align-stretch{display:flex;align-items:stretch}.okanjo-justify-start{display:flex;justify-content:flex-start}.okanjo-justify-end{display:flex;justify-content:flex-end}.okanjo-justify-center{display:flex;justify-content:center}.okanjo-justify-between{display:flex;justify-content:space-between}.okanjo-justify-around{display:flex;justify-content:space-around}.okanjo-justify-evenly{display:flex;justify-content:space-evenly}.okanjo-block2 .okanjo-adx{padding:0}.okanjo-block2 .okanjo-adx:after,.okanjo-block2 .okanjo-adx:before{content:\" \";display:table}.okanjo-block2 .okanjo-adx:after{clear:both}.okanjo-block2 .okanjo-adx .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2 .okanjo-adx .okanjo-adx-container{text-align:center;padding:0;line-height:0}.okanjo-block2 .okanjo-adx .okanjo-adx-frame{margin:0}", {
     id: 'okanjo-adx-block2'
   });
-  okanjo.ui.engine.registerTemplate("adx.block2", "<div class=\"okanjo-block2 okanjo-adx {{classDetects}}\"><div class=\"okanjo-adx-container okanjo-expansion-root\" data-size={{size.width}}x{{size.height}}></div><div class=okanjo-visually-hidden><img src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div>", function (model) {
+  okanjo.ui.engine.registerTemplate("adx.block2", "<div class=\"okanjo-resource okanjo-adx\"><div class=okanjo-adx-container data-size={{size.width}}x{{size.height}} data-width={{size.width}} data-height={{size.height}} data-path={{adUnitPath}} data-segment={{segmentIndex}}></div><div class=okanjo-visually-hidden><img alt=\"\" src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div>", function (model) {
     // Attach required properties
     model.config = this.config;
     model.instanceId = this.instanceId;
@@ -5338,16 +5447,8 @@ return okanjo;
   okanjo.ui.engine.registerCss("articles.block2", ".okanjo-block2 .okanjo-article.okanjo-cta-style-button .okanjo-resource-title-container{height:52px}.okanjo-block2 .okanjo-article .okanjo-resource-title-container.modern{height:44px}.okanjo-block2.leaderboard .okanjo-article .okanjo-resource-title-container{margin-top:2px;margin-bottom:4px}", {
     id: 'okanjo-article-block2'
   });
-  okanjo.ui.__article_block2 = "<div class=\"okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} theme-{{ template_theme }}{{^template_theme}}modern{{/template_theme}} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}\"><div class=okanjo-resource-list itemscope itemtype=http://schema.org/ItemList data-instance-id=\"{{ instanceId }}\">{{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }} {{#articles}}<div class=\"okanjo-resource okanjo-article {{#config}}{{ template_layout }}{{/config}}\" itemscope itemtype=http://schema.org/Article><a href=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\" data-id=\"{{ id }}\" data-index=\"{{ _index }}\" data-backfill=\"{{ backfill }}\" target=_blank itemprop=url title=\"Read More: {{ title }}\"><div class=okanjo-resource-image-container>{{#image}} <img class=\"okanjo-resource-image {{ fitImage }}\" src=\"{{ image }}\" title=\"{{ name }}\" itemprop=image data-id=\"{{ id }}\"> {{/image}} {{^image}} {{{fallbackSVG}}} {{/image}}</div><div class=okanjo-resource-info-container><div class=okanjo-resource-publisher-container itemprop=publisher itemscope itemtype=http://schema.org/Organization><span class=okanjo-resource-publisher itemprop=name title=\"{{ publisher_name }}\">{{ publisher_name }}{{^publisher_name}}&nbsp;{{/publisher_name}}</span></div><div class=okanjo-resource-title-container><span class=okanjo-resource-title itemprop=name>{{ title }}</span></div><div class=\"okanjo-resource-description-container okanjo-visually-hidden\"><div class=okanjo-resource-description itemprop=description>{{ description }}</div></div><div><div class=okanjo-resource-button-container><div class=okanjo-resource-cta-button><span>{{meta.cta_text}}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Read Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div><meta property=url itemprop=url content=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\"></div></div><div class=\"okanjo-resource-meta okanjo-visually-hidden\">{{#author}}<span itemprop=author>{{ author }}</span>{{/author}} {{#published}}<span itemprop=dateCreated>{{ published }}</span>{{/published}} <img src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div></a></div>{{/articles}}</div><div class=\"okanjo-resource-meta okanjo-visually-hidden\"></div></div>";
+  okanjo.ui.__article_block2 = "{{#resources}}<div class=\"okanjo-resource okanjo-article {{#config}}{{ template_layout }}{{/config}}\" itemscope itemtype=https://schema.org/Article><a href=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\" data-id=\"{{ id }}\" data-index=\"{{ _index }}\" data-segment=\"{{ _segmentIndex }}\" data-type=article data-backfill=\"{{ backfill }}\" target=_blank itemprop=url title=\"Read More: {{ title }}\"><div class=okanjo-resource-image-container>{{#image}} <img alt=\"\" class=\"okanjo-resource-image {{ fitImage }}\" src=\"{{ image }}\" title=\"{{ name }}\" itemprop=image data-id=\"{{ id }}\"> {{/image}} {{^image}} {{{fallbackSVG}}} {{/image}}</div><div class=okanjo-resource-info-container><div class=okanjo-resource-publisher-container itemprop=publisher itemscope itemtype=https://schema.org/Organization><span class=okanjo-resource-publisher itemprop=name title=\"{{ publisher_name }}\">{{ publisher_name }}{{^publisher_name}}&nbsp;{{/publisher_name}}</span></div><div class=okanjo-resource-title-container><span class=okanjo-resource-title itemprop=name>{{ title }}</span></div><div class=\"okanjo-resource-description-container okanjo-visually-hidden\"><div class=okanjo-resource-description itemprop=description>{{ description }}</div></div><div><div class=okanjo-resource-button-container><div class=okanjo-resource-cta-button><span>{{meta.cta_text}}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Read Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div><meta property=url itemprop=url content=\"//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}\"></div></div><div class=\"okanjo-resource-meta okanjo-visually-hidden\">{{#author}}<span itemprop=author>{{ author }}</span>{{/author}} {{#published}}<span itemprop=dateCreated>{{ published }}</span>{{/published}} <img alt=\"\" src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div></a></div>{{/resources}}";
   okanjo.ui.engine.registerTemplate("articles.block2", okanjo.ui.__article_block2, function (model) {
-    var data = (this._response || {
-      data: {
-        results: []
-      }
-    }).data || {
-      results: []
-    };
-    model.articles = data.results;
     model.config = this.config;
     model.instanceId = this.instanceId;
     model.metricChannel = this._metricBase.ch;
@@ -5377,20 +5478,13 @@ return okanjo;
   }); // Reuses block2 markup layout, extended css
 
   okanjo.ui.engine.registerTemplate("articles.slab", okanjo.ui.__article_block2, function (model) {
-    var data = (this._response || {
-      data: {
-        results: []
-      }
-    }).data || {
-      results: []
-    };
     model.blockClasses = ['okanjo-slab'];
-    model.articles = data.results;
     model.config = this.config;
     model.instanceId = this.instanceId;
     model.metricChannel = this._metricBase.ch;
     model.metricContext = this._metricBase.cx;
     model.metricParams = okanjo.net.request.stringify(this._metricBase);
+    model.fallbackSVG = okanjo.ui.articleSVG();
     model.fitImage = 'okanjo-fit'; // Enforce format restrictions
     // this._enforceLayoutOptions();
 
@@ -5410,6 +5504,14 @@ return okanjo;
   okanjo.ui.engine.registerCss("okanjo.block2", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-align-start{display:flex;align-items:flex-start}.okanjo-align-end{display:flex;align-items:flex-end}.okanjo-align-center{display:flex;align-items:center}.okanjo-align-baseline{display:flex;align-items:baseline}.okanjo-align-stretch{display:flex;align-items:stretch}.okanjo-justify-start{display:flex;justify-content:flex-start}.okanjo-justify-end{display:flex;justify-content:flex-end}.okanjo-justify-center{display:flex;justify-content:center}.okanjo-justify-between{display:flex;justify-content:space-between}.okanjo-justify-around{display:flex;justify-content:space-around}.okanjo-justify-evenly{display:flex;justify-content:space-evenly}.okanjo-block2{color:#333;font-size:12px/1.2;font-family:inherit}.okanjo-block2:after,.okanjo-block2:before{content:\" \";display:table}.okanjo-block2:after{clear:both}.okanjo-block2.theme-newsprint .okanjo-resource-seller-container{font-family:Georgia,serif}.okanjo-block2.theme-newsprint .okanjo-resource-title-container{font:13px/15px Georgia,serif}.okanjo-block2.theme-modern,.okanjo-block2.theme-newsprint .okanjo-resource-buy-button,.okanjo-block2.theme-newsprint .okanjo-resource-cta-button,.okanjo-block2.theme-newsprint .okanjo-resource-price-container{font-family:\"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif}.okanjo-block2 .okanjo-ellipses:after{content:\"...\"}.okanjo-block2 .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2 .okanjo-resource{display:block;float:left;background-color:#fff;box-sizing:content-box;width:148px;border:1px solid #e6e6e6;margin:0 -1px -1px 0}.okanjo-block2 .okanjo-resource:last-child{margin:0}.okanjo-block2 a{display:block;overflow:hidden;color:#333;text-decoration:none;padding:10px}.okanjo-block2 a:hover{color:inherit;text-decoration:none}.okanjo-block2 .okanjo-resource-image-container{float:left;overflow:hidden;text-align:center;vertical-align:middle;width:100%;height:128px;line-height:127px;margin:0 0 3px}.okanjo-block2 .okanjo-resource-image{max-width:100%;max-height:100%;border:none;vertical-align:middle}.okanjo-block2 .okanjo-resource-info-container{float:left;height:auto;width:100%}.okanjo-block2 .okanjo-resource-publisher-container,.okanjo-block2 .okanjo-resource-seller-container{color:#999;font-size:11px;line-height:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-block2 .okanjo-resource-title-container{overflow:hidden;margin-top:3px;margin-bottom:4px;font-weight:700;font-size:12px;line-height:14px;height:45px;word-wrap:break-word}.okanjo-block2 .okanjo-resource-title-container span{display:inline-block}.lt-ie8.okanjo-block2 .okanjo-resource-title-container span{display:inline;zoom:1}.okanjo-block2 .okanjo-resource-price-container{font-size:15px;line-height:1;margin-bottom:5px}.okanjo-block2 .okanjo-resource-buy-button,.okanjo-block2 .okanjo-resource-cta-button{color:#09f;font-size:12px;line-height:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.okanjo-block2 .okanjo-resource.list{width:298px;height:122px}.okanjo-block2 .okanjo-resource.list a{padding:11px}.okanjo-block2 .okanjo-resource.list .okanjo-resource-title-container{margin-top:4px;margin-bottom:6px}.okanjo-block2 .okanjo-resource.list .okanjo-resource-image-container{width:100px;height:100px;line-height:1px;margin:0 11px 0 0}.okanjo-block2 .okanjo-resource.list .okanjo-resource-info-container{height:auto;float:none}.okanjo-block2.okanjo-cta-style-button .okanjo-resource-title-container{height:30px}.okanjo-block2.okanjo-cta-style-button .okanjo-resource-buy-button,.okanjo-block2.okanjo-cta-style-button .okanjo-resource-cta-button{display:block;text-align:center;line-height:26px;padding:0 8px;border:1px solid #09f;border-radius:2px;transition:50ms}.okanjo-block2.okanjo-cta-style-button .okanjo-resource-buy-button:hover,.okanjo-block2.okanjo-cta-style-button .okanjo-resource-cta-button:hover{background:#09f;color:#fff}.okanjo-block2.okanjo-cta-style-button .okanjo-resource-buy-button:active,.okanjo-block2.okanjo-cta-style-button .okanjo-resource-cta-button:active{box-shadow:inset 0 3px 10px rgba(0,0,0,.15)}.okanjo-block2.medium_rectangle{width:300px;height:250px;overflow:hidden}.okanjo-block2.medium_rectangle .okanjo-resource{width:148px;height:248px}.okanjo-block2.medium_rectangle .okanjo-resource:first-child{width:149px;height:248px}.okanjo-block2.medium_rectangle .okanjo-resource.list{width:298px;height:123px}.okanjo-block2.medium_rectangle .okanjo-resource.list .okanjo-resource-image-container{width:100px;height:100px;line-height:1px}.okanjo-block2.medium_rectangle .okanjo-resource.list .okanjo-resource-info-container{height:auto;float:left;width:165px}.okanjo-block2.medium_rectangle .okanjo-resource.list:first-child{height:124px}.okanjo-block2.medium_rectangle .okanjo-resource.list:first-child a{padding-top:12px}.okanjo-block2.leaderboard{width:728px;height:90px;overflow:hidden}.okanjo-block2.leaderboard .okanjo-resource{width:241px;height:88px}.okanjo-block2.leaderboard .okanjo-resource:first-child{width:242px}.okanjo-block2.leaderboard .okanjo-resource a{padding:7px}.okanjo-block2.leaderboard .okanjo-resource .okanjo-resource-image-container{width:74px;height:74px;line-height:1px;margin:0 7px 0 0}.okanjo-block2.leaderboard .okanjo-resource .okanjo-resource-title-container{font-size:11px;line-height:13px;height:26px;margin-top:1px;margin-bottom:4px}.okanjo-block2.leaderboard .okanjo-resource .okanjo-resource-price-container{margin-bottom:3px}.okanjo-block2.leaderboard.theme-newsprint .okanjo-resource-title-container{font:bold 11px/13px Georgia,serif}.okanjo-block2.half_page{width:300px;height:600px;overflow:hidden}.okanjo-block2.half_page .okanjo-resource{height:118px}.okanjo-block2.half_page .okanjo-resource:nth-last-child(n+2){height:119px}.okanjo-block2.half_page .okanjo-resource .okanjo-resource-image-container{width:96px;height:96px}.okanjo-block2.half_page .okanjo-resource .okanjo-resource-title-container{margin-bottom:3px}.okanjo-block2.large_mobile_banner{width:320px;height:100px;overflow:hidden}.okanjo-block2.large_mobile_banner .okanjo-resource{width:318px;height:98px}.okanjo-block2.large_mobile_banner .okanjo-resource a{padding:6px}.okanjo-block2.large_mobile_banner .okanjo-resource .okanjo-resource-image-container{width:86px;height:86px}.okanjo-block2.large_mobile_banner .okanjo-resource .okanjo-resource-title-container{height:30px}.okanjo-block2.billboard{width:970px;height:250px;overflow:hidden}.okanjo-block2.billboard .okanjo-resource{width:160px;height:248px}.okanjo-block2.billboard .okanjo-resource:first-child{width:163px;height:248px}.okanjo-block2.billboard .okanjo-resource.list{width:322px;height:123px}.okanjo-block2.billboard .okanjo-resource.list .okanjo-resource-image-container{width:100px;height:100px;line-height:1px}.okanjo-block2.billboard .okanjo-resource.list .okanjo-resource-info-container{height:auto;float:left;width:165px}.okanjo-block2.auto{font-size:1em;width:100%}.okanjo-block2.auto .okanjo-resource{width:100%;height:auto;border-left:none;border-right:none}.okanjo-block2.auto .okanjo-resource a{max-width:500px;width:95%;margin:0 auto;padding:2.5%}.okanjo-block2.auto .okanjo-resource.list{height:auto}.okanjo-block2.auto .okanjo-resource.list .okanjo-resource-image-container{width:18%;height:auto;line-height:1px}.okanjo-block2.auto .okanjo-resource.list .okanjo-resource-info-container{height:auto;float:none;margin-left:21%;width:79%}.okanjo-block2.auto .okanjo-resource.list .okanjo-resource-publisher-container,.okanjo-block2.auto .okanjo-resource.list .okanjo-resource-seller-container{height:auto;font-size:12px;line-height:1.2}.okanjo-block2.auto .okanjo-resource.list .okanjo-resource-price-container{height:auto;font-size:15px;line-height:1.5}.okanjo-block2.auto .okanjo-resource.list .okanjo-resource-title-container{font-size:15px;line-height:1.4;height:auto}.okanjo-block2.auto .okanjo-resource.list .okanjo-resource-buy-button,.okanjo-block2.auto .okanjo-resource.list .okanjo-resource-cta-button{display:inline-block;font-size:14px;line-height:1.8;margin-bottom:-1.7%}.okanjo-block2.auto.okanjo-cta-style-button .okanjo-resource.list .okanjo-resource-price-container{line-height:1.3}.okanjo-block2.auto.okanjo-cta-style-button .okanjo-resource.list .okanjo-resource-title-container{line-height:1.25}.okanjo-block2.auto.okanjo-cta-style-button .okanjo-resource.list .okanjo-resource-buy-button,.okanjo-block2.auto.okanjo-cta-style-button .okanjo-resource.list .okanjo-resource-cta-button{font-size:13px}.okanjo-inline-buy-frame{display:block;height:100%;width:100%}", {
     id: 'okanjo-block2'
   });
+  okanjo.ui.__block2 = "<div class=\"okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} theme-{{ template_theme }}{{^template_theme}}modern{{/template_theme}} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}\"><div class=okanjo-resource-list itemscope itemtype=https://schema.org/ItemList data-instance-id=\"{{ instanceId }}\">{{{ segmentContent }}}</div><div class=\"okanjo-resource-meta okanjo-visually-hidden\"></div></div>";
+  okanjo.ui.engine.registerTemplate("container.block2", okanjo.ui.__block2, function (model) {
+    model.config = this.config;
+    model.instanceId = this.instanceId;
+    return model;
+  }, {
+    css: ['okanjo.block2']
+  });
 })(window);
 
 (function (window) {
@@ -5427,8 +5529,20 @@ return okanjo;
 
 (function (window) {
   var okanjo = window.okanjo;
-  okanjo.ui.engine.registerCss("okanjo.slab", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-align-start{display:flex;align-items:flex-start}.okanjo-align-end{display:flex;align-items:flex-end}.okanjo-align-center{display:flex;align-items:center}.okanjo-align-baseline{display:flex;align-items:baseline}.okanjo-align-stretch{display:flex;align-items:stretch}.okanjo-justify-start{display:flex;justify-content:flex-start}.okanjo-justify-end{display:flex;justify-content:flex-end}.okanjo-justify-center{display:flex;justify-content:center}.okanjo-justify-between{display:flex;justify-content:space-between}.okanjo-justify-around{display:flex;justify-content:space-around}.okanjo-justify-evenly{display:flex;justify-content:space-evenly}.okanjo-block2.okanjo-slab img.okanjo-fit{height:100%;width:100%;object-fit:cover}.okanjo-block2.okanjo-slab.okanjo-cta-style-none .okanjo-resource-button-container{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-slab.okanjo-cta-style-none .okanjo-resource.list .okanjo-resource-title-container{height:95px}.okanjo-block2.okanjo-slab.okanjo-cta-style-button .okanjo-resource-title-container{height:40px}.okanjo-block2.okanjo-slab .okanjo-resource{width:298px}.okanjo-block2.okanjo-slab .okanjo-resource-publisher-container{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-slab .okanjo-resource-image-container{height:155px}.okanjo-block2.okanjo-slab .okanjo-resource-title-container{height:58px;font-size:16px;line-height:19px}.okanjo-block2.okanjo-slab .okanjo-resource.list .okanjo-resource-title-container{font-size:14px;height:60px}.okanjo-block2.okanjo-slab.theme-newsprint .okanjo-resource-title-container{font:16px/19px Georgia,serif}.okanjo-block2.okanjo-slab.theme-newsprint .okanjo-resource.list .okanjo-resource-title-container{font-size:15px}.okanjo-block2.okanjo-slab.responsive .okanjo-resource-list{display:flex;flex-wrap:wrap;justify-content:center}.okanjo-block2.okanjo-slab.responsive .okanjo-resource{width:inherit;flex-grow:1;flex-shrink:0;flex-basis:33.3333%;flex-basis:200px;display:flex;align-items:center;justify-content:center}.okanjo-block2.okanjo-slab.responsive .okanjo-resource.list{flex-basis:33.3333%;flex-basis:250px}.okanjo-block2.okanjo-slab.responsive .okanjo-resource.list a{width:100%}.okanjo-block2.okanjo-slab.responsive .okanjo-resource:last-child{margin:0 -1px -1px 0}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource,.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource:first-child{width:298px;height:248px}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource .okanjo-resource-title-container{height:40px;margin-bottom:8px}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource .okanjo-resource-image-container{height:155px}.okanjo-block2.okanjo-slab.medium_rectangle.okanjo-cta-style-none .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.leaderboard .okanjo-resource .okanjo-resource-title-container{font-size:13px;line-height:15px;height:50px;margin-top:1px;margin-bottom:4px}.okanjo-block2.okanjo-slab.leaderboard.okanjo-cta-style-none .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.leaderboard.theme-newsprint .okanjo-resource .okanjo-resource-title-container{font:bold 13px/15px Georgia,serif}.okanjo-block2.okanjo-slab.large_mobile_banner .okanjo-resource .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.large_mobile_banner.okanjo-cta-style-none .okanjo-resource-title-container{height:80px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource,.okanjo-block2.okanjo-slab.half_page .okanjo-resource:nth-last-child(n+2){width:298px;height:298px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource:first-child{height:299px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource .okanjo-resource-image-container{width:100%;height:180px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource .okanjo-resource-title-container{margin-bottom:3px;height:77px}.okanjo-block2.okanjo-slab.half_page.okanjo-cta-style-button .okanjo-resource-title-container{height:57px;margin-bottom:8px}.okanjo-block2.okanjo-slab.half_page.okanjo-cta-style-none .okanjo-resource-title-container{height:116px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource{width:298px;height:198px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource:nth-last-child(n+2){width:298px;height:199px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource:first-child{height:199px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource .okanjo-resource-button-container{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource .okanjo-resource-image-container{width:100%;height:136px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource .okanjo-resource-title-container{height:42px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource,.okanjo-block2.okanjo-slab.billboard .okanjo-resource:first-child{width:322px;height:248px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource .okanjo-resource-title-container{height:40px;margin-bottom:8px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource .okanjo-resource-image-container{height:155px}.okanjo-block2.okanjo-slab.billboard.okanjo-cta-style-none .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.auto .okanjo-resource.list .okanjo-resource-image-container{width:100px;height:100px}.okanjo-block2.okanjo-slab.auto .okanjo-resource.list .okanjo-resource-info-container{margin-left:111px;width:auto}", {
+  okanjo.ui.engine.registerCss("okanjo.slab", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-align-start{display:flex;align-items:flex-start}.okanjo-align-end{display:flex;align-items:flex-end}.okanjo-align-center{display:flex;align-items:center}.okanjo-align-baseline{display:flex;align-items:baseline}.okanjo-align-stretch{display:flex;align-items:stretch}.okanjo-justify-start{display:flex;justify-content:flex-start}.okanjo-justify-end{display:flex;justify-content:flex-end}.okanjo-justify-center{display:flex;justify-content:center}.okanjo-justify-between{display:flex;justify-content:space-between}.okanjo-justify-around{display:flex;justify-content:space-around}.okanjo-justify-evenly{display:flex;justify-content:space-evenly}.okanjo-block2.okanjo-slab img.okanjo-fit{height:100%;width:100%;object-fit:cover}.okanjo-block2.okanjo-slab.okanjo-cta-style-none .okanjo-resource-button-container{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-slab.okanjo-cta-style-none .okanjo-resource.list .okanjo-resource-title-container{height:95px}.okanjo-block2.okanjo-slab.okanjo-cta-style-button .okanjo-resource-title-container{height:40px}.okanjo-block2.okanjo-slab .okanjo-resource{width:298px}.okanjo-block2.okanjo-slab .okanjo-resource-image-container{height:155px}.okanjo-block2.okanjo-slab .okanjo-resource-title-container{height:58px;font-size:16px;line-height:19px}.okanjo-block2.okanjo-slab .okanjo-resource.list .okanjo-resource-title-container{font-size:14px;height:60px}.okanjo-block2.okanjo-slab.theme-newsprint .okanjo-resource-title-container{font:16px/19px Georgia,serif}.okanjo-block2.okanjo-slab.theme-newsprint .okanjo-resource.list .okanjo-resource-title-container{font-size:15px}.okanjo-block2.okanjo-slab.responsive .okanjo-resource-list{display:flex;flex-wrap:wrap;justify-content:center}.okanjo-block2.okanjo-slab.responsive .okanjo-resource{width:inherit;flex-grow:1;flex-shrink:0;flex-basis:33.3333%;flex-basis:200px;display:flex;align-items:center;justify-content:center}.okanjo-block2.okanjo-slab.responsive .okanjo-resource.list{flex-basis:33.3333%;flex-basis:250px}.okanjo-block2.okanjo-slab.responsive .okanjo-resource.list a{width:100%}.okanjo-block2.okanjo-slab.responsive .okanjo-resource:last-child{margin:0 -1px -1px 0}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource,.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource:first-child{width:298px;height:248px}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource .okanjo-resource-title-container{height:40px;margin-bottom:8px}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource .okanjo-resource-image-container{height:155px}.okanjo-block2.okanjo-slab.medium_rectangle.okanjo-cta-style-none .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.leaderboard .okanjo-resource .okanjo-resource-title-container{font-size:13px;line-height:15px;height:50px;margin-top:1px;margin-bottom:4px}.okanjo-block2.okanjo-slab.leaderboard.okanjo-cta-style-none .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.leaderboard.theme-newsprint .okanjo-resource .okanjo-resource-title-container{font:bold 13px/15px Georgia,serif}.okanjo-block2.okanjo-slab.large_mobile_banner .okanjo-resource .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.large_mobile_banner.okanjo-cta-style-none .okanjo-resource-title-container{height:80px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource,.okanjo-block2.okanjo-slab.half_page .okanjo-resource:nth-last-child(n+2){width:298px;height:298px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource:first-child{height:299px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource .okanjo-resource-image-container{width:100%;height:180px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource .okanjo-resource-title-container{margin-bottom:3px;height:77px}.okanjo-block2.okanjo-slab.half_page.okanjo-cta-style-button .okanjo-resource-title-container{height:57px;margin-bottom:8px}.okanjo-block2.okanjo-slab.half_page.okanjo-cta-style-none .okanjo-resource-title-container{height:116px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource{width:298px;height:198px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource:nth-last-child(n+2){width:298px;height:199px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource:first-child{height:199px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource .okanjo-resource-button-container{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource .okanjo-resource-image-container{width:100%;height:136px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource .okanjo-resource-title-container{height:42px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource,.okanjo-block2.okanjo-slab.billboard .okanjo-resource:first-child{width:322px;height:248px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource .okanjo-resource-title-container{height:40px;margin-bottom:8px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource .okanjo-resource-image-container{height:155px}.okanjo-block2.okanjo-slab.billboard.okanjo-cta-style-none .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.auto .okanjo-resource.list .okanjo-resource-image-container{width:100px;height:100px}.okanjo-block2.okanjo-slab.auto .okanjo-resource.list .okanjo-resource-info-container{margin-left:111px;width:auto}", {
     id: 'okanjo-slab'
+  });
+  okanjo.ui.engine.registerTemplate("container.slab", okanjo.ui.__block2, function (model) {
+    model.config = this.config;
+    model.instanceId = this.instanceId;
+    model.blockClasses = ['okanjo-slab'];
+    model.fitImage = 'okanjo-fit'; // Enforce format restrictions
+
+    this._enforceSlabLayoutOptions();
+
+    return model;
+  }, {
+    css: ['okanjo.slab', 'okanjo.block2']
   });
 })(window);
 
@@ -5437,17 +5551,9 @@ return okanjo;
   okanjo.ui.engine.registerCss("products.block2", "", {
     id: 'okanjo-product-block2'
   });
-  okanjo.ui.__product_block2 = "<div class=\"okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} theme-{{ template_theme }}{{^template_theme}}modern{{/template_theme}} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}\"><div class=okanjo-resource-list itemscope itemtype=http://schema.org/ItemList data-instance-id=\"{{ instanceId }}\">{{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }} {{#products}}<div class=\"okanjo-resource okanjo-product {{#config}}{{ template_layout }}{{/config}}\" itemscope itemtype=http://schema.org/Product><a href=\"//{{ okanjoMetricUrl }}/metrics/pr/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_buy_url }}\" data-id=\"{{ id }}\" data-index=\"{{ _index }}\" data-backfill=\"{{ backfill }}\" target=_blank itemprop=url title=\"Buy now: {{ name }}\"><div class=okanjo-resource-image-container><img class=\"okanjo-resource-image {{ fitImage }}\" src=\"{{ _image_url }}\" title=\"{{ name }}\" itemprop=image data-id=\"{{ id }}\"></div><div class=okanjo-resource-info-container><div class=okanjo-resource-seller-container itemprop=seller itemscope itemtype=http://schema.org/Organization><span class=okanjo-resource-seller itemprop=name title=\"{{ store_name }}\">{{ store_name }}{{^store_name}}&nbsp;{{/store_name}}</span></div><div class=okanjo-resource-title-container><span class=okanjo-resource-title itemprop=name>{{ name }}</span></div><div><div class=okanjo-resource-price-container><span content=\"{{ currency }}\">$</span><span class=okanjo-resource-price>{{ _price_formatted }}</span></div><div class=okanjo-resource-button-container><div class=okanjo-resource-buy-button><span>{{ meta.cta_text }}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Shop Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div><meta property=url itemprop=url content=\"//{{ okanjoMetricUrl }}/metrics/pr/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_buy_url }}\"></div></div><div class=\"okanjo-resource-meta okanjo-visually-hidden\">{{#impression_url}}<img src=\"{{ impression_url }}\" alt=\"\">{{/impression_url}} {{#upc}}<span itemprop=productID>upc:{{ upc }}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{ manufacturer }}</span>{{/manufacturer}} <img src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div></a></div>{{/products}}</div><div class=\"okanjo-resource-meta okanjo-visually-hidden\"></div></div>";
+  okanjo.ui.__product_block2 = "{{#resources}}<div class=\"okanjo-resource okanjo-product {{#config}}{{ template_layout }}{{/config}}\" itemscope itemtype=https://schema.org/Product><a href=\"//{{ okanjoMetricUrl }}/metrics/pr/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_buy_url }}\" data-id=\"{{ id }}\" data-index=\"{{ _index }}\" data-segment=\"{{ _segmentIndex }}\" data-type=product data-backfill=\"{{ backfill }}\" target=_blank itemprop=url title=\"Buy now: {{ name }}\"><div class=okanjo-resource-image-container><img alt=\"\" class=\"okanjo-resource-image {{ fitImage }}\" src=\"{{ _image_url }}\" title=\"{{ name }}\" itemprop=image data-id=\"{{ id }}\"></div><div class=okanjo-resource-info-container><div class=okanjo-resource-seller-container itemprop=seller itemscope itemtype=https://schema.org/Organization><span class=okanjo-resource-seller itemprop=name title=\"{{ store_name }}\">{{ store_name }}{{^store_name}}&nbsp;{{/store_name}}</span></div><div class=okanjo-resource-title-container><span class=okanjo-resource-title itemprop=name>{{ name }}</span></div><div><div class=okanjo-resource-price-container><span content=\"{{ currency }}\">$</span><span class=okanjo-resource-price>{{ _price_formatted }}</span></div><div class=okanjo-resource-button-container><div class=okanjo-resource-buy-button><span>{{ meta.cta_text }}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Shop Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div><meta property=url itemprop=url content=\"//{{ okanjoMetricUrl }}/metrics/pr/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_buy_url }}\"></div></div><div class=\"okanjo-resource-meta okanjo-visually-hidden\">{{#impression_url}}<img src=\"{{ impression_url }}\" alt=\"\">{{/impression_url}} {{#upc}}<span itemprop=productID>upc:{{ upc }}</span>{{/upc}} {{#manufacturer}}<span itemprop=manufacturer>{{ manufacturer }}</span>{{/manufacturer}} <img alt=\"\" src=\"//cdn.okanjo.com/px/1.gif?n={{ now }}\"></div></div></a></div>{{/resources}}";
   okanjo.ui.engine.registerTemplate("products.block2", okanjo.ui.__product_block2, function (model) {
     // Attach placement properties
-    var data = (this._response || {
-      data: {
-        results: []
-      }
-    }).data || {
-      results: []
-    };
-    model.products = data.results;
     model.config = this.config;
     model.instanceId = this.instanceId;
     model.metricChannel = this._metricBase.ch;
@@ -5469,20 +5575,12 @@ return okanjo;
 
 (function (window) {
   var okanjo = window.okanjo;
-  okanjo.ui.engine.registerCss("products.slab", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-align-start{display:flex;align-items:flex-start}.okanjo-align-end{display:flex;align-items:flex-end}.okanjo-align-center{display:flex;align-items:center}.okanjo-align-baseline{display:flex;align-items:baseline}.okanjo-align-stretch{display:flex;align-items:stretch}.okanjo-justify-start{display:flex;justify-content:flex-start}.okanjo-justify-end{display:flex;justify-content:flex-end}.okanjo-justify-center{display:flex;justify-content:center}.okanjo-justify-between{display:flex;justify-content:space-between}.okanjo-justify-around{display:flex;justify-content:space-around}.okanjo-justify-evenly{display:flex;justify-content:space-evenly}.okanjo-block2.okanjo-slab .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:40px}.okanjo-block2.okanjo-slab .okanjo-resource.okanjo-product.list .okanjo-resource-title-container{font-size:14px;height:40px}.okanjo-block2.okanjo-slab.okanjo-cta-style-button .okanjo-resource.okanjo-product.list .okanjo-resource-title-container{height:30px;font-size:12px;line-height:14px}.okanjo-block2.okanjo-slab.okanjo-cta-style-button.theme-newsprint .okanjo-resource.okanjo-product.list .okanjo-resource-title-container{font-size:13px}.okanjo-block2.okanjo-slab.okanjo-cta-style-none .okanjo-resource.okanjo-product.list .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource.okanjo-product .okanjo-resource-title-container{margin-bottom:4px;margin-top:2px}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource.okanjo-product .okanjo-resource-price-container{display:inline-block}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource.okanjo-product .okanjo-resource-button-container{display:inline-block;margin-left:10px;font-size:15px;line-height:1}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource.okanjo-product .okanjo-resource-button-container .okanjo-resource-buy-button{font-size:14px;overflow:inherit}.okanjo-block2.okanjo-slab.medium_rectangle.okanjo-cta-style-none .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:40px}.okanjo-block2.okanjo-slab.leaderboard .okanjo-resource.okanjo-product .okanjo-resource-title-container{margin-bottom:0;height:32px;font-size:14px}.okanjo-block2.okanjo-slab.leaderboard.okanjo-cta-style-none .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:47px}.okanjo-block2.okanjo-slab.large_mobile_banner .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:34px;font-size:14px;line-height:16px;margin-bottom:2px}.okanjo-block2.okanjo-slab.large_mobile_banner.okanjo-cta-style-none .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:50px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:40px}.okanjo-block2.okanjo-slab.half_page.okanjo-cta-style-button .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:34px;margin-bottom:0;line-height:15px;font-size:15px}.okanjo-block2.okanjo-slab.half_page.okanjo-cta-style-none .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:33px;font-size:15px;line-height:15px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource.okanjo-product .okanjo-resource-button-container,.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource.okanjo-product .okanjo-resource-price-container{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource.okanjo-product .okanjo-resource-title-container{margin-bottom:4px;margin-top:2px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource.okanjo-product .okanjo-resource-price-container{display:inline-block}.okanjo-block2.okanjo-slab.billboard .okanjo-resource.okanjo-product .okanjo-resource-button-container{display:inline-block;margin-left:10px;font-size:15px;line-height:1}.okanjo-block2.okanjo-slab.billboard .okanjo-resource.okanjo-product .okanjo-resource-button-container .okanjo-resource-buy-button{font-size:14px;overflow:inherit}.okanjo-block2.okanjo-slab.billboard.okanjo-cta-style-none .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:40px}.okanjo-block2.okanjo-slab.auto .okanjo-resource.okanjo-product.list .okanjo-resource-title-container{height:auto;margin-bottom:2px;line-height:20px}.okanjo-block2.okanjo-slab.auto .okanjo-resource.okanjo-product.list .okanjo-resource-price-container{margin-bottom:0}.okanjo-block2.okanjo-slab.auto.okanjo-cta-style-button .okanjo-resource.okanjo-product .okanjo-resource-price-container{margin-bottom:3px}", {
+  okanjo.ui.engine.registerCss("products.slab", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-align-start{display:flex;align-items:flex-start}.okanjo-align-end{display:flex;align-items:flex-end}.okanjo-align-center{display:flex;align-items:center}.okanjo-align-baseline{display:flex;align-items:baseline}.okanjo-align-stretch{display:flex;align-items:stretch}.okanjo-justify-start{display:flex;justify-content:flex-start}.okanjo-justify-end{display:flex;justify-content:flex-end}.okanjo-justify-center{display:flex;justify-content:center}.okanjo-justify-between{display:flex;justify-content:space-between}.okanjo-justify-around{display:flex;justify-content:space-around}.okanjo-justify-evenly{display:flex;justify-content:space-evenly}.okanjo-block2.okanjo-slab .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:40px;margin-bottom:2px}.okanjo-block2.okanjo-slab .okanjo-resource.okanjo-product.list .okanjo-resource-title-container{font-size:14px;height:40px}.okanjo-block2.okanjo-slab.okanjo-cta-style-button .okanjo-resource.okanjo-product.list .okanjo-resource-title-container{height:30px;font-size:12px;line-height:14px}.okanjo-block2.okanjo-slab.okanjo-cta-style-button.theme-newsprint .okanjo-resource.okanjo-product.list .okanjo-resource-title-container{font-size:13px}.okanjo-block2.okanjo-slab.okanjo-cta-style-none .okanjo-resource.okanjo-product.list .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource.okanjo-product .okanjo-resource-title-container{margin-bottom:4px;margin-top:2px}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource.okanjo-product .okanjo-resource-price-container{display:inline-block}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource.okanjo-product .okanjo-resource-button-container{display:inline-block;margin-left:10px;font-size:15px;line-height:1}.okanjo-block2.okanjo-slab.medium_rectangle .okanjo-resource.okanjo-product .okanjo-resource-button-container .okanjo-resource-buy-button{font-size:14px;overflow:inherit}.okanjo-block2.okanjo-slab.medium_rectangle.okanjo-cta-style-none .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:40px}.okanjo-block2.okanjo-slab.leaderboard .okanjo-resource.okanjo-product .okanjo-resource-title-container{margin-bottom:0;height:32px;font-size:14px}.okanjo-block2.okanjo-slab.leaderboard.okanjo-cta-style-none .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:47px}.okanjo-block2.okanjo-slab.large_mobile_banner .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:34px;font-size:14px;line-height:16px;margin-bottom:2px}.okanjo-block2.okanjo-slab.large_mobile_banner.okanjo-cta-style-none .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:50px}.okanjo-block2.okanjo-slab.half_page .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:40px}.okanjo-block2.okanjo-slab.half_page.okanjo-cta-style-button .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:34px;margin-bottom:0;line-height:15px;font-size:15px}.okanjo-block2.okanjo-slab.half_page.okanjo-cta-style-none .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:60px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:33px;font-size:15px;line-height:15px}.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource.okanjo-product .okanjo-resource-button-container,.okanjo-block2.okanjo-slab.half_page.dense .okanjo-resource.okanjo-product .okanjo-resource-price-container{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource.okanjo-product .okanjo-resource-title-container{margin-bottom:4px;margin-top:2px}.okanjo-block2.okanjo-slab.billboard .okanjo-resource.okanjo-product .okanjo-resource-price-container{display:inline-block}.okanjo-block2.okanjo-slab.billboard .okanjo-resource.okanjo-product .okanjo-resource-button-container{display:inline-block;margin-left:10px;font-size:15px;line-height:1}.okanjo-block2.okanjo-slab.billboard .okanjo-resource.okanjo-product .okanjo-resource-button-container .okanjo-resource-buy-button{font-size:14px;overflow:inherit}.okanjo-block2.okanjo-slab.billboard.okanjo-cta-style-none .okanjo-resource.okanjo-product .okanjo-resource-title-container{height:40px}.okanjo-block2.okanjo-slab.auto .okanjo-resource.okanjo-product.list .okanjo-resource-title-container{height:auto;margin-bottom:2px;line-height:20px}.okanjo-block2.okanjo-slab.auto .okanjo-resource.okanjo-product.list .okanjo-resource-price-container{margin-bottom:0}.okanjo-block2.okanjo-slab.auto.okanjo-cta-style-button .okanjo-resource.okanjo-product .okanjo-resource-price-container{margin-bottom:3px}", {
     id: 'okanjo-product-slab'
   }); // Reuses block2 markup layout, extended css
 
   okanjo.ui.engine.registerTemplate("products.slab", okanjo.ui.__product_block2, function (model) {
-    var data = (this._response || {
-      data: {
-        results: []
-      }
-    }).data || {
-      results: []
-    };
     model.blockClasses = ['okanjo-slab'];
-    model.products = data.results;
     model.config = this.config;
     model.instanceId = this.instanceId;
     model.metricChannel = this._metricBase.ch;

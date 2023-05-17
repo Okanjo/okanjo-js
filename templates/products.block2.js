@@ -8,8 +8,6 @@
     okanjo.ui.engine.registerTemplate("products.block2", okanjo.ui.__product_block2, function(model) {
 
         // Attach placement properties
-        const data = (this._response || { data: { results: [] } }).data || { results: [] };
-        model.products = data.results;
         model.config = this.config;
         model.instanceId = this.instanceId;
         model.metricChannel = this._metricBase.ch;

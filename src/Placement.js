@@ -40,7 +40,7 @@
 
             this.name = 'Placement';
             this._metricBase = {}; // placeholder for metrics
-            this._response = null;
+            this._response = null; // placeholder for api response
 
             // Aggregate view watchers into a single interval fn
             this._viewWatcherIv = null;
@@ -150,7 +150,7 @@
                 no_init: bool().strip(), // don't automatically load the placement, do it manually (e.g. (new Placement({no_init:true})).init()
                 no_css: bool().strip(), // don't automatically include stylesheets
                 verbose_click_data: bool().strip().default(false), // when enabled, sends ok_msid, ok_ch, ok_cx, _okjr to the destination url
-                utm_click_data: bool().strip().default(true), // when enabled, sends url_source, utm_campaign, and utm_medium to the destination url
+                utm_click_data: bool().strip().default(false), // when enabled, sends url_source, utm_campaign, and utm_medium to the destination url
                 proxy_url: string().strip(),
                 expandable: bool().strip().default(true),
                 disable_inline_buy: bool().strip().default(false), // stops inline buy functionality
@@ -277,19 +277,26 @@
          */
         _reportWidgetLoad(declined) {
 
-            const res = this._response || {};
-            const data = res.data || { results: [] };
+            const segments = this._getResponseData();
+
+            // widget stats now aggregate all segments
+            const backfilled = segments.find(s => s.backfilled) ? 1 : 0,
+                shortfilled = segments.find(s => s.shortfilled) ? 1 : 0,
+                splitfilled = segments.length > 1 ? 1 : 0,
+                res_total = segments.reduce((a, c) => a + (c.total || 0), 0),
+                res_length = segments.reduce((a, c) => a + (c.results && c.results.length || 0), 0),
+                res_types = Array.from(new Set(segments.map(s => s.type)));
 
             // If this is declined, mark future events as declined too
             this._metricBase.m.decl = declined || '0';
 
             // Attach other main response attributes to all future events
-            this._metricBase.m.res_bf = data.backfilled ? 1 : 0; // whether the response used the back fill flow
-            this._metricBase.m.res_sf = data.shortfilled ? 1 : 0; // whether the response used the short fill flow
-            this._metricBase.m.res_spltfl = data.splitfilled ? 1 : 0; // whether the response used the short fill flow
-            this._metricBase.m.res_total = data.total || 0; // how many total candidate results were available given filters
-            this._metricBase.m.res_type = data.type; // what the given resource type was
-            this._metricBase.m.res_length = data.results.length; // number of resources delivered
+            this._metricBase.m.res_bf = backfilled; // whether the response used the backfill flow
+            this._metricBase.m.res_sf = shortfilled; // whether the response used the shortfill flow
+            this._metricBase.m.res_spltfl = splitfilled; // whether the response used the splitfill flow
+            this._metricBase.m.res_total = res_total; // how many total candidate results were available given filters
+            this._metricBase.m.res_type = res_types.length > 1 ? Placement.ContentTypes.mixed : res_types[0]; // what the given resource type was
+            this._metricBase.m.res_length = res_length; // number of resources delivered
 
             // Track impression
             okanjo.metrics.create(this._metricBase)
@@ -356,13 +363,25 @@
         }
 
         /**
+         * Extracts the response data from the payload (segments)
+         * @returns {*[]}
+         * @private
+         */
+        _getResponseData() {
+            const res = this._response;
+            return [].concat((res && res.data) || [{}]); // will force the old response data into an array
+        }
+
+        /**
          * Applies response filters and display settings into the widget configuration
          * @private
          */
         _mergeResponseSettings() {
-            const res = this._response;
-            const data = res.data || {};
-            const settings = data.settings || {};
+            // Apply the base segment settings as the main widget display settings
+            const data = this._getResponseData()[0];
+
+            // Merge the base results
+            const settings = (data.settings) || {};
 
             if (settings.filters) {
                 Object.keys(settings.filters).forEach((key) => {
@@ -383,7 +402,10 @@
          */
         _updateBaseMetaFromResponse() {
             // Update the base metric data with info from the response
-            const data = (this._response|| {}).data || {};
+
+            // SmartServe can now return an array of result objects
+            const data = this._getResponseData()[0] || {};
+
             this._metricBase.m = this._metricBase.m || {};
             const meta = this._metricBase.m;
 
@@ -404,25 +426,80 @@
          * @private
          */
         _showContent() {
-            const data = (this._response|| {}).data || {};
+            const segments = this._getResponseData();
 
-            // Known content types we can display
-            if (data.type === Placement.ContentTypes.products) {
-                this._showProducts();
-            } else if (data.type === Placement.ContentTypes.articles) {
-                this._showArticles();
-            } else if (data.type === Placement.ContentTypes.adx) {
-                this._showADX();
-            } else {
-                // Unknown response type!
+            // 1. Render each segment to list html, store in array
+            // 2a. If array is empty, handle empty decline
+            // 2b. If not empty, render container html passing contents to embed
+            // 3. Set markup to final container render
+            // 4. Do follow-up event binding and cleanup stuff
 
-                // Report the widget load as declined
-                const msg = 'Unknown response content type: ' + data.type;
-                okanjo.report(msg, { placement: this });
-                this.setMarkup(''); // Don't show anything
-                this.emit('error', msg);
-                this._reportWidgetLoad(msg);
+            // If there are multiple segments, force responsive slab template for now
+            if (segments.length > 1) {
+                this.config.template_name = 'slab';
+                this.config.size = 'responsive';
             }
+
+            // Assemble list contents
+            let renderedSegments = [];
+
+            for (let segment, i = 0; i < segments.length; i++) {
+                segment = segments[i];
+
+                // Known content types we can display
+                if (segment.type === Placement.ContentTypes.products) {
+                    renderedSegments.push(this._renderProductSegment(segment, i));
+
+                } else if (segment.type === Placement.ContentTypes.articles) {
+                    renderedSegments.push(this._renderArticleSegment(segment, i));
+
+                } else if (segment.type === Placement.ContentTypes.adx) {
+                    renderedSegments.push(this._renderADXSegment(segment, i));
+
+                } else {
+                    // Unknown response type!
+
+                    // Report the widget load as declined
+                    const msg = 'Unknown response content type: ' + segment.type;
+                    okanjo.report(msg, { placement: this });
+                    // this.setMarkup(''); // Don't show anything
+                    this.emit('error', msg);
+                    // this._reportWidgetLoad(msg);
+                }
+            }
+
+            // Filter empty segments
+            // console.log('rendered segs', renderedSegments)
+            renderedSegments = renderedSegments.filter(html => !!html);
+
+            // No segments? Decline
+            if (renderedSegments.length === 0) {
+                this.emit('empty');
+                this._reportWidgetLoad('empty'); // decline the impression
+                return;
+            }
+
+            // Render the container and insert the markup
+            const model = {
+                css: !this.config.no_css,
+                segmentContent: renderedSegments.join('')
+            };
+            const templateName = this._getTemplate(Placement.ContentTypes.container, Placement.DefaultTemplates.container);
+            this.setMarkup(okanjo.ui.engine.render(templateName, this, model));
+
+            // Report load
+            this._reportWidgetLoad();
+
+            // Handle resource post-render events
+            this._postProductRender();
+            this._postArticleRender();
+            this._postADXRender();
+
+            // Fit images
+            okanjo.ui.fitImages(this.element);
+
+            // Hook point that the widget is done loading
+            this.emit('load');
         }
 
         /**
@@ -490,7 +567,7 @@
                 .meta({
                     bf: resource.backfill ? 1 : 0,
                     sf: resource.shortfill ? 1 : 0,
-                    spltfl_seg: resource.splitfill_segment || null
+                    spltfl_seg: okanjo.util.ifDefined(resource.splitfill_segment)
                 })
                 .event(e)
                 .element(e.currentTarget)
@@ -688,16 +765,16 @@
         //region Product Handling
 
         /**
-         * Renders a product response
+         * Renders a product segment
+         * @param data SmartServe segment data
+         * @param segmentIndex Segment index number
+         * @returns {string} Rendered segment HTML
          * @private
          */
-        _showProducts() {
-            const data = (this._response || { data: { results: [] } }).data || { results: [] };
+        _renderProductSegment(data, segmentIndex) {
 
             // Determine template to render, using custom template name if it exists
             const templateName = this._getTemplate(Placement.ContentTypes.products, Placement.DefaultTemplates.products);
-
-            // - render
 
             // Format products
             data.results.forEach((offer, index) => {
@@ -714,17 +791,27 @@
                 // Make price tag pretty
                 offer._price_formatted = TemplateEngine.formatCurrency(offer.price);
                 offer._index = index;
+                offer.splitfill_segment = segmentIndex;
+                offer._segmentIndex = segmentIndex;
             });
 
             const model = {
+                resources: data.results,
                 css: !this.config.no_css
             };
 
-            // Render and display the results
-            this.setMarkup(okanjo.ui.engine.render(templateName, this, model));
+            // Render and return html (will get concatenated later)
+            return okanjo.ui.engine.render(templateName, this, model);
+        }
+
+        /**
+         * Handles post-render events for product resources
+         * @private
+         */
+        _postProductRender() {
 
             // Detect broken images
-            this.element.querySelectorAll('.okanjo-resource-image').forEach((img) => {
+            this.element.querySelectorAll('.okanjo-product .okanjo-resource-image').forEach((img) => {
                 img.addEventListener('error', () => {
                     img.src = okanjo.ui.inlineSVG(okanjo.ui.productSVG());
                     console.error('[okanjo] Failed to load product image: ' + img.getAttribute('data-id'));
@@ -732,25 +819,24 @@
                 });
             });
 
-            // Track widget impression
-            if (data.results.length === 0) {
-                // Hook point for no results found
-                this.emit('empty');
-                this._reportWidgetLoad('empty'); // decline the impression
-            } else {
-                this._reportWidgetLoad();
-            }
-
             // Bind interaction handlers and track impressions
-            this.element.querySelectorAll('a').forEach((a) => {
+            const segments = this._getResponseData();
+            this.element.querySelectorAll('.okanjo-product > a').forEach((a) => {
 
                 const id = a.getAttribute('data-id'),
-                    index = a.getAttribute('data-index');
+                    segment = parseInt(a.getAttribute('data-segment')),
+                    index = parseInt(a.getAttribute('data-index'));
 
                 // Don't bind links that are not tile links
                 /* istanbul ignore else: custom templates could break it */
-                if (id && index >= 0) {
-                    const product = this._response.data.results[index];
+                if (id && index >= 0 && segment >= 0) {
+                    const data = segments[segment];
+
+                    /* istanbul ignore if: custom templates could break it */
+                    if (!data) return;
+
+                    const product = data.results[index];
+
                     /* istanbul ignore else: custom templates could break it */
                     if (product) {
 
@@ -765,7 +851,7 @@
                             .meta({
                                 bf: product.backfill ? 1 : 0,
                                 sf: product.shortfill ? 1 : 0,
-                                spltfl_seg: product.splitfill_segment || null
+                                spltfl_seg: okanjo.util.ifDefined(product.splitfill_segment)
                             })
                             .element(a)
                             .viewport()
@@ -780,7 +866,7 @@
                                 .meta({
                                     bf: product.backfill ? 1 : 0,
                                     sf: product.shortfill ? 1 : 0,
-                                    spltfl_seg: product.splitfill_segment || null
+                                    spltfl_seg: okanjo.util.ifDefined(product.splitfill_segment)
                                 })
                                 .element(a)
                                 .viewport()
@@ -792,15 +878,10 @@
             });
 
             // Truncate product name to fit the space
-            this.element.querySelectorAll('.okanjo-resource-title').forEach((element) => {
+            this.element.querySelectorAll('.okanjo-product .okanjo-resource-title').forEach((element) => {
                 okanjo.ui.ellipsify(element);
             });
 
-            // Fit images
-            okanjo.ui.fitImages(this.element);
-
-            // Hook point that the widget is done loading
-            this.emit('load');
         }
 
         /**
@@ -925,11 +1006,13 @@
         //region Article Handling
 
         /**
-         * Renders an article response
+         * Renders an article segment
+         * @param data SmartServe segment data
+         * @param segmentIndex Segment index number
+         * @returns {string} Rendered segment HTML
          * @private
          */
-        _showArticles() {
-            const data = (this._response || { data: { results: [] } }).data || { results: [] };
+        _renderArticleSegment(data, segmentIndex) {
 
             // Determine template to render, using custom template name if it exists
             const templateName = this._getTemplate(Placement.ContentTypes.articles, Placement.DefaultTemplates.articles);
@@ -941,17 +1024,27 @@
                 // Escape url (fixme: does not include proxy_url!)
                 article._escaped_url = encodeURIComponent(article.url);
                 article._index = index;
+                article.splitfill_segment = segmentIndex;
+                article._segmentIndex = segmentIndex;
             });
 
             const model = {
+                resources: data.results,
                 css: !this.config.no_css
             };
 
-            // Render and display the results
-            this.setMarkup(okanjo.ui.engine.render(templateName, this, model));
+            // Render and return html (will get concatenated later)
+            return okanjo.ui.engine.render(templateName, this, model);
+        }
+
+        /**
+         * Handles post-render events for article resources
+         * @private
+         */
+        _postArticleRender() {
 
             // Detect broken images
-            this.element.querySelectorAll('.okanjo-resource-image').forEach((img) => {
+            this.element.querySelectorAll('.okanjo-article .okanjo-resource-image').forEach((img) => {
                 img.addEventListener('error', () => {
                     img.src = okanjo.ui.inlineSVG(okanjo.ui.articleSVG());
                     console.error('[okanjo] Failed to load article image: ' + img.getAttribute('data-id'));
@@ -959,25 +1052,23 @@
                 });
             });
 
-            // Track widget impression
-            if (data.results.length === 0) {
-                // Hook point for no results found
-                this.emit('empty');
-                this._reportWidgetLoad('empty'); // decline the impression
-            } else {
-                this._reportWidgetLoad();
-            }
-
             // Bind interaction handlers and track impressions
-            this.element.querySelectorAll('a').forEach((a) => {
+            const segments = this._getResponseData();
+            this.element.querySelectorAll('.okanjo-article > a').forEach((a) => {
 
                 const id = a.getAttribute('data-id'),
-                    index = a.getAttribute('data-index');
+                    segment = parseInt(a.getAttribute('data-segment')),
+                    index = parseInt(a.getAttribute('data-index'));
 
                 // Don't bind links that are not tile links
                 /* istanbul ignore else: custom templates could break this */
-                if (id && index >= 0) {
-                    const article = this._response.data.results[index];
+                if (id && index >= 0 && segment >= 0) {
+                    const data = segments[segment];
+
+                    /* istanbul ignore if: custom templates could break it */
+                    if (!data) return;
+
+                    const article = data.results[index];
                     /* istanbul ignore else: custom templates could break this */
                     if (article) {
 
@@ -992,7 +1083,7 @@
                             .meta({
                                 bf: article.backfill ? 1 : 0,
                                 sf: article.shortfill ? 1 : 0,
-                                spltfl_seg: article.splitfill_segment || null
+                                spltfl_seg: okanjo.util.ifDefined(article.splitfill_segment)
                             })
                             .element(a)
                             .viewport()
@@ -1007,7 +1098,7 @@
                                 .meta({
                                     bf: article.backfill ? 1 : 0,
                                     sf: article.shortfill ? 1 : 0,
-                                    spltfl_seg: article.splitfill_segment || null
+                                    spltfl_seg: okanjo.util.ifDefined(article.splitfill_segment)
                                 })
                                 .element(a)
                                 .viewport()
@@ -1020,15 +1111,10 @@
             });
 
             // Truncate product name to fit the space
-            this.element.querySelectorAll('.okanjo-resource-title').forEach((element) => {
+            this.element.querySelectorAll('.okanjo-article .okanjo-resource-title').forEach((element) => {
                 okanjo.ui.ellipsify(element);
             });
 
-            // Fit images
-            okanjo.ui.fitImages(this.element);
-
-            // Hook point that the widget is done loading
-            this.emit('load');
         }
 
         /**
@@ -1061,11 +1147,13 @@
         //region ADX Handling
 
         /**
-         * Renders a Google DFP/ADX response
+         * Renders a DFP/ADX/GPT segment
+         * @param data SmartServe segment data
+         * @param segmentIndex Segment index number
+         * @returns {string} Rendered segment HTML
          * @private
          */
-        _showADX() {
-            const data = (this._response || { data: { settings: {} } }).data || { settings: {} };
+        _renderADXSegment(data, segmentIndex) {
 
             // Get the template we should use to render the google ad
             const templateName = this._getTemplate(Placement.ContentTypes.adx, Placement.DefaultTemplates.adx);
@@ -1090,29 +1178,49 @@
             // If we're using okanjo's ad slot, then track the impression
             // otherwise decline it because we're just passing through to the publishers account
             let adUnitPath = '/90447967/okanjo:<publisher>';
-            let declineReason;
+            // let declineReason;
             if (data.settings.display && data.settings.display.adx_unit_path) {
                 adUnitPath = data.settings.display.adx_unit_path;
-                declineReason = 'custom_ad_unit';
+                // declineReason = 'custom_ad_unit';
             }
 
             // Pass along what the template needs to know to display the ad
             const renderContext = {
                 css: !this.config.no_css,
                 size,
-                adUnitPath
+                adUnitPath,
+                segmentIndex
             };
 
             // Render the container
-            this.setMarkup(okanjo.ui.engine.render(templateName, this, renderContext));
+            return okanjo.ui.engine.render(templateName, this, renderContext);
+        }
 
-            // Report the impression
-            this._reportWidgetLoad(declineReason);
+        /**
+         * Handles post-render events for DFP/ADX/GPT resources
+         * @private
+         */
+        _postADXRender() {
 
-            // Insert the actual ad into the container
-            const container = this.element.querySelector('.okanjo-adx-container');
-            /* istanbul ignore else: custom templates could break this */
-            if (container) {
+            // Insert the actual ads into their containers
+            const segments = this._getResponseData();
+            this.element.querySelectorAll('.okanjo-adx .okanjo-adx-container').forEach((container) => {
+
+                const path = container.getAttribute('data-path'),
+                    segment = parseInt(container.getAttribute('data-segment')),
+                    width = parseInt(container.getAttribute('data-width')),
+                    height = parseInt(container.getAttribute('data-height'));
+
+                const data = segments[segment];
+
+                /* istanbul ignore if: custom templates could break it */
+                if (!data) return;
+                const meta = {
+                    ta_s: path,
+                    ta_w: width,
+                    ta_h: height,
+                    spltfl_seg: okanjo.util.ifDefined(segment)
+                };
 
                 // Make the frame element
                 const frame = document.createElement('iframe');
@@ -1125,25 +1233,24 @@
                     mozallowfullscreen: '',
                     allowfullscreen: '',
                     scrolling: 'auto',
-                    width: size.width,
-                    height: size.height
+                    width: width,
+                    height: height
                 };
 
                 // Apply attributes
                 Object.keys(attributes).forEach((key) => frame.setAttribute(key, attributes[key]));
 
-                // Attach to dOM
+                // Hold a ref to the frame for later
+                data._frame = frame;
+
+                // Attach to DOM
                 container.appendChild(frame);
 
-                // Build a click-through tracking url so we know when an ad is clicked too
+                // Build a click-through tracking url, so we know when an ad is clicked too
                 let clickUrl = okanjo.metrics.create(this._metricBase)
                     .type(Metrics.Object.thirdparty_ad, Metrics.Event.interaction)
                     .meta(this.getConfig())
-                    .meta({
-                        ta_s: adUnitPath,
-                        ta_w: size.width,
-                        ta_h: size.height
-                    })
+                    .meta(meta)
                     .element(frame)
                     .viewport()
                     .widget(this.element)
@@ -1156,11 +1263,7 @@
                     okanjo.metrics.create(this._metricBase)
                         .type(Metrics.Object.thirdparty_ad, Metrics.Event.impression)
                         .meta(this.getConfig())
-                        .meta({
-                            ta_s: adUnitPath,
-                            ta_w: size.width,
-                            ta_h: size.height
-                        })
+                        .meta(meta)
                         .element(frame)
                         .viewport()
                         .widget(this.element)
@@ -1172,11 +1275,7 @@
                         okanjo.metrics.create(this._metricBase)
                             .type(Metrics.Object.thirdparty_ad, Metrics.Event.view)
                             .meta(this.getConfig())
-                            .meta({
-                                ta_s: adUnitPath,
-                                ta_w: size.width,
-                                ta_h: size.height
-                            })
+                            .meta(meta)
                             .element(frame)
                             .viewport()
                             .widget(this.element)
@@ -1189,14 +1288,14 @@
                 // See: https://developers.google.com/publisher-tag/reference#googletag.events.SlotRenderEndedEvent
                 frame.contentWindow.document.open();
                 frame.contentWindow.document.write(
-`<html><head><style type="text/css">html,body {margin: 0; padding: 0;}</style></head><body><div id="gpt-passback">
+                    `<html><head><style type="text/css">html,body {margin: 0; padding: 0;}</style></head><body><div id="gpt-passback">
 <`+`script type="text/javascript" src="https://securepubads.g.doubleclick.net/tag/js/gpt.js">
     
     window.googletag = window.googletag || {cmd: []};
     googletag.cmd.push(function() {
         
         // Define the slot
-        googletag.defineSlot("${adUnitPath.replace(/"/g, '\\"')}", [[${size.width}, ${size.height}]], 'gpt-passback')
+        googletag.defineSlot("${path.replace(/"/g, '\\"')}", [[${width}, ${height}]], 'gpt-passback')
             .setClickUrl("${clickUrl}&u=")     // Track click event on the okanjo side
             .addService(googletag.pubads())    // Service the ad
         ;
@@ -1221,10 +1320,8 @@
                 // googletag.pubads().addEventListener('slotVisibilityChangedEvent', function(e) { future );
 
                 // Impression tracking is done from within the iframe. Crazy, right?
-            }
+            });
 
-            // Hook point that the widget is done loading
-            this.emit('load');
         }
 
         //endregion
@@ -1276,22 +1373,25 @@
 
     /**
      * Placement content types
-     * @type {{products: string, articles: string, adx: string}}
+     * @type {{adx: string, articles: string, products: string, mixed: string, container: string}}
      */
     Placement.ContentTypes = {
-        products: 'products',
-        articles: 'articles',
-        adx: 'adx'
+        products: 'products',   // only products
+        articles: 'articles',   // only articles
+        adx: 'adx',             // only display ad
+        mixed: 'mixed',         // mix of two or more of the above (used for metrics responses, not a template)
+        container: 'container', // Widget container - segment content gets rendered into this one at the end
     };
 
     /**
      * Default templates for each content type
-     * @type {{products: string, articles: string, adx: string}}
+     * @type {{products: string, articles: string, adx: string, container: string}}
      */
     Placement.DefaultTemplates = {
         products: 'block2',
         articles: 'block2',
-        adx: 'block2'
+        adx: 'block2',
+        container: 'block2'
     };
 
     //endregion

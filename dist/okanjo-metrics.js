@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v2.4.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v3.0.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -331,7 +331,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "2.4.0",
+    version: "3.0.0",
 
     /**
      * Placeholder
@@ -518,6 +518,15 @@ var okanjo = function (window, document) {
         return queryArgs[key] = hashArgs[key];
       });
       return queryArgs;
+    },
+
+    /**
+     * Returns the value if defined and not null
+     * @param val Value to use if defined
+     * @returns {*|null} Defined value or null
+     */
+    ifDefined: function ifDefined(val) {
+      return typeof val !== "undefined" && val !== null ? val : null;
     }
   };
   /**
@@ -1507,14 +1516,13 @@ var okanjo = function (window, document) {
         event.key = event.key || event.m.key || okanjo.key || undefined; // Set session
 
         if (this.sid) event.sid = this.sid; // Clone the metadata, since it might be a direct reference to a widget property
-        // Deleting properties on the meta object could be very destructive
+        // Deleting properties on the meta object, could be very destructive
 
         event.m = Object.assign({}, event.m); // event.m should be flat
         // Strip meta keys that should be excluded
-
-        Object.keys(Metrics.Meta.exclude).forEach(function (key) {
-          return delete event.m[key];
-        }); // Set referral channel / context
+        // Object.keys(Metrics.Meta.exclude).forEach((key) => delete event.m[key]);
+        // ^ this is now done after flattening as an include-only model in v3.x+
+        // Set referral channel / context
 
         if (this.sourceCh) {
           event.m.ref_ch = this.sourceCh;
@@ -1531,6 +1539,11 @@ var okanjo = function (window, document) {
 
         event.m = okanjo.util.flatten(event.m, {
           arrayToCsv: true
+        }); // Only send allowed meta keys - rest will get stripped
+
+        var allowedKeys = new Set(Metrics.Meta.include);
+        Object.keys(event.m).forEach(function (key) {
+          if (!allowedKeys.has(key)) delete event.m[key];
         }); // Ensure metadata strings won't exceed the imposed limit
 
         Object.keys(event.m).forEach(function (key) {
@@ -1755,11 +1768,12 @@ var okanjo = function (window, document) {
   };
   /**
    * Event Metadata configuration
-   * @type {{exclude: [*]}}
+   * @type {{exclude: [*], include: [*]}}
    */
 
   Metrics.Meta = {
-    exclude: ['key', 'callback', 'metrics_channel_context', 'metrics_context', 'mode']
+    exclude: ['key', 'callback', 'metrics_channel_context', 'metrics_context', 'mode'],
+    include: ['decl', 'ex', 'ey', 'filters_sort_by', 'filters_sort_direction', 'filters_take', 'filters_type', 'filters_url', 'ok_ver', 'ph', 'pw', 'pten', 'ptid', 'res_bf', 'res_length', 'res_sf', 'res_spltfl', 'res_type', 'bf', 'sf', 'spltfl_seg', 'vx1', 'vx2', 'vy1', 'vy2', 'pgid', 'wgid', 'wix1', 'wix2', 'wiy1', 'wiy2', 'wox1', 'wox2', 'woy1', 'woy2', 'wrps', 'x1', 'x2', 'y1', 'y2', 'cid', 'campaign_id', 'expandable', 'res_total']
   };
   /**
    * Event Types

@@ -219,7 +219,14 @@ const okanjo = (function(window, document) { // eslint-disable-line no-unused-va
             Object.keys(hashArgs).forEach((key) => queryArgs[key] = hashArgs[key]);
 
             return queryArgs;
-        }
+        },
+
+        /**
+         * Returns the value if defined and not null
+         * @param val Value to use if defined
+         * @returns {*|null} Defined value or null
+         */
+        ifDefined: (val) => (typeof val !== "undefined" && val !== null) ? val : null
 
     };
 

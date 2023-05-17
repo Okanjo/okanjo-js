@@ -119,7 +119,7 @@ describe('Metrics', () => {
                 b: '2',
                 c: '3',
                 m: { 
-                    et: 'Event',
+                    // et: 'Event',
                     ex: '1',
                     ey: '2',
                     pw: '0',
@@ -141,8 +141,8 @@ describe('Metrics', () => {
                     wix2: '0',
                     wiy2: '0',
                     wrps: '',
-                    d: '4',
-                    e: '5,6,7',
+                    // d: '4',
+                    // e: '5,6,7',
                     pgid: pageId,
                     ok_ver: '%%OKANJO_VERSION',
                 },
@@ -166,7 +166,7 @@ describe('Metrics', () => {
                                 b: 2,
                                 c: 3,
                                 m: {
-                                    et: 'Event',
+                                    // et: 'Event',
                                     ex: 1,
                                     ey: 2,
                                     pw: 0,
@@ -188,8 +188,8 @@ describe('Metrics', () => {
                                     wix2: 0,
                                     wiy2: 0,
                                     wrps: '',
-                                    d: 4,
-                                    e: '5,6,7',
+                                    // d: 4,
+                                    // e: '5,6,7',
                                     pgid: pageId,
                                     ok_ver: '%%OKANJO_VERSION'
                                 },
@@ -392,8 +392,8 @@ describe('Metrics', () => {
                                     m: {
                                         ok_ver: "%%OKANJO_VERSION",
                                         pgid: pageId,
-                                        ref_ch: 'myapp',
-                                        ref_cx: 'mymode'
+                                        // ref_ch: 'myapp',
+                                        // ref_cx: 'mymode'
                                     },
                                     ref: 'http://unit.test/my/referrer/here',
                                     // sid: 'MTunittesting1'
@@ -580,14 +580,16 @@ describe('Metrics', () => {
                 // Too long of a value
                 const event = okanjo.metrics.create({ a: 1 }, { b: 2 })
                     .meta({
-                        keywords: 'foo,bar,baz.,lorem,ipsum dolor,sit amet,consectetur adipiscing elit,sed a rutrum felis,aliquam nec m,in diam sagittis ultricies,sed eget magna,cras mollis,nisl in mattis,nisl erat tempus nulla,sed vulputate ipsum,convallis tortor,sed eu tincidunt,id semper justo,proin id eros diam,aenean facilisis aliquet,tellus sit amet euismod,donec ut laoreet felis'
+                        bogus: 'key',
+                        decl: 'foo,bar,baz.,lorem,ipsum dolor,sit amet,consectetur adipiscing elit,sed a rutrum felis,aliquam nec m,in diam sagittis ultricies,sed eget magna,cras mollis,nisl in mattis,nisl erat tempus nulla,sed vulputate ipsum,convallis tortor,sed eu tincidunt,id semper justo,proin id eros diam,aenean facilisis aliquet,tellus sit amet euismod,donec ut laoreet felis'
                     })
                     .type('unit', 'test');
 
                 // Normalize it
                 okanjo.metrics._normalizeEvent(event);
 
-                event.m.keywords.length.should.be.exactly(255);
+                event.m.decl.length.should.be.exactly(255);
+                should(event.m.bogus).not.be.ok();
 
             });
 

@@ -1,53 +1,47 @@
-<!--suppress CheckEmptyScriptTag -->
-<div class="okanjo-block2 okanjo-expansion-root {{ classDetects }} {{#config}} {{ size }} {{ template_variant }} theme-{{ template_theme }}{{^template_theme}}modern{{/template_theme}} okanjo-cta-style-{{ template_cta_style }}{{^template_cta_style}}link{{/template_cta_style}}{{/config}} okanjo-wgid-{{ instanceId }}">
-    <div class="okanjo-resource-list" itemscope itemtype="http://schema.org/ItemList" data-instance-id="{{ instanceId }}">
-        {{! dont change the structure below, click events use a.parentNode.parentNode to access these data attributes! }}
-    {{#articles}}
-        <div class="okanjo-resource okanjo-article {{#config}}{{ template_layout }}{{/config}}" itemscope itemtype="http://schema.org/Article">
-            <a href="//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}"
-               data-id="{{ id }}"
-               data-index="{{ _index }}"
-               data-backfill="{{ backfill }}"
-               target="_blank"
-               itemprop="url"
-               title="Read More: {{ title }}">
-                <div class="okanjo-resource-image-container">
-                    {{#image}}
-                        <img class="okanjo-resource-image {{ fitImage }}" src="{{ image }}" title="{{ name }}" itemprop="image" data-id="{{ id }}">
-                    {{/image}}
-                    {{^image}}
-                        {{{fallbackSVG}}}
-                    {{/image}}
+{{#resources}}
+    <div class="okanjo-resource okanjo-article {{#config}}{{ template_layout }}{{/config}}" itemscope itemtype="https://schema.org/Article">
+        <a href="//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}"
+            data-id="{{ id }}"
+            data-index="{{ _index }}"
+            data-segment="{{ _segmentIndex }}"
+            data-type="article"
+            data-backfill="{{ backfill }}"
+            target="_blank"
+            itemprop="url"
+            title="Read More: {{ title }}"
+        >
+            <div class="okanjo-resource-image-container">
+                {{#image}}
+                    <img alt="" class="okanjo-resource-image {{ fitImage }}" src="{{ image }}" title="{{ name }}" itemprop="image" data-id="{{ id }}">
+                {{/image}}
+                {{^image}}
+                    {{{fallbackSVG}}}
+                {{/image}}
+            </div>
+            <div class="okanjo-resource-info-container">
+                <div class="okanjo-resource-publisher-container" itemprop="publisher" itemscope itemtype="https://schema.org/Organization">
+                    <span class="okanjo-resource-publisher" itemprop="name" title="{{ publisher_name }}">{{ publisher_name }}{{^publisher_name}}&nbsp;{{/publisher_name}}</span>
                 </div>
-                <div class="okanjo-resource-info-container">
-                    <div class="okanjo-resource-publisher-container" itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-                        <span class="okanjo-resource-publisher" itemprop="name" title="{{ publisher_name }}">{{ publisher_name }}{{^publisher_name}}&nbsp;{{/publisher_name}}</span>
-                    </div>
-                    <div class="okanjo-resource-title-container">
-                        <span class="okanjo-resource-title" itemprop="name">{{ title }}</span>
-                    </div>
-                    <div class="okanjo-resource-description-container okanjo-visually-hidden">
-                        <div class="okanjo-resource-description" itemprop="description">
-                            {{ description }}
-                        </div>
-                    </div>
-                    <div>
-                        <div class="okanjo-resource-button-container">
-                            <div class="okanjo-resource-cta-button"><span>{{meta.cta_text}}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Read Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div>
-                            <meta property="url" itemprop="url" content="//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}">
-                        </div>
-                    </div>
-                    <div class="okanjo-resource-meta okanjo-visually-hidden">
-                        {{#author}}<span itemprop="author">{{ author }}</span>{{/author}}
-                        {{#published}}<span itemprop="dateCreated">{{ published }}</span>{{/published}}
-                        <img src="//cdn.okanjo.com/px/1.gif?n={{ now }}" />
+                <div class="okanjo-resource-title-container">
+                    <span class="okanjo-resource-title" itemprop="name">{{ title }}</span>
+                </div>
+                <div class="okanjo-resource-description-container okanjo-visually-hidden">
+                    <div class="okanjo-resource-description" itemprop="description">
+                        {{ description }}
                     </div>
                 </div>
-            </a>
-        </div>
-    {{/articles}}
+                <div>
+                    <div class="okanjo-resource-button-container">
+                        <div class="okanjo-resource-cta-button"><span>{{meta.cta_text}}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Read Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div>
+                        <meta property="url" itemprop="url" content="//{{ okanjoMetricUrl }}/metrics/am/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_url }}">
+                    </div>
+                </div>
+                <div class="okanjo-resource-meta okanjo-visually-hidden">
+                    {{#author}}<span itemprop="author">{{ author }}</span>{{/author}}
+                    {{#published}}<span itemprop="dateCreated">{{ published }}</span>{{/published}}
+                    <img alt="" src="//cdn.okanjo.com/px/1.gif?n={{ now }}" />
+                </div>
+            </div>
+        </a>
     </div>
-    <div class="okanjo-resource-meta okanjo-visually-hidden">
-        <!--suppress HtmlUnknownTarget -->
-    </div>
-</div>
+{{/resources}}

@@ -5,9 +5,7 @@
 
     // Reuses block2 markup layout, extended css
     okanjo.ui.engine.registerTemplate("products.slab", okanjo.ui.__product_block2, function (model) {
-        const data = (this._response || { data: { results: [] } }).data || { results: [] };
         model.blockClasses = ['okanjo-slab'];
-        model.products = data.results;
         model.config = this.config;
         model.instanceId = this.instanceId;
         model.metricChannel = this._metricBase.ch;

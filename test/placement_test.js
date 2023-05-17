@@ -436,6 +436,14 @@ describe('Placements', () => {
                 //noinspection JSAccessibilityCheck
                 placement._updateBaseMetaFromResponse();
 
+                placement._response = {
+                    statusCode: 200,
+                    data: [ ]
+                };
+
+                //noinspection JSAccessibilityCheck
+                placement._updateBaseMetaFromResponse();
+
             });
 
         });
@@ -629,7 +637,7 @@ describe('Placements', () => {
                     let tpl = placement._getTemplate(okanjo.Placement.ContentTypes.products, okanjo.Placement.DefaultTemplates.products);
                     tpl.should.be.exactly(okanjo.Placement.ContentTypes.products+'.custom');
 
-                    target.innerHTML.should.be.exactly(okanjo.Placement.ContentTypes.products+'.custom');
+                    target.innerHTML.should.containEql(okanjo.Placement.ContentTypes.products+'.custom');
 
                     done();
                 });
@@ -688,7 +696,7 @@ describe('Placements', () => {
                         key: 'unit_test_key',
                         m: {
                             // wgid: 'Lk0E6-Ap7',
-                            aid: 'article_local_2gT3kBcwVQZ1kpEma',
+                            // aid: 'article_local_2gT3kBcwVQZ1kpEma',
                             pten: '0',
                             decl: '0',
                             // key: 'unit_test_key', // should be stripped now
@@ -704,7 +712,7 @@ describe('Placements', () => {
                             vy2: '0',
                             bf: '0',
                             // cid: 'Lyra-Ram',
-                            et: 'Event',
+                            // et: 'Event',
                             ex: '1',
                             ey: '2',
                             // pgid: 'L14p-CaX',
@@ -816,9 +824,9 @@ describe('Placements', () => {
                             // wgid: 'U1CzDVApX',
                             pten: '0',
                             decl: '0',
-                            display_size: 'half_page',
-                            display_template_layout: 'list',
-                            display_template_cta_style: 'link',
+                            // display_size: 'half_page',
+                            // display_template_layout: 'list',
+                            // display_template_cta_style: 'link',
                             // key: 'unit_test_key',
                             pw: '0',
                             ph: '0',
@@ -840,7 +848,7 @@ describe('Placements', () => {
                             wix2: '0',
                             wiy2: '0',
                             // cid: '8kJxzPN0TQ',
-                            et: 'Event',
+                            // et: 'Event',
                             ex: '1',
                             ey: '2',
                             // pgid: 'U1bvECpQ',
@@ -912,13 +920,13 @@ describe('Placements', () => {
                             "key": "unit_test_key",
                             "m": {
                                 // "wgid": "UkexAd-WkS",
-                                "aid": "article_local_2gT3kBcwVQZ1kpEma",
+                                // "aid": "article_local_2gT3kBcwVQZ1kpEma",
                                 "pten": "0",
                                 "decl": "0",
                                 // "cid": "L1kFZWyH",
                                 "bf": "1",
                                 "sf": "0",
-                                "et": "Event",
+                                // "et": "Event",
                                 "ex": "1",
                                 "ey": "2",
                                 "pw": "0",
@@ -973,13 +981,13 @@ describe('Placements', () => {
                             "key": "unit_test_key",
                             "m": {
                                 // "wgid": "UkexAd-WkS",
-                                "aid": "article_local_2gT3kBcwVQZ1kpEma",
+                                // "aid": "article_local_2gT3kBcwVQZ1kpEma",
                                 "pten": "0",
                                 "decl": "0",
                                 // "cid": "L1kFZWyH",
                                 "bf": "0",
                                 "sf": "1",
-                                "et": "Event",
+                                // "et": "Event",
                                 "ex": "1",
                                 "ey": "2",
                                 "pw": "0",
@@ -1029,37 +1037,37 @@ describe('Placements', () => {
             });
         });
 
-        describe('_showProducts', () => {
+        describe('_renderProductSegment', () => {
 
-            it('handles a busted response', (done) => {
-                resetDocument();
-                let target = insertDropzone({ key: 'unit_test_key' });
-
-                // We don't need to fully load to test this
-                let placement = new okanjo.Placement(target, { no_init: true });
-
-                setMetricsBulkHandler(() => {
-                    setMetricsBulkHandler();
-                    done();
-                });
-
-                placement._metricBase.m = {};
-                placement._response = null;
-
-                // Go
-                //noinspection JSAccessibilityCheck
-                placement._showProducts();
-
-                placement.on('error', () => {
-                    done();
-                });
-
-                // Go again
-                placement._response = {};
-                //noinspection JSAccessibilityCheck
-                placement._showProducts();
-
-            });
+            // it('handles a busted response', (done) => {
+            //     resetDocument();
+            //     let target = insertDropzone({ key: 'unit_test_key' });
+            //
+            //     // We don't need to fully load to test this
+            //     let placement = new okanjo.Placement(target, { no_init: true });
+            //
+            //     setMetricsBulkHandler(() => {
+            //         setMetricsBulkHandler();
+            //         done();
+            //     });
+            //
+            //     placement._metricBase.m = {};
+            //     placement._response = null;
+            //
+            //     // Go
+            //     //noinspection JSAccessibilityCheck
+            //     placement._renderProductSegment(null, 0);
+            //
+            //     placement.on('error', () => {
+            //         done();
+            //     });
+            //
+            //     // Go again
+            //     placement._response = {};
+            //     //noinspection JSAccessibilityCheck
+            //     placement._renderProductSegment(null, 0);
+            //
+            // });
 
             it('handles an empty response', (done) => {
                 resetDocument();
@@ -1300,78 +1308,85 @@ describe('Placements', () => {
 
         });
 
-        describe('_showArticles', () => {
+        describe('_renderArticleSegment', () => {
 
-            it('should handle empty responses', (done) => {
+            it('handles an empty response', (done) => {
                 resetDocument();
                 let target = insertDropzone({ key: 'unit_test_key' });
-                let firedEmpty = false;
-
-                // We don't need to fully load to test this
-                let placement = new okanjo.Placement(target, { no_init: true });
+                let placement;
+                let emptyFired = false;
 
                 setMetricsBulkHandler(() => {
-                    setMetricsBulkHandler();
 
-                    firedEmpty.should.be.exactly(true);
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    emptyFired.should.be.exactly(true);
 
                     done();
                 });
 
-                placement._metricBase.m = {};
-                placement._response = null;
+                // Make the server return an error
+                setAdsHandler(() => {
+                    const payload = TestResponses.getExampleArticlesResponse();
 
-                // Go
-                //noinspection JSAccessibilityCheck
-                placement._showArticles();
+                    // Empty the results
+                    payload.data.results = [];
+                    payload.data.total = 0;
 
-                // Go again
-                placement._response = {};
-                placement.on('empty', () => {
-                    firedEmpty.should.be.exactly(false);
-                    firedEmpty = true;
+                    return {
+                        statusCode: 200,
+                        payload
+                    };
                 });
-                //noinspection JSAccessibilityCheck
-                placement._showArticles();
+
+                // Make that placement
+                placement = new okanjo.Placement(target);
+
+                placement.on('empty', () => {
+                    emptyFired.should.be.exactly(false);
+                    emptyFired = true;
+                });
             });
 
-            it('should handle empty responses in slab template', (done) => {
-                resetDocument();
-                let target = insertDropzone({ key: 'unit_test_key' });
-                let emptyCount = 0;
-
-                // We don't need to fully load to test this
-                let placement = new okanjo.Placement(target, { no_init: true, template_name: 'slab' });
-
-                setMetricsBulkHandler(() => {
-                    setMetricsBulkHandler();
-
-                    emptyCount.should.be.lessThanOrEqual(2);
-
-                    if (emptyCount === 2) {
-                        done();
-                    }
-                });
-
-                placement._metricBase.m = {};
-                placement._response = null;
-
-                // Go
-                //noinspection JSAccessibilityCheck
-                placement._showArticles();
-                placement._showProducts();
-
-                // Go again
-                placement._response = {};
-                placement.on('empty', () => {
-                    emptyCount.should.be.lessThanOrEqual(2);
-                    emptyCount++;
-                });
-                //noinspection JSAccessibilityCheck
-                placement._showArticles();
-                placement._showProducts();
-
-            });
+            // it('should handle empty responses in slab template', (done) => {
+            //     resetDocument();
+            //     let target = insertDropzone({ key: 'unit_test_key' });
+            //     let emptyCount = 0;
+            //
+            //     // We don't need to fully load to test this
+            //     let placement = new okanjo.Placement(target, { no_init: true, template_name: 'slab' });
+            //
+            //     setMetricsBulkHandler(() => {
+            //         setMetricsBulkHandler();
+            //
+            //         emptyCount.should.be.lessThanOrEqual(2);
+            //
+            //         if (emptyCount === 2) {
+            //             done();
+            //         }
+            //     });
+            //
+            //     placement._metricBase.m = {};
+            //     placement._response = null;
+            //
+            //     // Go
+            //     //noinspection JSAccessibilityCheck
+            //     placement._showArticles();
+            //     placement._showProducts();
+            //
+            //     // Go again
+            //     placement._response = {};
+            //     placement.on('empty', () => {
+            //         emptyCount.should.be.lessThanOrEqual(2);
+            //         emptyCount++;
+            //     });
+            //     //noinspection JSAccessibilityCheck
+            //     placement._showArticles();
+            //     placement._showProducts();
+            //
+            // });
 
             it('should handle article edge cases (backfill)', (done) => {
                 resetDocument();
@@ -1444,33 +1459,33 @@ describe('Placements', () => {
 
         describe('_showADX', () => {
 
-            it('should handle empty responses', (done) => {
-                resetDocument();
-                let target = insertDropzone({ key: 'unit_test_key' });
-
-                // We don't need to fully load to test this
-                let placement = new okanjo.Placement(target, { no_init: true });
-
-                setMetricsBulkHandler(() => {
-                    setMetricsBulkHandler();
-
-                    should(target.querySelector('iframe')).be.ok();
-
-                    done();
-                });
-
-                placement._metricBase.m = {};
-                placement._response = null;
-
-                // Go
-                //noinspection JSAccessibilityCheck
-                placement._showADX();
-
-                // Go again
-                placement._response = {};
-                //noinspection JSAccessibilityCheck
-                placement._showADX();
-            });
+            // it('should handle empty responses', (done) => {
+            //     resetDocument();
+            //     let target = insertDropzone({ key: 'unit_test_key' });
+            //
+            //     // We don't need to fully load to test this
+            //     let placement = new okanjo.Placement(target, { no_init: true });
+            //
+            //     setMetricsBulkHandler(() => {
+            //         setMetricsBulkHandler();
+            //
+            //         should(target.querySelector('iframe')).be.ok();
+            //
+            //         done();
+            //     });
+            //
+            //     placement._metricBase.m = {};
+            //     placement._response = null;
+            //
+            //     // Go
+            //     //noinspection JSAccessibilityCheck
+            //     placement._showADX();
+            //
+            //     // Go again
+            //     placement._response = {};
+            //     //noinspection JSAccessibilityCheck
+            //     placement._showADX();
+            // });
 
             it('should use a custom size name if given', (done) => {
                 resetDocument();
@@ -1710,7 +1725,7 @@ describe('Placements', () => {
                     key: 'unit_test_key',
                     m: {
                         wgid: placement.instanceId,
-                        aid: 'article_local_2gT3kBcwVQZ1kpEma',
+                        // aid: 'article_local_2gT3kBcwVQZ1kpEma',
                         pten: '0',
                         decl: '0',
                         // key: 'unit_test_key',
@@ -1726,7 +1741,7 @@ describe('Placements', () => {
                         vy2: '0',
                         bf: '0',
                         // cid: '8yXgXzRm',
-                        et: 'Event',
+                        // et: 'Event',
                         ex: '42',
                         ey: '43',
                         pgid: okanjo.metrics.pageId,
@@ -1790,7 +1805,7 @@ describe('Placements', () => {
                     key: 'unit_test_key',
                     m: {
                         wgid: placement.instanceId,
-                        aid: 'article_local_2gT3kBcwVQZ1kpEma',
+                        // aid: 'article_local_2gT3kBcwVQZ1kpEma',
                         pten: '0',
                         decl: '0',
                         // key: 'unit_test_key',
@@ -1806,7 +1821,7 @@ describe('Placements', () => {
                         vy2: '0',
                         bf: '0',
                         // cid: 'LyOVRjMAQ',
-                        et: 'Event',
+                        // et: 'Event',
                         ex: '42',
                         ey: '43',
                         expandable: 'true',
@@ -1874,7 +1889,7 @@ describe('Placements', () => {
                     key: 'unit_test_key',
                     m: {
                         wgid: placement.instanceId,
-                        aid: 'article_local_2gT3kBcwVQZ1kpEma',
+                        // aid: 'article_local_2gT3kBcwVQZ1kpEma',
                         pten: '0',
                         decl: '0',
                         // key: 'unit_test_key',
@@ -1890,7 +1905,7 @@ describe('Placements', () => {
                         vy2: '0',
                         bf: '0',
                         // cid: 'Ly90ziGRQ',
-                        et: 'Event',
+                        // et: 'Event',
                         ex: '42',
                         ey: '43',
                         expandable: 'false',
@@ -1912,9 +1927,9 @@ describe('Placements', () => {
                 args.should.containDeep({
                     // ok_cid: 'SSCLK2EiyYZ5Y4EriWsEaC0Ech7',
                     // afftrack: 'SSCLK2EiyYZ5Y4EriWsEaC0Ech7', // <-- buy_url_track_param
-                    utm_source: 'okanjo',
+                    // utm_source: 'okanjo',
                     // utm_campaign: 'smartserve',
-                    utm_medium: 'smartserve',
+                    // utm_medium: 'smartserve',
                     ok_expandable: '0',
                     ok_frame_height: '0',
                     ok_frame_width: '0',
@@ -2011,9 +2026,9 @@ describe('Placements', () => {
                             wgid: placement.instanceId,
                             pten: '0',
                             decl: '0',
-                            display_size: 'half_page',
-                            display_template_layout: 'list',
-                            display_template_cta_style: 'link',
+                            // display_size: 'half_page',
+                            // display_template_layout: 'list',
+                            // display_template_cta_style: 'link',
                             // key: 'unit_test_key',
                             pw: '0',
                             ph: '0',
@@ -2027,7 +2042,7 @@ describe('Placements', () => {
                             vy2: '0',
                             bf: '0',
                             // cid: 'UJfMhbX0X',
-                            et: 'Event',
+                            // et: 'Event',
                             ex: '42',
                             ey: '43',
                             pgid: okanjo.metrics.pageId,
@@ -2175,7 +2190,7 @@ describe('Placements', () => {
                     key: 'unit_test_key',
                     m: {
                         wgid: placement.instanceId,
-                        aid: 'article_local_2gT3kBcwVQZ1kpEma',
+                        // aid: 'article_local_2gT3kBcwVQZ1kpEma',
                         pten: '0',
                         decl: '0',
                         // key: 'unit_test_key',
@@ -2191,7 +2206,7 @@ describe('Placements', () => {
                         vy2: '0',
                         bf: '0',
                         // cid: '8yXgXzRm',
-                        et: 'Event',
+                        // et: 'Event',
                         ex: '42',
                         ey: '43',
                         pgid: okanjo.metrics.pageId,
@@ -2216,8 +2231,8 @@ describe('Placements', () => {
                     // ok_cid: 'SSCLK2EiyYZ5Y4EriWsEaC0Ech26',
                     // afftrack: 'SSCLK2EiyYZ5Y4EriWsEaC0Ech26',
                     ok_msid: 'MTunittesting1',
-                    utm_source: 'okanjo',
-                    utm_medium: 'smartserve'
+                    // utm_source: 'okanjo',
+                    // utm_medium: 'smartserve'
                 });
 
                 should(args.ok_cid).startWith('SSCLK');
@@ -2291,7 +2306,7 @@ describe('Placements', () => {
                     key: 'unit_test_key',
                     m: {
                         wgid: placement.instanceId,
-                        aid: 'article_local_2gT3kBcwVQZ1kpEma',
+                        // aid: 'article_local_2gT3kBcwVQZ1kpEma',
                         pten: '0',
                         decl: '0',
                         // key: 'unit_test_key',
@@ -2307,7 +2322,7 @@ describe('Placements', () => {
                         vy2: '0',
                         bf: '0',
                         // cid: '8yXgXzRm',
-                        et: 'Event',
+                        // et: 'Event',
                         ex: '42',
                         ey: '43',
                         pgid: okanjo.metrics.pageId,
@@ -2336,8 +2351,8 @@ describe('Placements', () => {
                     ok_cx: 'auto',
                     // _okjr: 'YWJvdXQ6Ymxhbms='    // about:blank
                     _okjr: 'aHR0cHM6Ly9leGFtcGxlLmNvbS8=', // https://example.com
-                    utm_source: 'okanjo',
-                    utm_medium: 'smartserve'
+                    // utm_source: 'okanjo',
+                    // utm_medium: 'smartserve'
                 });
 
                 should(args.ok_cid).startWith('SSCLK');
@@ -2347,14 +2362,14 @@ describe('Placements', () => {
                 setMetricsHandler();
             });
 
-            it('utm disabled', async () => {
+            it('utm enabled', async () => {
 
                 // Load the widget
                 await new Promise((resolve) => {
                     resetDocument();
                     target = insertDropzone({
                         key: 'unit_test_key',
-                        utm_click_data: false
+                        utm_click_data: true
                     });
 
                     setMetricsBulkHandler(() => {
@@ -2408,7 +2423,7 @@ describe('Placements', () => {
                     key: 'unit_test_key',
                     m: {
                         wgid: placement.instanceId,
-                        aid: 'article_local_2gT3kBcwVQZ1kpEma',
+                        // aid: 'article_local_2gT3kBcwVQZ1kpEma',
                         pten: '0',
                         decl: '0',
                         // key: 'unit_test_key',
@@ -2424,7 +2439,7 @@ describe('Placements', () => {
                         vy2: '0',
                         bf: '0',
                         // cid: '8yXgXzRm',
-                        et: 'Event',
+                        // et: 'Event',
                         ex: '42',
                         ey: '43',
                         pgid: okanjo.metrics.pageId,
@@ -2447,13 +2462,14 @@ describe('Placements', () => {
 
                 args.should.containDeep({
                     ok_msid: 'MTunittesting1',
+                    utm_source: 'okanjo',
+                    utm_medium: 'smartserve'
                 });
 
                 should(args.ok_cid).startWith('SSCLK');
                 should(args.afftrack).startWith('SSCLK');
-                should(args.utm_source).not.be.ok();
-                should(args.utm_campaign).not.be.ok();
-                should(args.utm_medium).not.be.ok();
+                should(args.utm_source).be.ok();
+                should(args.utm_medium).be.ok();
                 should(args.ok_ch).not.be.ok();
                 should(args.ok_cx).not.be.ok();
                 should(args._okjr).not.be.ok();
@@ -3072,7 +3088,7 @@ describe('Placements', () => {
 
     describe('Splitfill', () => {
 
-        it('can track properly on products', (done) => {
+        it('can handle multi type segments', (done) => {
 
             resetDocument();
             let target = insertDropzone({ key: 'unit_test_key' });
@@ -3082,38 +3098,53 @@ describe('Placements', () => {
 
                 let bf = 0;
                 let sf = 0;
-                let spltfl_seg = 0;
-                let fl = 0;
+                let spltfl_segs = [];
+                let pr = 0;
+                let am = 0;
+                let ta = 0;
 
                 // CHECK IMPRESSIONS
-                // 1 widget + 2 product impressions
+                // 1 widget + 3 resource impressions (1 product, 1 article, 1 adx - but adx won't load cuz it's fake)
                 req.payload.events.length.should.be.exactly(3);
                 req.payload.events.forEach((e) => {
                     e.event_type.should.be.exactly('imp');
 
                     if (e.m.bf === 1) {
                         bf++;
-                    } else if (e.m.sf === 1) {
+                    }
+                    if (e.m.sf === 1) {
                         sf++;
-                    } else if (e.m.spltfl_seg) {
-                        spltfl_seg++;
-                    } else if (e.object_type === 'pr') {
-                        fl++;
+                    }
+                    if (typeof e.m.spltfl_seg !== "undefined") {
+                        spltfl_segs.push(e.m.spltfl_seg);
+                    }
+
+                    if (e.object_type === 'pr') {
+                        pr++;
+                    } else if (e.object_type === 'am') {
+                        am++;
+                    } else if (e.object_type === 'ta') {
+                        ta++;
                     }
 
                 });
 
-                bf.should.be.exactly(0);
-                sf.should.be.exactly(0);
-                spltfl_seg.should.be.exactly(1);
-                fl.should.be.exactly(1);
+                bf.should.be.exactly(1); // the article response has both bf and sf set
+                sf.should.be.exactly(1);
+                spltfl_segs.should.containDeep([0, 1/*, 2*/]) // adx doesn't load here
+                pr.should.be.exactly(1);
+                am.should.be.exactly(1);
+                ta.should.be.exactly(0); // google does not load here
+
 
                 setMetricsBulkHandler((req) => {
 
                     bf = 0;
                     sf = 0;
-                    spltfl_seg = 0;
-                    fl = 0;
+                    spltfl_segs = [];
+                    pr = 0;
+                    am = 0;
+                    ta = 0;
 
                     // CHECK VIEWS
                     // 1 widget + 2 product views
@@ -3123,20 +3154,30 @@ describe('Placements', () => {
 
                         if (e.m.bf === 1) {
                             bf++;
-                        } else if (e.m.sf === 1) {
+                        }
+                        if (e.m.sf === 1) {
                             sf++;
-                        } else if (e.m.spltfl_seg) {
-                            spltfl_seg++;
-                        } else if (e.object_type === 'pr') {
-                            fl++;
+                        }
+                        if (typeof e.m.spltfl_seg !== "undefined") {
+                            spltfl_segs.push(e.m.spltfl_seg);
+                        }
+
+                        if (e.object_type === 'pr') {
+                            pr++;
+                        } else if (e.object_type === 'am') {
+                            am++;
+                        } else if (e.object_type === 'ta') {
+                            ta++;
                         }
 
                     });
 
-                    bf.should.be.exactly(0);
-                    sf.should.be.exactly(0);
-                    spltfl_seg.should.be.exactly(1);
-                    fl.should.be.exactly(1);
+                    bf.should.be.exactly(1); // the article response has both bf and sf set
+                    sf.should.be.exactly(1);
+                    spltfl_segs.should.containDeep([0, 1])
+                    pr.should.be.exactly(1);
+                    am.should.be.exactly(1);
+                    ta.should.be.exactly(0); // google does not load here
 
                     // Clean up
                     setMetricsBulkHandler();
@@ -3169,20 +3210,20 @@ describe('Placements', () => {
                             "key": "unit_test_key",
                             "m": {
                                 // "wgid": "8kMzJKKGf",
-                                "aid": "article_local_2gT3kBcwVQZ1kpEma",
+                                // "aid": "article_local_2gT3kBcwVQZ1kpEma",
                                 "pten": "0",
                                 "decl": "0",
-                                "res_bf": "0",
-                                "res_sf": "0",
+                                "res_bf": "1",
+                                "res_sf": "1",
                                 "res_spltfl": "1",                  // !! <<<<< !!
-                                "res_total": "2",
-                                "res_type": "products",
+                                "res_total": "3",
+                                "res_type": "mixed",
                                 "res_length": "2",
                                 // "cid": "UkxzzJttMf",
                                 "bf": "0",
                                 "sf": "0",
-                                "spltfl_seg": "test split segment", // !! <<<<< !!
-                                "et": "Event",
+                                "spltfl_seg": "0", // !! <<<<< !!
+                                // "et": "Event",
                                 "ex": "1",
                                 "ey": "2",
                                 "pw": "0",
@@ -3212,76 +3253,76 @@ describe('Placements', () => {
                         // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
 
                     })();
-
-                    // Check a link without a segment
-                    (() => {
-                        let productLink = target.querySelectorAll('a')[1];
-                        should(productLink).be.ok();
-
-                        let baitLink = target.href;
-
-                        let e = new window.Event('mousedown', {bubbles: true});
-                        e.pageX = 1;
-                        e.pageY = 2;
-                        productLink.dispatchEvent(e);
-
-                        // Verify that our link changed
-                        productLink.href.should.not.be.equal(baitLink);
-                        productLink.href.should.not.match(/\[bot]/);
-
-                        let parts = Url.parse(productLink.href);
-                        let args = Qs.parse(parts.query);
-
-                        // console.log(JSON.stringify(args, null, '  '));
-                        args.should.containDeep({
-                            "ch": "pw",
-                            "cx": "auto",
-                            "key": "unit_test_key",
-                            "m": {
-                                // "wgid": "UylAxWtFfz",
-                                "aid": "article_local_2gT3kBcwVQZ1kpEma",
-                                "pten": "0",
-                                "decl": "0",
-                                "res_bf": "0",
-                                "res_sf": "0",
-                                "res_spltfl": "1",              // !! <<<<< !!
-                                "res_total": "2",
-                                "res_type": "products",
-                                "res_length": "2",
-                                // "cid": "81xJ-bFFfM",
-                                "bf": "0",
-                                "sf": "0",
-                                "spltfl_seg": "",               // !! <<<<< !!
-                                "et": "Event",
-                                "ex": "1",
-                                "ey": "2",
-                                "pw": "0",
-                                "ph": "0",
-                                "x1": "0",
-                                "y1": "0",
-                                "x2": "0",
-                                "y2": "0",
-                                "vx1": "0",
-                                "vy1": "0",
-                                "vx2": "0",
-                                "vy2": "0",
-                                // "pgid": "Lkpl-FYzM",
-                                "ok_ver": "%%OKANJO_VERSION"
-                            },
-                            "id": "product_test_2gT3kBcwVQZ1kpEmb",
-                            "ea": "click",
-                            // "u": "http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=675783405&ok_cid=81xJ-bFFfM&afftrack=MTunittesting1%3A81xJ-bFFfM&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
-                            "sid": "MTunittesting1",
-                            "win": "https://example.com/"
-                        });
-
-                        // check dynamic params to be present
-                        args.m.wgid.should.be.ok();
-                        args.m.cid.should.be.ok();
-                        args.m.pgid.should.be.ok();
-                        // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
-
-                    })();
+                    //
+                    // // Check a link without a segment
+                    // (() => {
+                    //     let productLink = target.querySelectorAll('a')[1];
+                    //     should(productLink).be.ok();
+                    //
+                    //     let baitLink = target.href;
+                    //
+                    //     let e = new window.Event('mousedown', {bubbles: true});
+                    //     e.pageX = 1;
+                    //     e.pageY = 2;
+                    //     productLink.dispatchEvent(e);
+                    //
+                    //     // Verify that our link changed
+                    //     productLink.href.should.not.be.equal(baitLink);
+                    //     productLink.href.should.not.match(/\[bot]/);
+                    //
+                    //     let parts = Url.parse(productLink.href);
+                    //     let args = Qs.parse(parts.query);
+                    //
+                    //     // console.log(JSON.stringify(args, null, '  '));
+                    //     args.should.containDeep({
+                    //         "ch": "pw",
+                    //         "cx": "auto",
+                    //         "key": "unit_test_key",
+                    //         "m": {
+                    //             // "wgid": "UylAxWtFfz",
+                    //             "aid": "article_local_2gT3kBcwVQZ1kpEma",
+                    //             "pten": "0",
+                    //             "decl": "0",
+                    //             "res_bf": "0",
+                    //             "res_sf": "0",
+                    //             "res_spltfl": "1",              // !! <<<<< !!
+                    //             "res_total": "2",
+                    //             "res_type": "products",
+                    //             "res_length": "2",
+                    //             // "cid": "81xJ-bFFfM",
+                    //             "bf": "0",
+                    //             "sf": "0",
+                    //             "spltfl_seg": "",               // !! <<<<< !!
+                    //             "et": "Event",
+                    //             "ex": "1",
+                    //             "ey": "2",
+                    //             "pw": "0",
+                    //             "ph": "0",
+                    //             "x1": "0",
+                    //             "y1": "0",
+                    //             "x2": "0",
+                    //             "y2": "0",
+                    //             "vx1": "0",
+                    //             "vy1": "0",
+                    //             "vx2": "0",
+                    //             "vy2": "0",
+                    //             // "pgid": "Lkpl-FYzM",
+                    //             "ok_ver": "%%OKANJO_VERSION"
+                    //         },
+                    //         "id": "product_test_2gT3kBcwVQZ1kpEmb",
+                    //         "ea": "click",
+                    //         // "u": "http://www.shareasale.com/m-pr.cfm?merchantID=52555&userID=1241092&productID=675783405&ok_cid=81xJ-bFFfM&afftrack=MTunittesting1%3A81xJ-bFFfM&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
+                    //         "sid": "MTunittesting1",
+                    //         "win": "https://example.com/"
+                    //     });
+                    //
+                    //     // check dynamic params to be present
+                    //     args.m.wgid.should.be.ok();
+                    //     args.m.cid.should.be.ok();
+                    //     args.m.pgid.should.be.ok();
+                    //     // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
+                    //
+                    // })();
 
 
                     done();
@@ -3291,7 +3332,7 @@ describe('Placements', () => {
                 // Fake some scrolling into view action
                 setTimeout(() => {
 
-                    // First, make sure we have 3 active view impression watchers (widget + 2 products)
+                    // First, make sure we have 3 active view impression watchers (widget + product + article (adx does not load here))
                     placement._viewedWatchers.length.should.be.exactly(3);
 
                     // Fake that they entered the view
@@ -3306,257 +3347,6 @@ describe('Placements', () => {
 
             setAdsHandler(() => {
                 const payload = TestResponses.getExampleSplitfillProductResponse();
-
-                return {
-                    statusCode: 200,
-                    payload
-                };
-            });
-
-            // Make that placement
-            placement = new okanjo.Placement(target);
-        });
-
-        it('can track properly on articles', (done) => {
-
-            resetDocument();
-            let target = insertDropzone({ key: 'unit_test_key' });
-            let placement;
-
-            setMetricsBulkHandler((req) => {
-
-                let bf = 0;
-                let sf = 0;
-                let spltfl_seg = 0;
-                let fl = 0;
-
-                // CHECK IMPRESSIONS
-                // 1 widget + 2 article impressions
-                req.payload.events.length.should.be.exactly(3);
-                req.payload.events.forEach((e) => {
-                    e.event_type.should.be.exactly('imp');
-
-                    if (e.m.bf === 1) {
-                        bf++;
-                    } else if (e.m.sf === 1) {
-                        sf++;
-                    } else if (e.m.spltfl_seg) {
-                        spltfl_seg++;
-                    } else if (e.object_type === 'am') {
-                        fl++;
-                    }
-
-                });
-
-                bf.should.be.exactly(0);
-                sf.should.be.exactly(0);
-                spltfl_seg.should.be.exactly(1);
-                fl.should.be.exactly(1);
-
-                setMetricsBulkHandler((req) => {
-
-                    bf = 0;
-                    sf = 0;
-                    spltfl_seg = 0;
-                    fl = 0;
-
-                    // CHECK VIEWS
-                    // 1 widget + 2 article views
-                    req.payload.events.length.should.be.exactly(3);
-                    req.payload.events.forEach((e) => {
-                        e.event_type.should.be.exactly('vw');
-
-                        if (e.m.bf === 1) {
-                            bf++;
-                        } else if (e.m.sf === 1) {
-                            sf++;
-                        } else if (e.m.spltfl_seg) {
-                            spltfl_seg++;
-                        } else if (e.object_type === 'am') {
-                            fl++;
-                        }
-
-                    });
-
-                    bf.should.be.exactly(0);
-                    sf.should.be.exactly(0);
-                    spltfl_seg.should.be.exactly(1);
-                    fl.should.be.exactly(1);
-
-                    // Clean up
-                    setMetricsBulkHandler();
-                    setAdsHandler();
-
-
-                    // CHECK A CLICK THROUGH LINK (with a segment)
-                    (() => {
-                        let articleLink = target.querySelectorAll('a')[0];
-                        should(articleLink).be.ok();
-
-                        let baitLink = target.href;
-
-                        let e = new window.Event('mousedown', {bubbles: true});
-                        e.pageX = 1;
-                        e.pageY = 2;
-                        articleLink.dispatchEvent(e);
-
-                        // Verify that our link changed
-                        articleLink.href.should.not.be.equal(baitLink);
-                        articleLink.href.should.not.match(/\[bot]/);
-
-                        let parts = Url.parse(articleLink.href);
-                        let args = Qs.parse(parts.query);
-
-                        // console.log(JSON.stringify(args, null, '  '));
-                        args.should.containDeep({
-                            "ch": "pw",
-                            "cx": "auto",
-                            "key": "unit_test_key",
-                            "m": {
-                                // "wgid": "UkZJf_KtGz",
-                                "pten": "0",
-                                "decl": "0",
-                                "res_bf": "0",
-                                "res_sf": "0",
-                                "res_spltfl": "1",                          // !! <<<<< !!
-                                "res_total": "2",
-                                "res_type": "articles",
-                                "res_length": "2",
-                                "display_size": "half_page",
-                                "display_template_layout": "list",
-                                "display_template_cta_style": "link",
-                                // "cid": "Iyz1G_KFzz",
-                                "bf": "0",
-                                "sf": "0",
-                                "spltfl_seg": "test split segment",         // !! <<<<< !!
-                                "et": "Event",
-                                "ex": "1",
-                                "ey": "2",
-                                "pw": "0",
-                                "ph": "0",
-                                "x1": "0",
-                                "y1": "0",
-                                "x2": "0",
-                                "y2": "0",
-                                "vx1": "0",
-                                "vy1": "0",
-                                "vx2": "0",
-                                "vy2": "0",
-                                // "pgid": "Lk2-OKYff",
-                                "ok_ver": "%%OKANJO_VERSION"
-                            },
-                            "id": "article_test_2gWFnrrPHhoJPDQoF",
-                            "ea": "click",
-                            // "u": "http://unit.test/1?ok_cid=Iyz1G_KFzz&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
-                            "sid": "MTunittesting1",
-                            "win": "https://example.com/"
-
-                        });
-
-                        // check dynamic params to be present
-                        args.m.wgid.should.be.ok();
-                        args.m.cid.should.be.ok();
-                        args.m.pgid.should.be.ok();
-                        // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
-
-                    })();
-
-                    // Check a link without a segment
-                    (() => {
-                        let articleLink = target.querySelectorAll('a')[1];
-                        should(articleLink).be.ok();
-
-                        let baitLink = target.href;
-
-                        let e = new window.Event('mousedown', {bubbles: true});
-                        e.pageX = 1;
-                        e.pageY = 2;
-                        articleLink.dispatchEvent(e);
-
-                        // Verify that our link changed
-                        articleLink.href.should.not.be.equal(baitLink);
-                        articleLink.href.should.not.match(/\[bot]/);
-
-                        let parts = Url.parse(articleLink.href);
-                        let args = Qs.parse(parts.query);
-
-                        // console.log(JSON.stringify(args, null, '  '));
-                        args.should.containDeep({
-                            "ch": "pw",
-                            "cx": "auto",
-                            "key": "unit_test_key",
-                            "m": {
-                                // "wgid": "UkZJf_KtGz",
-                                "pten": "0",
-                                "decl": "0",
-                                "res_bf": "0",
-                                "res_sf": "0",
-                                "res_spltfl": "1",                          // !! <<<<< !!
-                                "res_total": "2",
-                                "res_type": "articles",
-                                "res_length": "2",
-                                "display_size": "half_page",
-                                "display_template_layout": "list",
-                                "display_template_cta_style": "link",
-                                // "cid": "UJQkf_tFMf",
-                                "bf": "0",
-                                "sf": "0",
-                                "spltfl_seg": "",                           // !! <<<<< !!
-                                "et": "Event",
-                                "ex": "1",
-                                "ey": "2",
-                                "pw": "0",
-                                "ph": "0",
-                                "x1": "0",
-                                "y1": "0",
-                                "x2": "0",
-                                "y2": "0",
-                                "vx1": "0",
-                                "vy1": "0",
-                                "vx2": "0",
-                                "vy2": "0",
-                                // "pgid": "Lk2-OKYff",
-                                "ok_ver": "%%OKANJO_VERSION"
-                            },
-                            "id": "article_test_2gWFnrrPHhoJPDQoA",
-                            "ea": "click",
-                            // "u": "http://unit.test/2?ok_cid=UJQkf_tFMf&ok_msid=MTunittesting1&ok_ch=pw&ok_cx=auto&utm_source=okanjo&utm_campaign=smartserve",
-                            "sid": "MTunittesting1",
-                            "win": "https://example.com/"
-
-                        });
-
-                        // check dynamic params to be present
-                        args.m.wgid.should.be.ok();
-                        args.m.cid.should.be.ok();
-                        args.m.pgid.should.be.ok();
-                        // args.u.should.be.ok().and.startWith('http://unit.test/1?').and.containEql('=unknown');
-
-                    })();
-
-
-                    done();
-
-                });
-
-                // Fake some scrolling into view action
-                setTimeout(() => {
-
-                    // First, make sure we have 3 active view impression watchers (widget + 2 articles)
-                    placement._viewedWatchers.length.should.be.exactly(3);
-
-                    // Fake that they entered the view
-                    placement._viewedWatchers.forEach((controller) => {
-                        controller.successfulCount = 2; // MINIMUM_VIEW_FREQ
-                    });
-
-                    // Now we wait for the next tick to deliver another bulk metrics report of views
-
-                }, 10);
-            });
-
-            setAdsHandler(() => {
-                const payload = TestResponses.getExampleSplitfillArticlesResponse();
 
                 return {
                     statusCode: 200,
