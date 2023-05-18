@@ -531,6 +531,9 @@ function clean() {
 function watch_core() {
     return watch([
         'src/**/*.js',
+        'templates/**/*.js',
+        'templates/**/*.less',
+        'templates/**/*.mustache',
         'lib/*.js',
         'lib/polyfill/*.js',
         'lib/vendor.js.tpl'
