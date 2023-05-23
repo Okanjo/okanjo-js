@@ -9,6 +9,6 @@
         model.instanceId = this.instanceId;
         return model;
     }, {
-        css: ['okanjo.block2']
+        css: ['okanjo.block2', 'okanjo.modal']
     });
 })(window);

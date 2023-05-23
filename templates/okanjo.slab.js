@@ -13,6 +13,6 @@
 
         return model;
     }, {
-        css: ['okanjo.slab', 'okanjo.block2']
+        css: ['okanjo.slab', 'okanjo.block2', 'okanjo.modal']
     });
 })(window);
