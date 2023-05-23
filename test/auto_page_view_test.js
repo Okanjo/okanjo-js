@@ -29,7 +29,9 @@ describe('AutoPageView', () => {
     const resetDocument = TestUtil.resetDocument.bind(TestUtil);
     const setMetricsBulkHandler = TestUtil.setMetricsBulkHandler.bind(TestUtil);
 
-    before((done) => {
+    before(function (done) {
+        this.timeout(10000);
+
         // make us a dom
         TestUtil.setupEnvironment();
 

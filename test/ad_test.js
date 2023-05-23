@@ -38,7 +38,9 @@ describe('Ad', () => {
     const setMetricsBulkHandler = TestUtil.setMetricsBulkHandler.bind(TestUtil);
     const setAdsHandler = TestUtil.setAdsHandler.bind(TestUtil);
 
-    before((done) => {
+    before(function (done) {
+        this.timeout(10000);
+
         // make us a dom
         TestUtil.setupEnvironment();
 
