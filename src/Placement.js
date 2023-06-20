@@ -132,6 +132,7 @@
                 template_cta_text: string().group(DISPLAY),
                 template_cta_color: string().group(DISPLAY),
                 adx_unit_path: string().group(DISPLAY), // Custom DFP ad unit path
+                hide_pricing: bool().group(DISPLAY), // hide price container on product resources
 
                 // Flexbox
                 align: string().group(DISPLAY),

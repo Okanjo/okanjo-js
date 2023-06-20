@@ -576,6 +576,72 @@ describe('Placements', () => {
                 placement._showContent();
             });
 
+            it('can hide product price container (slab)', (done) => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    template_name: 'slab',
+                    hide_pricing: true
+                });
+
+                setMetricsBulkHandler(() => {
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    target.querySelectorAll('.okanjo-product').length.should.be.exactly(2);
+                    target.querySelectorAll('.okanjo-resource-price-container').length.should.be.exactly(2);
+                    target.querySelectorAll('.okanjo-resource-price-container.okanjo-invisible').length.should.be.exactly(2);
+
+                    done();
+                });
+
+                // Make the server return an error
+                setAdsHandler(() => {
+                    return {
+                        statusCode: 200,
+                        payload: TestResponses.getExampleProductResponse()
+                    };
+                });
+
+                // Make that placement
+                new okanjo.Placement(target);
+            });
+
+            it('can hide product price container (block2)', (done) => {
+                resetDocument();
+                let target = insertDropzone({
+                    key: 'unit_test_key',
+                    template_name: 'block2',
+                    hide_pricing: true
+                });
+
+                setMetricsBulkHandler(() => {
+
+                    // Clean up
+                    setMetricsBulkHandler();
+                    setAdsHandler();
+
+                    target.querySelectorAll('.okanjo-product').length.should.be.exactly(2);
+                    target.querySelectorAll('.okanjo-resource-price-container').length.should.be.exactly(2);
+                    target.querySelectorAll('.okanjo-resource-price-container.okanjo-invisible').length.should.be.exactly(2);
+
+                    done();
+                });
+
+                // Make the server return an error
+                setAdsHandler(() => {
+                    return {
+                        statusCode: 200,
+                        payload: TestResponses.getExampleProductResponse()
+                    };
+                });
+
+                // Make that placement
+                new okanjo.Placement(target);
+            });
+
         });
 
         describe('_getTemplate', () => {
