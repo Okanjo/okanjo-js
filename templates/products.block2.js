@@ -13,7 +13,6 @@
         model.metricChannel = this._metricBase.ch;
         model.metricContext = this._metricBase.cx;
         model.metricParams = okanjo.net.request.stringify(this._metricBase);
-        model.price_classes = this.config.hide_pricing ? 'okanjo-invisible' : '';
 
         // Enforce format restrictions
         this._enforceLayoutOptions();

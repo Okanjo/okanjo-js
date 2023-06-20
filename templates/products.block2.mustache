@@ -25,7 +25,7 @@
                         <span content="{{ currency }}">$</span><span class="okanjo-resource-price" >{{ _price_formatted }}</span>
                     </div>
                     <div class="okanjo-resource-button-container">
-                        <div class="okanjo-resource-buy-button"><span>{{ meta.cta_text }}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Shop Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div>
+                        <div class="okanjo-resource-buy-button {{button_classes}}"><span>{{ meta.cta_text }}{{^meta.cta_text}}{{#config}}{{ template_cta_text }}{{^template_cta_text}}Shop Now{{/template_cta_text}}{{/config}}{{/meta.cta_text}}</span></div>
                         <meta property="url" itemprop="url" content="//{{ okanjoMetricUrl }}/metrics/pr/int?m[bot]=true&m[microdata]=true&id={{ id }}&{{ metricParams }}&n={{ now }}&u={{ _escaped_buy_url }}" />
                     </div>
                 </div>

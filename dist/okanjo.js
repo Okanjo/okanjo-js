@@ -1,4 +1,4 @@
-/*! okanjo-js v3.3.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v3.4.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -343,7 +343,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "3.3.0",
+    version: "3.4.0",
 
     /**
      * Placeholder
@@ -3194,6 +3194,8 @@ var okanjo = function (window, document) {
           template_cta_style: string().group(DISPLAY),
           template_cta_text: string().group(DISPLAY),
           template_cta_color: string().group(DISPLAY),
+          template_cta_invert: bool().group(DISPLAY),
+          // Whether to invert the cta color scheme
           adx_unit_path: string().group(DISPLAY),
           // Custom DFP ad unit path
           hide_pricing: bool().group(DISPLAY),
@@ -3579,10 +3581,9 @@ var okanjo = function (window, document) {
         } // Render the container and insert the markup
 
 
-        var model = {
-          css: !this.config.no_css,
+        var model = this._getBaseRenderModel({
           segmentContent: renderedSegments.join('')
-        };
+        });
 
         var templateName = this._getTemplate(Placement.ContentTypes.container, Placement.DefaultTemplates.container);
 
@@ -3601,6 +3602,21 @@ var okanjo = function (window, document) {
         okanjo.ui.fitImages(this.element); // Hook point that the widget is done loading
 
         this.emit('load');
+      }
+      /**
+       * Returns the base render model with common properties set
+       * @param model
+       * @returns {{}}
+       * @private
+       */
+
+    }, {
+      key: "_getBaseRenderModel",
+      value: function _getBaseRenderModel(model) {
+        model.css = !this.config.no_css;
+        model.button_classes = this.config.template_cta_invert ? 'invert' : '';
+        model.price_classes = this.config.hide_pricing ? 'okanjo-invisible' : '';
+        return model;
       }
       /**
        * Generates the click url using the event, proxy_url, and additional params
@@ -3777,7 +3793,7 @@ var okanjo = function (window, document) {
         var brandCSS = '';
 
         if (brandColor) {
-          brandCSS = "\n                    .okanjo-block2.".concat(brandCSSId, " .okanjo-resource-cta-button, .okanjo-block2.").concat(brandCSSId, " .okanjo-resource-buy-button { color: ").concat(brandColor, " !important; } \n                    .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-cta-button, .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-buy-button { border-color: ").concat(brandColor, " !important; } \n                    .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-cta-button:hover, .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-buy-button:hover { background: ").concat(brandColor, " !important; color: #fff !important; } \n                ");
+          brandCSS = "\n                    .okanjo-block2.".concat(brandCSSId, " .okanjo-resource-cta-button, .okanjo-block2.").concat(brandCSSId, " .okanjo-resource-buy-button { color: ").concat(brandColor, " !important; }\n                    .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-cta-button, .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-buy-button { border-color: ").concat(brandColor, " !important; }\n                    .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-cta-button:hover, .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-buy-button:hover { background: ").concat(brandColor, " !important; color: #fff !important; }\n                    .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-buy-button.invert, .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-cta-button.invert { background: ").concat(brandColor, " !important; color: #fff !important; }\n                    .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-buy-button.invert:hover, .okanjo-block2.").concat(brandCSSId, ".okanjo-cta-style-button .okanjo-resource-cta-button.invert:hover { background: #fff !important; color: ").concat(brandColor, " !important; }\n                ");
         } // Append custom inline css to the element
 
 
@@ -3902,10 +3918,11 @@ var okanjo = function (window, document) {
           offer.splitfill_segment = segmentIndex;
           offer._segmentIndex = segmentIndex;
         });
-        var model = {
-          resources: data.results,
-          css: !this.config.no_css
-        }; // Render and return html (will get concatenated later)
+
+        var model = this._getBaseRenderModel({
+          resources: data.results
+        }); // Render and return html (will get concatenated later)
+
 
         return okanjo.ui.engine.render(templateName, this, model);
       }
@@ -4109,10 +4126,11 @@ var okanjo = function (window, document) {
           article.splitfill_segment = segmentIndex;
           article._segmentIndex = segmentIndex;
         });
-        var model = {
-          resources: data.results,
-          css: !this.config.no_css
-        }; // Render and return html (will get concatenated later)
+
+        var model = this._getBaseRenderModel({
+          resources: data.results
+        }); // Render and return html (will get concatenated later)
+
 
         return okanjo.ui.engine.render(templateName, this, model);
       }
@@ -4250,12 +4268,12 @@ var okanjo = function (window, document) {
         } // Pass along what the template needs to know to display the ad
 
 
-        var renderContext = {
-          css: !this.config.no_css,
+        var renderContext = this._getBaseRenderModel({
           size: size,
           adUnitPath: adUnitPath,
           segmentIndex: segmentIndex
-        }; // Render the container
+        }); // Render the container
+
 
         return okanjo.ui.engine.render(templateName, this, renderContext);
       }

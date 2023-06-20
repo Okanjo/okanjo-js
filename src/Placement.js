@@ -131,6 +131,7 @@
                 template_cta_style: string().group(DISPLAY),
                 template_cta_text: string().group(DISPLAY),
                 template_cta_color: string().group(DISPLAY),
+                template_cta_invert: bool().group(DISPLAY), // Whether to invert the cta color scheme
                 adx_unit_path: string().group(DISPLAY), // Custom DFP ad unit path
                 hide_pricing: bool().group(DISPLAY), // hide price container on product resources
 
@@ -481,10 +482,9 @@
             }
 
             // Render the container and insert the markup
-            const model = {
-                css: !this.config.no_css,
+            const model = this._getBaseRenderModel({
                 segmentContent: renderedSegments.join('')
-            };
+            });
             const templateName = this._getTemplate(Placement.ContentTypes.container, Placement.DefaultTemplates.container);
             this.setMarkup(okanjo.ui.engine.render(templateName, this, model));
 
@@ -501,6 +501,19 @@
 
             // Hook point that the widget is done loading
             this.emit('load');
+        }
+
+        /**
+         * Returns the base render model with common properties set
+         * @param model
+         * @returns {{}}
+         * @private
+         */
+        _getBaseRenderModel(model) {
+            model.css = !this.config.no_css;
+            model.button_classes = this.config.template_cta_invert ? 'invert' : '';
+            model.price_classes = this.config.hide_pricing ? 'okanjo-invisible' : '';
+            return model;
         }
 
         /**
@@ -673,9 +686,11 @@
 
             if (brandColor) {
                 brandCSS = `
-                    .okanjo-block2.${brandCSSId} .okanjo-resource-cta-button, .okanjo-block2.${brandCSSId} .okanjo-resource-buy-button { color: ${brandColor} !important; } 
-                    .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button { border-color: ${brandColor} !important; } 
-                    .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button:hover, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button:hover { background: ${brandColor} !important; color: #fff !important; } 
+                    .okanjo-block2.${brandCSSId} .okanjo-resource-cta-button, .okanjo-block2.${brandCSSId} .okanjo-resource-buy-button { color: ${brandColor} !important; }
+                    .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button { border-color: ${brandColor} !important; }
+                    .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button:hover, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button:hover { background: ${brandColor} !important; color: #fff !important; }
+                    .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button.invert, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button.invert { background: ${brandColor} !important; color: #fff !important; }
+                    .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-buy-button.invert:hover, .okanjo-block2.${brandCSSId}.okanjo-cta-style-button .okanjo-resource-cta-button.invert:hover { background: #fff !important; color: ${brandColor} !important; }
                 `;
             }
 
@@ -796,10 +811,9 @@
                 offer._segmentIndex = segmentIndex;
             });
 
-            const model = {
-                resources: data.results,
-                css: !this.config.no_css
-            };
+            const model = this._getBaseRenderModel({
+                resources: data.results
+            });
 
             // Render and return html (will get concatenated later)
             return okanjo.ui.engine.render(templateName, this, model);
@@ -1029,10 +1043,9 @@
                 article._segmentIndex = segmentIndex;
             });
 
-            const model = {
+            const model = this._getBaseRenderModel({
                 resources: data.results,
-                css: !this.config.no_css
-            };
+            });
 
             // Render and return html (will get concatenated later)
             return okanjo.ui.engine.render(templateName, this, model);
@@ -1186,12 +1199,11 @@
             }
 
             // Pass along what the template needs to know to display the ad
-            const renderContext = {
-                css: !this.config.no_css,
+            const renderContext = this._getBaseRenderModel({
                 size,
                 adUnitPath,
                 segmentIndex
-            };
+            });
 
             // Render the container
             return okanjo.ui.engine.render(templateName, this, renderContext);

@@ -12,7 +12,6 @@
         model.metricContext = this._metricBase.cx;
         model.metricParams = okanjo.net.request.stringify(this._metricBase);
         model.fitImage = 'okanjo-fit';
-        model.price_classes = this.config.hide_pricing ? 'okanjo-invisible' : '';
 
         // Enforce format restrictions
         // this._enforceLayoutOptions();
