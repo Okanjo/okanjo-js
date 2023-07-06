@@ -1,4 +1,4 @@
-/*! okanjo-js v3.5.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v3.5.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -343,7 +343,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "3.5.0",
+    version: "3.5.1",
 
     /**
      * Placeholder
@@ -3869,7 +3869,7 @@ var okanjo = function (window, document) {
           /* istanbul ignore next: jsdom won't trigger this */
 
 
-          if (okanjo.ui.isElementVisible(controller.element) && percentage >= (elementArea >= LARGE_MINIMUM_VIEW_PX ? LARGE_PX_THRESHOLD : MINIMUM_VIEW_PX)) {
+          if (okanjo.ui.isElementVisible(controller.element) && percentage >= (elementArea >= LARGE_PX_THRESHOLD ? LARGE_MINIMUM_VIEW_PX : MINIMUM_VIEW_PX)) {
             controller.successfulCount++;
           } // While this could more optimally be contained within the former condition, unit-testing blocks on this
 

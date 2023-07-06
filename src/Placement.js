@@ -747,7 +747,7 @@
                 // Check if watcher is complete, then remove it from the list
                 /* istanbul ignore next: jsdom won't trigger this */
                 if (okanjo.ui.isElementVisible(controller.element) &&
-                    percentage >= (elementArea >= LARGE_MINIMUM_VIEW_PX ? LARGE_PX_THRESHOLD : MINIMUM_VIEW_PX)) {
+                    percentage >= (elementArea >= LARGE_PX_THRESHOLD ? LARGE_MINIMUM_VIEW_PX : MINIMUM_VIEW_PX)) {
                     controller.successfulCount++;
                 }
 
