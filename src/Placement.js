@@ -18,6 +18,9 @@
     const MINIMUM_VIEW_TIME = 1000; // for 1 full second
     const MINIMUM_VIEW_FREQ = 2;    // time / freq = interval
 
+    const LARGE_PX_THRESHOLD = 242000;  // For large ads, a reduced % is applied
+    const LARGE_MINIMUM_VIEW_PX = 0.3;  // 30% of pixels must be in viewport for large ads
+
     //endregion
 
     /**
@@ -739,10 +742,12 @@
             for (let i = 0, controller; i < this._viewedWatchers.length; i++) {
                 controller = this._viewedWatchers[i];
 
+                const { percentage, elementArea } = okanjo.ui.getPercentageInViewport(controller.element);
+
                 // Check if watcher is complete, then remove it from the list
                 /* istanbul ignore next: jsdom won't trigger this */
                 if (okanjo.ui.isElementVisible(controller.element) &&
-                    okanjo.ui.getPercentageInViewport(controller.element) >= MINIMUM_VIEW_PX) {
+                    percentage >= (elementArea >= LARGE_MINIMUM_VIEW_PX ? LARGE_PX_THRESHOLD : MINIMUM_VIEW_PX)) {
                     controller.successfulCount++;
                 }
 

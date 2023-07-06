@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v3.4.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v3.5.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -331,7 +331,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "3.4.0",
+    version: "3.5.0",
 
     /**
      * Placeholder
@@ -874,14 +874,18 @@ var okanjo = function (window, document) {
     /**
      * Gets the percentage of the element pixels currently within the viewport
      * @param {HTMLElement|Node} element
-     * @return {number}
+     * @returns {{intersectionArea: number, percentage: number, elementArea: number}|{intersectionArea: null, percentage: number, elementArea: null}}
      */
     getPercentageInViewport: function getPercentageInViewport(element) {
       var e = okanjo.ui.getElementPosition(element),
           s = okanjo.ui.getScrollPosition(),
           v = okanjo.ui.getViewportSize(); // If there was a problem getting the element position, fail fast
 
-      if (e.err) return 0; // Get intersection rectangle
+      if (e.err) return {
+        percentage: 0,
+        elementArea: null,
+        intersectionArea: null
+      }; // Get intersection rectangle
 
       var _okanjo$ui$_getInters = okanjo.ui._getIntersection(e, s, v),
           intersectionArea = _okanjo$ui$_getInters.intersectionArea,
@@ -890,10 +894,18 @@ var okanjo = function (window, document) {
       /* istanbul ignore else: jsdom no love positional data */
 
 
-      if (elementArea <= 0) return 0;
+      if (elementArea <= 0) return {
+        percentage: 0,
+        elementArea: elementArea,
+        intersectionArea: intersectionArea
+      };
       /* istanbul ignore next: jsdom no love positional data, area tested with helper fn tho */
 
-      return intersectionArea / elementArea;
+      return {
+        percentage: intersectionArea / elementArea,
+        elementArea: elementArea,
+        intersectionArea: intersectionArea
+      };
     }
   };
   /**

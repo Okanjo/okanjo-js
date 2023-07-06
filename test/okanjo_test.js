@@ -580,18 +580,70 @@ describe('Okanjo Core', () => {
                 should(intersectionArea / elementArea).be.equal(1);
             });
 
+            it('large ad: should return a 100% when fully contained', () => {
+                let test = {
+                        "e": {
+                            "x1": 336,
+                            "y1": 3576.859375,
+                            "x2": 1188,
+                            "y2": 4116.859375
+                        },
+                        "s": {
+                            "x": 0,
+                            "y": 3122
+                        },
+                        "v": {
+                            "vw": 1216,
+                            "vh": 1162
+                        }
+                    }
+                ;
+
+                // noinspection JSAccessibilityCheck
+                let res = okanjo.ui._getIntersection(test.e, test.s, test.v);
+                let { intersectionArea, elementArea } = res;
+                should(intersectionArea / elementArea).be.equal(1);
+            });
+
+            it('large ad: should return 49% when large ad in view', () => {
+                let test = {
+                        "e": {
+                            "x1": 336,
+                            "y1": 3576.859375,
+                            "x2": 1188,
+                            "y2": 4116.859375
+                        },
+                        "s": {
+                            "x": 0,
+                            "y": 2684
+                        },
+                        "v": {
+                            "vw": 1216,
+                            "vh": 1162
+                        }
+                    }
+                ;
+
+                // noinspection JSAccessibilityCheck
+                let res = okanjo.ui._getIntersection(test.e, test.s, test.v);
+                let { intersectionArea, elementArea } = res;
+                should(intersectionArea / elementArea).be.equal(0.4984085648148148);
+            });
+
         });
 
         describe('okanjo.ui.getPercentageInViewport', () => {
 
             it('should return a value', () => {
                 let res = okanjo.ui.getPercentageInViewport(document.body);
-                res.should.be.exactly(0);
+                should(res).be.ok();
+                res.percentage.should.be.exactly(0);
             });
 
             it('should deal with element position errors', () => {
                 let res = okanjo.ui.getPercentageInViewport(null);
-                res.should.be.exactly(0);
+                should(res).be.ok();
+                res.percentage.should.be.exactly(0);
             });
 
         });

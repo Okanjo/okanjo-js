@@ -579,7 +579,7 @@ const okanjo = (function(window, document) { // eslint-disable-line no-unused-va
         /**
          * Gets the percentage of the element pixels currently within the viewport
          * @param {HTMLElement|Node} element
-         * @return {number}
+         * @returns {{intersectionArea: number, percentage: number, elementArea: number}|{intersectionArea: null, percentage: number, elementArea: null}}
          */
         getPercentageInViewport: (element) => {
             let e = okanjo.ui.getElementPosition(element),
@@ -587,17 +587,29 @@ const okanjo = (function(window, document) { // eslint-disable-line no-unused-va
                 v = okanjo.ui.getViewportSize();
 
             // If there was a problem getting the element position, fail fast
-            if (e.err) return 0;
+            if (e.err) return {
+                percentage: 0,
+                elementArea: null,
+                intersectionArea: null
+            };
 
             // Get intersection rectangle
             let { intersectionArea, elementArea } = okanjo.ui._getIntersection(e,s,v);
 
             // Don't let it return NaN
             /* istanbul ignore else: jsdom no love positional data */
-            if (elementArea <= 0) return 0;
+            if (elementArea <= 0) return {
+                percentage: 0,
+                elementArea,
+                intersectionArea
+            };
 
             /* istanbul ignore next: jsdom no love positional data, area tested with helper fn tho */
-            return intersectionArea / elementArea;
+            return {
+                percentage: intersectionArea / elementArea,
+                elementArea,
+                intersectionArea
+            };
         }
     };
 

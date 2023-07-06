@@ -1,4 +1,4 @@
-/*! okanjo-js v3.4.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v3.5.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -343,7 +343,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "3.4.0",
+    version: "3.5.0",
 
     /**
      * Placeholder
@@ -886,14 +886,18 @@ var okanjo = function (window, document) {
     /**
      * Gets the percentage of the element pixels currently within the viewport
      * @param {HTMLElement|Node} element
-     * @return {number}
+     * @returns {{intersectionArea: number, percentage: number, elementArea: number}|{intersectionArea: null, percentage: number, elementArea: null}}
      */
     getPercentageInViewport: function getPercentageInViewport(element) {
       var e = okanjo.ui.getElementPosition(element),
           s = okanjo.ui.getScrollPosition(),
           v = okanjo.ui.getViewportSize(); // If there was a problem getting the element position, fail fast
 
-      if (e.err) return 0; // Get intersection rectangle
+      if (e.err) return {
+        percentage: 0,
+        elementArea: null,
+        intersectionArea: null
+      }; // Get intersection rectangle
 
       var _okanjo$ui$_getInters = okanjo.ui._getIntersection(e, s, v),
           intersectionArea = _okanjo$ui$_getInters.intersectionArea,
@@ -902,10 +906,18 @@ var okanjo = function (window, document) {
       /* istanbul ignore else: jsdom no love positional data */
 
 
-      if (elementArea <= 0) return 0;
+      if (elementArea <= 0) return {
+        percentage: 0,
+        elementArea: elementArea,
+        intersectionArea: intersectionArea
+      };
       /* istanbul ignore next: jsdom no love positional data, area tested with helper fn tho */
 
-      return intersectionArea / elementArea;
+      return {
+        percentage: intersectionArea / elementArea,
+        elementArea: elementArea,
+        intersectionArea: intersectionArea
+      };
     }
   };
   /**
@@ -3083,6 +3095,10 @@ var okanjo = function (window, document) {
   var MINIMUM_VIEW_TIME = 1000; // for 1 full second
 
   var MINIMUM_VIEW_FREQ = 2; // time / freq = interval
+
+  var LARGE_PX_THRESHOLD = 242000; // For large ads, a reduced % is applied
+
+  var LARGE_MINIMUM_VIEW_PX = 0.3; // 30% of pixels must be in viewport for large ads
   //endregion
 
   /**
@@ -3844,11 +3860,16 @@ var okanjo = function (window, document) {
       value: function _checkViewWatchers() {
         // Check each registered watcher
         for (var i = 0, controller; i < this._viewedWatchers.length; i++) {
-          controller = this._viewedWatchers[i]; // Check if watcher is complete, then remove it from the list
+          controller = this._viewedWatchers[i];
+
+          var _okanjo$ui$getPercent = okanjo.ui.getPercentageInViewport(controller.element),
+              percentage = _okanjo$ui$getPercent.percentage,
+              elementArea = _okanjo$ui$getPercent.elementArea; // Check if watcher is complete, then remove it from the list
 
           /* istanbul ignore next: jsdom won't trigger this */
 
-          if (okanjo.ui.isElementVisible(controller.element) && okanjo.ui.getPercentageInViewport(controller.element) >= MINIMUM_VIEW_PX) {
+
+          if (okanjo.ui.isElementVisible(controller.element) && percentage >= (elementArea >= LARGE_MINIMUM_VIEW_PX ? LARGE_PX_THRESHOLD : MINIMUM_VIEW_PX)) {
             controller.successfulCount++;
           } // While this could more optimally be contained within the former condition, unit-testing blocks on this
 
@@ -5445,7 +5466,7 @@ var okanjo = function (window, document) {
 return okanjo;
 }));
 
-/*! okanjo-js v3.4.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v3.5.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {(function (window) {
   var okanjo = window.okanjo;
   okanjo.ui.engine.registerCss("adx.block2", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-align-start{display:flex;align-items:flex-start}.okanjo-align-end{display:flex;align-items:flex-end}.okanjo-align-center{display:flex;align-items:center}.okanjo-align-baseline{display:flex;align-items:baseline}.okanjo-align-stretch{display:flex;align-items:stretch}.okanjo-justify-start{display:flex;justify-content:flex-start}.okanjo-justify-end{display:flex;justify-content:flex-end}.okanjo-justify-center{display:flex;justify-content:center}.okanjo-justify-between{display:flex;justify-content:space-between}.okanjo-justify-around{display:flex;justify-content:space-around}.okanjo-justify-evenly{display:flex;justify-content:space-evenly}.okanjo-block2 .okanjo-adx{padding:0}.okanjo-block2 .okanjo-adx:after,.okanjo-block2 .okanjo-adx:before{content:\" \";display:table}.okanjo-block2 .okanjo-adx:after{clear:both}.okanjo-block2 .okanjo-adx .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2 .okanjo-adx .okanjo-adx-container{text-align:center;padding:0;line-height:0}.okanjo-block2 .okanjo-adx .okanjo-adx-frame{margin:0}", {
