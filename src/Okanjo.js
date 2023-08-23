@@ -512,10 +512,11 @@ const okanjo = (function(window, document) { // eslint-disable-line no-unused-va
             try {
                 let rect = element.getBoundingClientRect();
                 let body = document.body.getBoundingClientRect();
+                let domFailed = !document.body.contains(element);
                 // let pos = okanjo.ui.getScrollPosition();
 
                 /* istanbul ignore else: jsdom doesn't mock this */
-                if (!document.body.contains(element)) {
+                if (domFailed) {
                     okanjo.report(err, element);
                 }
                 return {
@@ -529,7 +530,7 @@ const okanjo = (function(window, document) { // eslint-disable-line no-unused-va
                     y1: rect.top - body.top,
                     x2: rect.right - body.left,
                     y2: rect.bottom - body.top,
-
+                    err: domFailed ? 2 : 0
                 };
             } catch (e) {
                 okanjo.report(err, { exception: e, element });
@@ -590,7 +591,8 @@ const okanjo = (function(window, document) { // eslint-disable-line no-unused-va
             if (e.err) return {
                 percentage: 0,
                 elementArea: null,
-                intersectionArea: null
+                intersectionArea: null,
+                err: true
             };
 
             // Get intersection rectangle

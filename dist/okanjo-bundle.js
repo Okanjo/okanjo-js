@@ -1,4 +1,4 @@
-/*! okanjo-js v3.5.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v3.6.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -343,7 +343,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "3.5.1",
+    version: "3.6.0",
 
     /**
      * Placeholder
@@ -818,11 +818,12 @@ var okanjo = function (window, document) {
 
       try {
         var rect = element.getBoundingClientRect();
-        var body = document.body.getBoundingClientRect(); // let pos = okanjo.ui.getScrollPosition();
+        var body = document.body.getBoundingClientRect();
+        var domFailed = !document.body.contains(element); // let pos = okanjo.ui.getScrollPosition();
 
         /* istanbul ignore else: jsdom doesn't mock this */
 
-        if (!document.body.contains(element)) {
+        if (domFailed) {
           okanjo.report(err, element);
         }
 
@@ -835,7 +836,8 @@ var okanjo = function (window, document) {
           x1: rect.left - body.left,
           y1: rect.top - body.top,
           x2: rect.right - body.left,
-          y2: rect.bottom - body.top
+          y2: rect.bottom - body.top,
+          err: domFailed ? 2 : 0
         };
       } catch (e) {
         okanjo.report(err, {
@@ -896,7 +898,8 @@ var okanjo = function (window, document) {
       if (e.err) return {
         percentage: 0,
         elementArea: null,
-        intersectionArea: null
+        intersectionArea: null,
+        err: true
       }; // Get intersection rectangle
 
       var _okanjo$ui$_getInters = okanjo.ui._getIntersection(e, s, v),
@@ -3136,7 +3139,8 @@ var okanjo = function (window, document) {
       // Aggregate view watchers into a single interval fn
 
       _this10._viewWatcherIv = null;
-      _this10._viewedWatchers = []; // Start loading content
+      _this10._viewedWatchers = [];
+      _this10.disposed = false; // Start loading content
 
       if (!options.no_init) _this10.init();
       return _this10;
@@ -3864,7 +3868,14 @@ var okanjo = function (window, document) {
 
           var _okanjo$ui$getPercent = okanjo.ui.getPercentageInViewport(controller.element),
               percentage = _okanjo$ui$getPercent.percentage,
-              elementArea = _okanjo$ui$getPercent.elementArea; // Check if watcher is complete, then remove it from the list
+              elementArea = _okanjo$ui$getPercent.elementArea,
+              err = _okanjo$ui$getPercent.err; // If the viewability stuff failed, the dom is messed up - clean up now
+
+
+          if (err) {
+            this.dispose();
+            return;
+          } // Check if watcher is complete, then remove it from the list
 
           /* istanbul ignore next: jsdom won't trigger this */
 
@@ -3905,6 +3916,22 @@ var okanjo = function (window, document) {
           clearInterval(this._viewWatcherIv);
           this._viewWatcherIv = null;
         }
+      }
+      /**
+       * Removes the content from the dom, removes all event and watchers
+       */
+
+    }, {
+      key: "dispose",
+      value: function dispose() {
+        // Stop watching for viewable events
+        this._toggleViewWatcher(false); // Remove all child content
+
+
+        this.setMarkup(''); // Flag that this widget instance is dead
+
+        this.disposed = true;
+        this.emit('dispose');
       } //endregion
       //region Product Handling
 
@@ -5466,7 +5493,7 @@ var okanjo = function (window, document) {
 return okanjo;
 }));
 
-/*! okanjo-js v3.5.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-js v3.6.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 (function(okanjo) {(function (window) {
   var okanjo = window.okanjo;
   okanjo.ui.engine.registerCss("adx.block2", ".okanjo-expansion-root{position:relative}.okanjo-expansion-root iframe.okanjo-ad-in-unit{position:absolute;top:0;left:0;right:0;bottom:0;z-index:1}.okanjo-align-start{display:flex;align-items:flex-start}.okanjo-align-end{display:flex;align-items:flex-end}.okanjo-align-center{display:flex;align-items:center}.okanjo-align-baseline{display:flex;align-items:baseline}.okanjo-align-stretch{display:flex;align-items:stretch}.okanjo-justify-start{display:flex;justify-content:flex-start}.okanjo-justify-end{display:flex;justify-content:flex-end}.okanjo-justify-center{display:flex;justify-content:center}.okanjo-justify-between{display:flex;justify-content:space-between}.okanjo-justify-around{display:flex;justify-content:space-around}.okanjo-justify-evenly{display:flex;justify-content:space-evenly}.okanjo-block2 .okanjo-adx{padding:0}.okanjo-block2 .okanjo-adx:after,.okanjo-block2 .okanjo-adx:before{content:\" \";display:table}.okanjo-block2 .okanjo-adx:after{clear:both}.okanjo-block2 .okanjo-adx .okanjo-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px}.okanjo-block2 .okanjo-adx .okanjo-adx-container{text-align:center;padding:0;line-height:0}.okanjo-block2 .okanjo-adx .okanjo-adx-frame{margin:0}", {

@@ -1,4 +1,4 @@
-/*! okanjo-metrics.js v3.5.1 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
+/*! okanjo-metrics.js v3.6.0 | (c) 2013 Okanjo Partners Inc | https://okanjo.com/ */
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -331,7 +331,7 @@ var okanjo = function (window, document) {
     /**
      * Okanjo version
      */
-    version: "3.5.1",
+    version: "3.6.0",
 
     /**
      * Placeholder
@@ -806,11 +806,12 @@ var okanjo = function (window, document) {
 
       try {
         var rect = element.getBoundingClientRect();
-        var body = document.body.getBoundingClientRect(); // let pos = okanjo.ui.getScrollPosition();
+        var body = document.body.getBoundingClientRect();
+        var domFailed = !document.body.contains(element); // let pos = okanjo.ui.getScrollPosition();
 
         /* istanbul ignore else: jsdom doesn't mock this */
 
-        if (!document.body.contains(element)) {
+        if (domFailed) {
           okanjo.report(err, element);
         }
 
@@ -823,7 +824,8 @@ var okanjo = function (window, document) {
           x1: rect.left - body.left,
           y1: rect.top - body.top,
           x2: rect.right - body.left,
-          y2: rect.bottom - body.top
+          y2: rect.bottom - body.top,
+          err: domFailed ? 2 : 0
         };
       } catch (e) {
         okanjo.report(err, {
@@ -884,7 +886,8 @@ var okanjo = function (window, document) {
       if (e.err) return {
         percentage: 0,
         elementArea: null,
-        intersectionArea: null
+        intersectionArea: null,
+        err: true
       }; // Get intersection rectangle
 
       var _okanjo$ui$_getInters = okanjo.ui._getIntersection(e, s, v),

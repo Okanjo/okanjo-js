@@ -3218,6 +3218,47 @@ describe('Placements', () => {
             placement = new okanjo.Placement(target);
         });
 
+        it('should self-dispose when dom issues arise ', (done) => {
+
+            resetDocument();
+            let target = insertDropzone({ key: 'unit_test_key' });
+            let placement;
+
+            setAdsHandler(() => {
+                const payload = TestResponses.getExampleProductResponse();
+
+                // add an extra product
+                payload.data.results.push(JSON.parse(JSON.stringify(payload.data.results[0])));
+                payload.data.results[2].id = 'product_test_2gT3kBcwVQZ1kpEmc';
+                payload.data.results[2].backfill = false;
+                payload.data.results[2].shortfill = true;
+
+                // edge case for view events
+                payload.data.results[1].backfill = true;
+
+                return {
+                    statusCode: 200,
+                    payload
+                };
+            });
+
+            // Make that placement
+            placement = new okanjo.Placement(target);
+
+            // sabotage
+            placement.on('data', () => {
+                target.remove(); // this should trigger the kabooms
+            })
+
+            // dispose event should fire
+            placement.on('dispose', () => {
+                placement.disposed.should.be.exactly(true);
+                placement.element.innerHTML.should.be.exactly('');
+                done();
+            });
+
+        });
+
     });
 
     describe('Splitfill', () => {

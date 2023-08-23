@@ -48,6 +48,7 @@
             // Aggregate view watchers into a single interval fn
             this._viewWatcherIv = null;
             this._viewedWatchers = [];
+            this.disposed = false;
 
             // Start loading content
             if (!options.no_init) this.init();
@@ -742,7 +743,13 @@
             for (let i = 0, controller; i < this._viewedWatchers.length; i++) {
                 controller = this._viewedWatchers[i];
 
-                const { percentage, elementArea } = okanjo.ui.getPercentageInViewport(controller.element);
+                const { percentage, elementArea, err } = okanjo.ui.getPercentageInViewport(controller.element);
+
+                // If the viewability stuff failed, the dom is messed up - clean up now
+                if (err) {
+                    this.dispose();
+                    return;
+                }
 
                 // Check if watcher is complete, then remove it from the list
                 /* istanbul ignore next: jsdom won't trigger this */
@@ -779,6 +786,21 @@
                 clearInterval(this._viewWatcherIv);
                 this._viewWatcherIv = null;
             }
+        }
+
+        /**
+         * Removes the content from the dom, removes all event and watchers
+         */
+        dispose() {
+            // Stop watching for viewable events
+            this._toggleViewWatcher(false);
+
+            // Remove all child content
+            this.setMarkup('');
+
+            // Flag that this widget instance is dead
+            this.disposed = true;
+            this.emit('dispose');
         }
 
         //endregion
